@@ -1,47 +1,65 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Hotel, ImagesRef
-import base64
+from backend.services.services import HotelService
 
 # Create your views here.
 def get_home(request):
-    # Get all images from the database
-    images_data = []
-    for img in ImagesRef.objects.all():
-        # Convert binary data to base64 string
-        image_base64 = base64.b64encode(img.ImageData).decode('utf-8')
-        images_data.append({
-            'id': img.ImageId,
-            'image_data': image_base64
-        })
-    
-    # Get hotel contact information
-    hotel_info = Hotel.objects.first()  # Get the first (and presumably only) hotel record
+    # Get hotel name and contact information
+    hotel_name = HotelService.get_hotel_name()
+    hotel_info = HotelService.get_hotel_info()
     
     return render(request, 'home.html', {
-        'images': images_data,
-        'hotel': hotel_info
+        'hotel_name': hotel_name,
+        'hotel': hotel_info  # For contact info in footer
     })
 
 def get_about(request):
-    return render(request,'about.html')
+    # Get hotel name and contact information
+    hotel_name = HotelService.get_hotel_name()
+    hotel_info = HotelService.get_hotel_info()
+    return render(request, 'about.html', {
+        'hotel_name': hotel_name,
+        'hotel': hotel_info
+    })
 
 def get_contact(request):
-    # Get hotel contact information
-    hotel_info = Hotel.objects.first()  # Get the first (and presumably only) hotel record
-    return render(request, 'contact.html', {'hotel': hotel_info})
+    # Get hotel name and contact information
+    hotel_name = HotelService.get_hotel_name()
+    hotel_info = HotelService.get_hotel_info()
+    return render(request, 'contact.html', {
+        'hotel_name': hotel_name,
+        'hotel': hotel_info
+    })
 
 def get_events(request):
-    return render(request,'events.html')
+    # Get hotel name and contact information
+    hotel_name = HotelService.get_hotel_name()
+    hotel_info = HotelService.get_hotel_info()
+    return render(request, 'events.html', {
+        'hotel_name': hotel_name,
+        'hotel': hotel_info
+    })
 
 def index(request):
     return render(request,'index.html')
 
 def get_reservation(request):
-    return render(request,'reservation.html')
+    # Get hotel name and contact information
+    hotel_name = HotelService.get_hotel_name()
+    hotel_info = HotelService.get_hotel_info()
+    return render(request, 'reservation.html', {
+        'hotel_name': hotel_name,
+        'hotel': hotel_info
+    })
 
 def get_rooms(request):
-    return render(request,'rooms.html')
+    # Get hotel name and contact information
+    hotel_name = HotelService.get_hotel_name()
+    hotel_info = HotelService.get_hotel_info()
+    return render(request, 'rooms.html', {
+        'hotel_name': hotel_name,
+        'hotel': hotel_info
+    })
 
 def newsletter_signup(request):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':

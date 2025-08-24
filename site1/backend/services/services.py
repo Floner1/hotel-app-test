@@ -1,11 +1,16 @@
-from data.repos.repositories import HotelRepository, ImageRepository
+from home.models import Hotel
 
 class HotelService:
     @staticmethod
-    def get_hotel_info():
-        return HotelRepository.get_hotel_info()
+    def get_hotel_name():
+        result = Hotel.objects.values('hotel_name').first()
+        return result['hotel_name'] if result else 'Hotel Name Not Found'
 
-class ImageService:
     @staticmethod
-    def get_all_images():
-        return ImageRepository.get_all_images()
+    def get_hotel_info():
+        return Hotel.objects.values(
+            'hotel_name',
+            'hotel_address',
+            'phone',
+            'email'
+        ).first()

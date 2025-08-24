@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Sogo Hotel by Colorlib.com</title>
+    <title>{{ hotel_name }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="" />
     <meta name="keywords" content="" />
@@ -30,7 +30,7 @@
     <header class="site-header js-site-header">
       <div class="container-fluid">
         <div class="row align-items-center">
-          <div class="col-6 col-lg-4 site-logo" data-aos="fade"><a href="{% url 'home' %}">Sogo Hotel</a></div>
+          <div class="col-6 col-lg-4 site-logo" data-aos="fade"><a href="{% url 'home' %}">{{ hotel_name }}</a></div>
           <div class="col-6 col-lg-8">
 
             <div class="site-menu-toggle js-site-menu-toggle"  data-aos="fade">
@@ -68,7 +68,7 @@
       <div class="container">
         <div class="row site-hero-inner justify-content-center align-items-center">
           <div class="col-md-10 text-center" data-aos="fade-up">
-            <h1 class="heading">Welcome to <em>Sogo</em> Hotel <br> Relax Your Soul</h1>
+            <h1 class="heading" style="white-space: nowrap;">Welcome to {{ hotel_name }}<br><span style="font-size: 0.9em;">Relax Your Soul</span></h1>
           </div>
         </div>
       </div>
@@ -214,29 +214,6 @@
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up">Gallery</h2>
-            <p data-aos="fade-up" data-aos-delay="100">Explore our beautiful spaces through our collection of stunning images.</p>
-          </div>
-        </div>
-        
-        <div class="row">
-          <div class="col-12">
-            <div class="owl-carousel image-carousel">
-              {% for image in images %}
-                <div class="item">
-                  <img src="data:image/jpeg;base64,{{ image.image_data }}" alt="Hotel Image" class="img-fluid rounded">
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <div class="row justify-content-center text-center mb-5">
-          <div class="col-md-7">
             <h2 class="heading" data-aos="fade-up">Our Services</h2>
             <p data-aos="fade-up" data-aos-delay="100">Experience luxury and convenience with our comprehensive range of hotel services designed to make your stay memorable.</p>
           </div>
@@ -278,29 +255,6 @@
       </div>
     </section>
 
-    <section class="section">
-      <div class="container">
-        <div class="row justify-content-center text-center mb-5">
-          <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up">Hotel Gallery</h2>
-            <p data-aos="fade-up" data-aos-delay="100">Explore our beautiful hotel through our collection of stunning images.</p>
-          </div>
-        </div>
-        
-        <div class="row">
-          <div class="col-12">
-            <div class="owl-carousel image-carousel">
-              {% for image in images %}
-                <div class="item">
-                  <img src="data:image/jpeg;base64,{{ image.image_data }}" alt="Hotel Image" class="img-fluid rounded">
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
     <section class="section bg-image overlay" style="background-image: url('{% static 'images/hero_4.jpg' %}');">
       <div class="container">
         <div class="row align-items-center">
@@ -334,10 +288,10 @@
             </ul>
           </div>
           <div class="col-md-3 mb-5 pr-md-5 contact-info">
-            <p><span class="d-block"><span class="ion-ios-location h5 mr-3 text-primary"></span>Address:</span> <span> {{ hotel.hotel_address }}</span></p>
-            <p><span class="d-block"><span class="ion-ios-telephone h5 mr-3 text-primary"></span>Phone:</span> <span> {{ hotel.phone }}</span></p>
-            <p><span class="d-block"><span class="ion-ios-email h5 mr-3 text-primary"></span>Email:</span> <span> {{ hotel.email }}</span></p>
-          </div>
+            <p><span class="d-block"><span class="ion-ios-location h5 text-primary"></span>Address:</span> <span> {{ hotel.hotel_address }}</span></p>
+            <p><span class="d-block"><span class="ion-ios-telephone h5 text-primary"></span>Phone:</span> <span> {{ hotel.phone }}</span></p>
+            <p><span class="d-block"><span class="ion-ios-email h5 text-primary"></span>Email:</span> <span> {{ hotel.email }}</span></p>
+         </div>
           <div class="col-md-3 mb-5">
             <p>Sign up for our newsletter</p>
             <form id="newsletter-form" class="footer-newsletter">
