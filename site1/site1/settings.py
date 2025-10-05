@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
+    'django.contrib.sessions',  
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'home',  # Keep original app name
@@ -57,8 +57,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'frontend' / 'templates',
-            BASE_DIR / 'home' / 'Templates',  # Keep old path during transition
+            BASE_DIR / 'templates',  # Use only the new templates directory
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -126,7 +125,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    BASE_DIR / 'frontend' / 'static',  # Updated static files path
+    BASE_DIR / 'static',  # Use only the new static directory
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 

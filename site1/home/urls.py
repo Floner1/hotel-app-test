@@ -6,7 +6,7 @@ urlpatterns = [
     path('home/', views.get_home, name='home'),  # /home URL
     path('about/', views.get_about, name='about'),
     path('contact/', views.get_contact, name='contact'),
-    path('events/', views.get_events, name='events'),
+
     path('reservation/', views.get_reservation, name='reservation'),
     path('rooms/', views.get_rooms, name='rooms'),
     path('index/', views.get_home, name='index'),  # alias for home

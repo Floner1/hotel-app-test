@@ -31,14 +31,6 @@ def get_contact(request):
         'hotel': hotel_info
     })
 
-def get_events(request):
-    # Get hotel name and contact information
-    hotel_name = HotelService.get_hotel_name()
-    hotel_info = HotelService.get_hotel_info()
-    return render(request, 'events.html', {
-        'hotel_name': hotel_name,
-        'hotel': hotel_info
-    })
 
 def index(request):
     return render(request,'index.html')
