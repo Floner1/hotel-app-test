@@ -1,16 +1,22 @@
 <!DOCTYPE HTML>
 <html>
   <head>
+    <!-- Meta tags for character encoding and responsive design -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Sogo Hotel by Colorlib.com</title>
+    <title>{{ hotel.hotel_name }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="" />
     <meta name="keywords" content="" />
     <meta name="author" content="" />
+    
+    <!-- Google Fonts -->
     <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=|Roboto+Sans:400,700|Playfair+Display:400,700">
 
+    <!-- Load Django static files -->
     {% load static %}
+    
+    <!-- CSS Dependencies -->
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/animate.css' %}">
     <link rel="stylesheet" href="{% static 'css/owl.carousel.min.css' %}">
@@ -19,21 +25,23 @@
     <link rel="stylesheet" href="{% static 'css/jquery.timepicker.css' %}">
     <link rel="stylesheet" href="{% static 'css/fancybox.min.css' %}">
     
+    <!-- Icon Fonts -->
     <link rel="stylesheet" href="{% static 'fonts/ionicons/css/ionicons.min.css' %}">
     <link rel="stylesheet" href="{% static 'fonts/fontawesome/css/font-awesome.min.css' %}">
 
-    <!-- Theme Style -->
+    <!-- Main Theme Style -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
   </head>
   <body>
-    
+
+    <!-- Main Navigation Header -->
     <header class="site-header js-site-header">
       <div class="container-fluid">
         <div class="row align-items-center">
-          <div class="col-6 col-lg-4 site-logo" data-aos="fade"><a href="{% url 'home' %}">Sogo Hotel</a></div>
+          <!-- Hotel Logo/Name -->
+          <div class="col-6 col-lg-4 site-logo" data-aos="fade"><a href="{% url 'home' %}">{{ hotel.hotel_name }}</a></div>
           <div class="col-6 col-lg-8">
-
-
+            <!-- Mobile Menu Toggle Button -->
             <div class="site-menu-toggle js-site-menu-toggle"  data-aos="fade">
               <span></span>
               <span></span>
@@ -41,11 +49,13 @@
             </div>
             <!-- END menu-toggle -->
 
+            <!-- Main Navigation Menu -->
             <div class="site-navbar js-site-navbar">
               <nav role="navigation">
                 <div class="container">
                   <div class="row full-height align-items-center">
                     <div class="col-md-6 mx-auto">
+                      <!-- Navigation Links -->
                       <ul class="list-unstyled menu">
                         <li><a href="{% url 'home' %}">Home</a></li>
                         <li><a href="{% url 'rooms' %}">Rooms</a></li>
@@ -87,12 +97,15 @@
     </section>
     <!-- END section -->
 
+    <!-- Main Reservation Form Section -->
     <section class="section contact-section" id="next">
       <div class="container">
         <div class="row">
+          <!-- Reservation Form Column -->
           <div class="col-md-7" data-aos="fade-up" data-aos-delay="100">
-            
+            <!-- Main Booking Form -->
             <form action="#" method="post" class="bg-white p-md-5 p-4 mb-5 border">
+              <!-- Name and Phone Fields -->
               <div class="row">
                 <div class="col-md-6 form-group">
                   <label class="text-black font-weight-bold" for="name">Name</label>
@@ -168,9 +181,9 @@
           <div class="col-md-5" data-aos="fade-up" data-aos-delay="200">
             <div class="row">
               <div class="col-md-10 ml-auto contact-info">
-                <p><span class="d-block">Address:</span> <span class="text-black"> 98 West 21th Street, Suite 721 New York NY 10016</span></p>
-                <p><span class="d-block">Phone:</span> <span class="text-black"> (+1) 435 3533</span></p>
-                <p><span class="d-block">Email:</span> <span class="text-black"> info@yourdomain.com</span></p>
+                <p><span class="d-block"><span class="ion-ios-location h5 text-primary"></span>Address:</span> <span> <strong>{{ hotel.hotel_address }}</strong></span></p>
+                <p><span class="d-block"><span class="ion-ios-telephone h5 text-primary"></span>Phone:</span> <span> <strong>{{ hotel.phone }}</strong></span></p>
+                <p><span class="d-block"><span class="ion-ios-email h5 text-primary"></span>Email:</span> <span> <strong>{{ hotel.email }}</strong></span></p>
               </div>
             </div>
           </div>
@@ -341,9 +354,9 @@
           </div>
           <div class="col-md-3 mb-5 pr-md-5 contact-info">
             <!-- <li>198 West 21th Street, <br> Suite 721 New York NY 10016</li> -->
-            <p><span class="d-block"><span class="ion-ios-location h5 mr-3 text-primary"></span>Address:</span> <span> 198 West 21th Street, <br> Suite 721 New York NY 10016</span></p>
-            <p><span class="d-block"><span class="ion-ios-telephone h5 mr-3 text-primary"></span>Phone:</span> <span> (+1) 435 3533</span></p>
-            <p><span class="d-block"><span class="ion-ios-email h5 mr-3 text-primary"></span>Email:</span> <span> info@domain.com</span></p>
+            <p><span class="d-block"><span class="ion-ios-location h5 text-primary"></span>Address:</span> <span> {{ hotel.hotel_address }}</span></p>
+            <p><span class="d-block"><span class="ion-ios-telephone h5 text-primary"></span>Phone:</span> <span> {{ hotel.phone }}</span></p>
+            <p><span class="d-block"><span class="ion-ios-email h5 text-primary"></span>Email:</span> <span> {{ hotel.email }}</span></p>
           </div>
           <div class="col-md-3 mb-5">
             <p>Sign up for our newsletter</p>
@@ -357,9 +370,6 @@
         </div>
         <div class="row pt-5">
           <p class="col-md-6 text-left">
-            <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
-            Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | This template is made with <i class="icon-heart-o" aria-hidden="true"></i> by <a href="https://colorlib.com" target="_blank" >Colorlib</a>
-            <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
           </p>
             
           <p class="col-md-6 text-right social">
@@ -373,33 +383,47 @@
       </div>
     </footer>
     
+    <!-- JavaScript Dependencies -->
+    <!-- jQuery and jQuery Migrate -->
     <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
     <script src="{% static 'js/jquery-migrate-3.0.1.min.js' %}"></script>
+    
+    <!-- Bootstrap Dependencies -->
     <script src="{% static 'js/popper.min.js' %}"></script>
     <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    
+    <!-- Feature Libraries -->
     <script src="{% static 'js/owl.carousel.min.js' %}"></script>
     <script src="{% static 'js/jquery.stellar.min.js' %}"></script>
     <script src="{% static 'js/jquery.fancybox.min.js' %}"></script>
     
+    <!-- Animation Library -->
     <script src="{% static 'js/aos.js' %}"></script>
     
+    <!-- Date and Time Pickers -->
     <script src="{% static 'js/bootstrap-datepicker.js' %}"></script> 
     <script src="{% static 'js/jquery.timepicker.min.js' %}"></script> 
 
+    <!-- Custom Site Scripts -->
     <script src="{% static 'js/main.js' %}"></script>
 
+    <!-- Newsletter Form Handling -->
     <script>
       $(document).ready(function() {
+        // Handle newsletter form submission
         $('#newsletter-form').on('submit', function(e) {
+          // Prevent default form submission
           e.preventDefault();
           
+          // Get form elements
           var form = $(this);
           var submitButton = form.find('button[type="submit"]');
           var email = form.find('input[name="email"]').val();
           
-          // Disable the submit button
+          // Disable submit button while processing
           submitButton.prop('disabled', true);
           
+          // Submit form via AJAX
           $.ajax({
             url: '{% url "newsletter_signup" %}',
             type: 'POST',
@@ -408,7 +432,7 @@
               'csrfmiddlewaretoken': '{{ csrf_token }}'
             },
             complete: function() {
-              // Clear the form and re-enable the submit button
+              // Reset form and re-enable submit button after completion
               form.find('input[name="email"]').val('');
               submitButton.prop('disabled', false);
             }
