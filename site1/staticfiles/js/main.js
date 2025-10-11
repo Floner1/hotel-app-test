@@ -159,8 +159,10 @@
       'autoclose': true
     });
     $('#checkin_date, #checkout_date').datepicker({
-      'format': 'd MM, yyyy',
-      'autoclose': true
+      'format': 'm/d/yyyy',
+      'autoclose': true,
+      'startDate': 'today',
+      'todayHighlight': true
     });
     $('#m_time').timepicker();
   };
