@@ -29,54 +29,37 @@ class Hotel(models.Model):
         managed = False  # This table already exists in SQL Server
 
 
-# Define the Reservation model for storing guest booking information
-class Reservation(models.Model):
-    # Primary key field for unique reservation identification
-    reservation_id = models.AutoField(primary_key=True)
+# Define the CustomerBookingInfo model for storing guest booking information
+class CustomerBookingInfo(models.Model):
+    # Primary key field for unique booking identification
+    booking_id = models.AutoField(primary_key=True)
     
     # Guest Information
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField(max_length=255)
+    name = models.CharField(max_length=255)
     phone = models.CharField(max_length=50)
+    email = models.EmailField(max_length=255)
     
     # Reservation Details
-    check_in_date = models.DateField()
-    check_out_date = models.DateField()
+    checkin_date = models.DateField()
+    checkout_date = models.DateField()
     
     # Guest Count
     adults = models.IntegerField(default=1)
     children = models.IntegerField(default=0)
     
-    # Room Information
-    room_type = models.CharField(max_length=100, blank=True, null=True)  # e.g., "Single", "Family", "Presidential"
+    # Special Notes (optional field)
+    notes = models.TextField(blank=True, null=True)
     
-    # Special Requests (optional field)
-    special_requests = models.TextField(blank=True, null=True)
-    
-    # Reservation Status
-    status = models.CharField(
-        max_length=50, 
-        default='pending',
-        choices=[
-            ('pending', 'Pending'),
-            ('confirmed', 'Confirmed'),
-            ('cancelled', 'Cancelled'),
-            ('completed', 'Completed')
-        ]
-    )
-    
-    # Timestamps
+    # Timestamp
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         # Specify the actual table name in the database
-        db_table = 'reservation'
-        # Django will manage this table (create/modify schema)
-        managed = True
-        # Order reservations by most recent first
+        db_table = 'customer_booking_info'
+        # Table already exists in SQL Server, don't let Django manage it
+        managed = False
+        # Order bookings by most recent first
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"Reservation #{self.reservation_id} - {self.first_name} {self.last_name}"
+        return f"Booking #{self.booking_id} - {self.name}"
