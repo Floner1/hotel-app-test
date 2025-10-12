@@ -12,10 +12,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'site1.settings')
 django.setup()
 
-from backend.services.services import ReservationService
+from backend.services.services import ReservationService, ROOM_TYPE_RATES
 from data.repos.repositories import ReservationRepository
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
+import uuid
 
 def test_imports():
     """Test that all necessary imports work"""
@@ -50,6 +51,48 @@ def test_service_methods():
             print(f"   ❌ {method} - Missing")
             return False
     return True
+
+def test_total_days_and_cost_calculation():
+    """Ensure stay duration and total cost are stored correctly."""
+    print("\n" + "="*60)
+    print("TEST 8: Total Days & Cost Calculation")
+    print("="*60)
+
+    checkin = datetime.now() + timedelta(days=10)
+    checkout = checkin + timedelta(days=4)
+
+    test_data = {
+        'name': 'Cost Test User',
+        'phone': '555-6789',
+        'email': f"cost_test_{uuid.uuid4().hex}@example.com",
+        'checkin_date': checkin.strftime('%m/%d/%Y'),
+        'checkout_date': checkout.strftime('%m/%d/%Y'),
+        'adults': 2,
+        'children': 0,
+        'room_type': '1 bed balcony room',
+        'notes': 'Testing total cost logic'
+    }
+
+    expected_days = (checkout - checkin).days
+    expected_cost = expected_days * ROOM_TYPE_RATES['1 bed balcony room']
+
+    booking = None
+    try:
+        booking = ReservationService.create_reservation(test_data)
+        if booking.total_days != expected_days:
+            print(f"   ❌ total_days stored as {booking.total_days}, expected {expected_days}")
+            return False
+        if booking.total_cost_amount != expected_cost:
+            print(f"   ❌ total_cost_amount stored as {booking.total_cost_amount}, expected {expected_cost}")
+            return False
+        print(f"   ✅ Stored total_days={booking.total_days}, total_cost_amount={booking.total_cost_amount}")
+        return True
+    except ValidationError as exc:
+        print(f"   ❌ Reservation creation failed: {exc}")
+        return False
+    finally:
+        if booking:
+            booking.delete()
 
 def test_repository_methods():
     """Test that repository methods exist"""
@@ -88,6 +131,7 @@ def test_date_validation():
             'checkout_date': later_date,
             'adults': 2,
             'children': 1,
+            'room_type': '1 bed balcony room',
             'notes': 'Test booking'
         }
         print(f"   Testing valid dates: {future_date} to {later_date}")
@@ -108,7 +152,8 @@ def test_date_validation():
             'checkin_date': past_date,
             'checkout_date': future_date,
             'adults': 2,
-            'children': 1
+            'children': 1,
+            'room_type': '1 bed balcony room'
         }
         print(f"   Testing past check-in date: {past_date}")
         ReservationService.create_reservation(test_data)
@@ -121,10 +166,37 @@ def test_date_validation():
     
     return True
 
+def test_human_readable_date_parsing():
+    """Ensure human readable date strings are accepted"""
+    print("\n" + "="*60)
+    print("TEST 5: Human Readable Date Parsing")
+    print("="*60)
+
+    sample_inputs = [
+        ('23 October, 2025', datetime(2025, 10, 23).date()),
+        ('October 23, 2025', datetime(2025, 10, 23).date()),
+        ('23 Oct 2025', datetime(2025, 10, 23).date()),
+    ]
+
+    all_passed = True
+    for value, expected in sample_inputs:
+        try:
+            parsed = ReservationService._parse_date(value)
+            if parsed == expected:
+                print(f"   ✅ '{value}' parsed correctly -> {parsed}")
+            else:
+                print(f"   ❌ '{value}' parsed to {parsed}, expected {expected}")
+                all_passed = False
+        except Exception as exc:
+            print(f"   ❌ '{value}' raised {exc}")
+            all_passed = False
+
+    return all_passed
+
 def test_email_validation():
     """Test email validation"""
     print("\n" + "="*60)
-    print("TEST 5: Email Validation")
+    print("TEST 6: Email Validation")
     print("="*60)
     
     future_date = (datetime.now() + timedelta(days=7)).strftime('%m/%d/%Y')
@@ -139,7 +211,8 @@ def test_email_validation():
             'checkin_date': future_date,
             'checkout_date': later_date,
             'adults': 2,
-            'children': 1
+            'children': 1,
+            'room_type': '1 bed balcony room'
         }
         print("   Testing invalid email: 'invalid-email'")
         ReservationService.create_reservation(test_data)
@@ -155,7 +228,7 @@ def test_email_validation():
 def test_guest_count_validation():
     """Test guest count validation"""
     print("\n" + "="*60)
-    print("TEST 6: Guest Count Validation")
+    print("TEST 7: Guest Count Validation")
     print("="*60)
     
     future_date = (datetime.now() + timedelta(days=7)).strftime('%m/%d/%Y')
@@ -170,7 +243,8 @@ def test_guest_count_validation():
             'checkin_date': future_date,
             'checkout_date': later_date,
             'adults': 0,  # Invalid
-            'children': 2
+            'children': 2,
+            'room_type': '1 bed balcony room'
         }
         print("   Testing 0 adults")
         ReservationService.create_reservation(test_data)
@@ -194,8 +268,10 @@ def run_all_tests():
         ("Service Layer Methods", test_service_methods),
         ("Repository Layer Methods", test_repository_methods),
         ("Date Validation", test_date_validation),
+        ("Human Readable Date Parsing", test_human_readable_date_parsing),
         ("Email Validation", test_email_validation),
-        ("Guest Count Validation", test_guest_count_validation)
+        ("Guest Count Validation", test_guest_count_validation),
+        ("Total Days & Cost Calculation", test_total_days_and_cost_calculation)
     ]
     
     results = []

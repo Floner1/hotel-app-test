@@ -37,64 +37,62 @@
     <!-- Main Navigation Header -->
     <header class="site-header js-site-header">
       <div class="container-fluid">
-        <div class="row align-items-center">
-          <!-- Hotel Logo/Name -->
-          <div class="col-6 col-lg-4 site-logo" data-aos="fade"><a href="{% url 'home' %}">{{ hotel.hotel_name }}</a></div>
-          <div class="col-6 col-lg-8">
-            <!-- Mobile Menu Toggle Button -->
-            <div class="site-menu-toggle js-site-menu-toggle"  data-aos="fade">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <!-- END menu-toggle -->
-
-            <!-- Main Navigation Menu -->
-            <div class="site-navbar js-site-navbar">
-              <nav role="navigation">
-                <div class="container">
-                  <div class="row full-height align-items-center">
-                    <div class="col-md-6 mx-auto">
-                      <!-- Navigation Links -->
-                      <ul class="list-unstyled menu">
-                        <li><a href="{% url 'home' %}">Home</a></li>
-                        <li><a href="{% url 'rooms' %}">Rooms</a></li>
-                        <li><a href="{% url 'about' %}">About</a></li>
-                        <li><a href="{% url 'contact' %}">Contact</a></li>
-                        <li class="active"><a href="{% url 'reservation' %}">Reservation</a></li>
-                      </ul>
-                    </div>
+              <div class="row">
+                <div class="col-md-6 form-group">
+                  <label for="children" class="font-weight-bold text-black">Children</label>
+                  <div class="field-icon-wrap">
+                    <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                    <select name="children" id="children" class="form-control">
+                      <option value="0">0</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4+</option>
+                    </select>
                   </div>
                 </div>
-              </nav>
+                <div class="col-md-6 form-group">
+                  <label for="room_type" class="font-weight-bold text-black">Room Type</label>
+                  <div class="field-icon-wrap">
+                    <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                    <select name="room_type" id="room_type" class="form-control" required>
+                      <option value="">Select a room type</option>
+                      <option value="1 bed balcony room">1 bed balcony room</option>
+                      <option value="1 bed window room">1 bed window room</option>
+                      <option value="2 bed no window">2 bed no window</option>
+                      <option value="1 bed no window">1 bed no window</option>
+                      <option value="condotel 2 bed and balcony">condotel 2 bed and balcony</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mb-4">
+                <div class="col-md-12 form-group">
+                  <label class="text-black font-weight-bold" for="notes">Notes</label>
+                  <textarea name="notes" id="notes" class="form-control" cols="30" rows="8"></textarea>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 form-group">
+                  <input type="submit" value="Reserve Now" class="btn btn-primary text-white py-3 px-5 font-weight-bold">
+                </div>
+              </div>
+            </form>
+
+          </div>
+          <div class="col-md-5" data-aos="fade-up" data-aos-delay="200">
+            <div class="row">
+              <div class="col-md-10 ml-auto contact-info">
+                <p><span class="d-block"><span class="ion-ios-location h5 text-primary"></span>Address:</span> <span> <strong>{{ hotel.hotel_address }}</strong></span></p>
+                <p><span class="d-block"><span class="ion-ios-telephone h5 text-primary"></span>Phone:</span> <span> <strong>{{ hotel.phone }}</strong></span></p>
+                <p><span class="d-block"><span class="ion-ios-email h5 text-primary"></span>Email:</span> <span> <strong>{{ hotel.email }}</strong></span></p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </header>
-    <!-- END head -->
-
-    <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/hero_4.jpg' %})" data-stellar-background-ratio="0.5">
-      <div class="container">
-        <div class="row site-hero-inner justify-content-center align-items-center">
-          <div class="col-md-10 text-center" data-aos="fade">
-            <h1 class="heading mb-3">Reservation Form</h1>
-            <ul class="custom-breadcrumbs mb-4">
-              <li><a href="{% url 'home' %}">Home</a></li>
-              <li>&bullet;</li>
-              <li>Reservation</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <a class="mouse smoothscroll" href="#next">
-        <div class="mouse-icon">
-          <span class="mouse-wheel"></span>
-        </div>
-      </a>
     </section>
-    <!-- END section -->
 
     <!-- Main Reservation Form Section -->
     <section class="section contact-section" id="next">
@@ -168,23 +166,37 @@
 
               
 
-              <div class="row mb-4">
-                <div class="col-md-12 form-group">
-                  <label class="text-black font-weight-bold" for="notes">Notes</label>
-                  <textarea name="notes" id="notes" class="form-control" cols="30" rows="8"></textarea>
-                </div>
-              </div>
               <div class="row">
                 <div class="col-md-6 form-group">
-                  <input type="submit" value="Reserve Now" class="btn btn-primary text-white py-3 px-5 font-weight-bold">
+                  <label for="children" class="font-weight-bold text-black">Children</label>
+                  <div class="field-icon-wrap">
+                    <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                    <select name="children" id="children" class="form-control">
+                      <option value="0">0</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4+</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6 form-group">
+                  <label for="room_type" class="font-weight-bold text-black">Room Type</label>
+                  <div class="field-icon-wrap">
+                    <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                    <select name="room_type" id="room_type" class="form-control" required>
+                      <option value="">Select a room type</option>
+                      <option value="1 bed balcony room">1 bed balcony room</option>
+                      <option value="1 bed window room">1 bed window room</option>
+                      <option value="2 bed no window">2 bed no window</option>
+                      <option value="1 bed no window">1 bed no window</option>
+                      <option value="condotel 2 bed and balcony">condotel 2 bed and balcony</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-            </form>
 
-          </div>
-          <div class="col-md-5" data-aos="fade-up" data-aos-delay="200">
-            <div class="row">
-              <div class="col-md-10 ml-auto contact-info">
+
                 <p><span class="d-block"><span class="ion-ios-location h5 text-primary"></span>Address:</span> <span> <strong>{{ hotel.hotel_address }}</strong></span></p>
                 <p><span class="d-block"><span class="ion-ios-telephone h5 text-primary"></span>Phone:</span> <span> <strong>{{ hotel.phone }}</strong></span></p>
                 <p><span class="d-block"><span class="ion-ios-email h5 text-primary"></span>Email:</span> <span> <strong>{{ hotel.email }}</strong></span></p>
@@ -454,7 +466,7 @@
           // Disable submit button
           submitButton.prop('disabled', true);
           submitButton.val('Submitting...');
-          
+
           // Get form data
           var formData = {
             'name': $('#name').val(),
@@ -464,10 +476,11 @@
             'checkout_date': $('#checkout_date').val(),
             'adults': $('#adults').val(),
             'children': $('#children').val(),
+              'room_type': $('#room_type').val(),
             'notes': $('#notes').val(),
             'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
           };
-          
+
           // Submit via AJAX
           $.ajax({
             url: '{% url "reservation" %}',
@@ -476,7 +489,12 @@
             success: function(response) {
               // Show success message
               formMessages.removeClass('alert-danger').addClass('alert alert-success');
-              formMessages.text(response.message + ' Booking ID: ' + response.booking_id);
+              var totalDays = response.total_days || 0;
+              var totalCost = response.total_cost_amount || 0;
+              var nightsLabel = totalDays === 1 ? 'night' : 'nights';
+              var formattedCost = Number(totalCost).toLocaleString('vi-VN');
+              var summary = `${response.message} Booking ID: ${response.booking_id}. Total for ${totalDays} ${nightsLabel}: ₫${formattedCost}`;
+              formMessages.text(summary);
               formMessages.show();
               
               // Reset form

@@ -50,6 +50,7 @@ def get_reservation(request):
                 'checkout_date': request.POST.get('checkout_date'),
                 'adults': request.POST.get('adults', 1),
                 'children': request.POST.get('children', 0),
+                'room_type': request.POST.get('room_type'),
                 'notes': request.POST.get('notes', '')
             }
             
@@ -60,10 +61,14 @@ def get_reservation(request):
             return JsonResponse({
                 'status': 'success',
                 'message': 'Reservation submitted successfully!',
-                'booking_id': booking.booking_id
+                'booking_id': booking.booking_id,
+                'total_days': booking.total_days,
+                'total_cost_amount': booking.total_cost_amount
             })
             
         except ValidationError as e:
+            # Log error context for easier debugging
+            print('[reservation] validation error:', e, 'data:', reservation_data)
             # Return validation error response
             return JsonResponse({
                 'status': 'error',
@@ -71,6 +76,7 @@ def get_reservation(request):
             }, status=400)
             
         except Exception as e:
+            print('[reservation] unexpected error:', e, 'data:', reservation_data)
             # Return generic error response
             return JsonResponse({
                 'status': 'error',

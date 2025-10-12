@@ -1,8 +1,10 @@
 # Import models and repositories
-from home.models import Hotel
+from home.models import Hotel as HomeHotel
+from data.models.hotel import Hotel as BookingHotel
 from data.repos.repositories import ReservationRepository
 from datetime import datetime
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 # Service class to handle hotel-related business logic
 class HotelService:
@@ -12,7 +14,7 @@ class HotelService:
         Retrieve just the hotel name from the database
         Returns the hotel name or a default message if not found
         """
-        result = Hotel.objects.values('hotel_name').first()
+        result = HomeHotel.objects.values('hotel_name').first()
         return result['hotel_name'] if result else 'Hotel Name Not Found'
 
     @staticmethod
@@ -22,7 +24,7 @@ class HotelService:
         Returns a dictionary containing hotel name, address, phone, and email
         Returns None if no hotel record exists
         """
-        return Hotel.objects.values(
+        return HomeHotel.objects.values(
             'hotel_name',
             'hotel_address',
             'phone',
@@ -31,8 +33,17 @@ class HotelService:
 
 
 # Service class to handle reservation-related business logic
+ROOM_TYPE_RATES = {
+    '1 bed balcony room': 700_000,
+    '1 bed window room': 600_000,
+    '2 bed no window': 800_000,
+    '1 bed no window': 500_000,
+    'condotel 2 bed and balcony': 1_000_000,
+}
+
+
 class ReservationService:
-    
+
     @staticmethod
     def create_reservation(reservation_data):
         """
@@ -57,7 +68,7 @@ class ReservationService:
         """
         try:
             # Validate required fields
-            required_fields = ['name', 'phone', 'email', 'checkin_date', 'checkout_date']
+            required_fields = ['name', 'phone', 'email', 'checkin_date', 'checkout_date', 'room_type']
             for field in required_fields:
                 if not reservation_data.get(field):
                     raise ValidationError(f"Missing required field: {field}")
@@ -73,7 +84,18 @@ class ReservationService:
             email = reservation_data['email']
             if '@' not in email or '.' not in email:
                 raise ValidationError("Invalid email format")
+
+            # Prevent duplicates before hitting the database unique constraint
+            if ReservationRepository.email_exists(email):
+                raise ValidationError(
+                    "A reservation for this email already exists. Please contact the hotel to modify the existing booking."
+                )
             
+            # Validate and normalise room type
+            room_type = reservation_data.get('room_type', '').strip()
+            if room_type not in ROOM_TYPE_RATES:
+                raise ValidationError("Invalid room type selected")
+
             # Get guest counts with defaults
             adults = int(reservation_data.get('adults', 1))
             children = int(reservation_data.get('children', 0))
@@ -85,6 +107,22 @@ class ReservationService:
                 raise ValidationError("Number of children cannot be negative")
             
             # Prepare booking data
+            notes_value = reservation_data.get('notes', '')
+            notes_value = notes_value.strip() if notes_value else ''
+
+            # Calculate stay duration and total cost
+            stay_duration = (checkout_date - checkin_date).days
+            nightly_rate = ROOM_TYPE_RATES[room_type]
+            total_cost = stay_duration * nightly_rate
+
+            # Persist notes by appending to room type when provided (until dedicated column exists)
+            stored_room_type = room_type if not notes_value else f"{room_type} | Notes: {notes_value}"
+
+            # Ensure a valid hotel reference exists
+            hotel_record = BookingHotel.objects.order_by('hotel_id').first()
+            if not hotel_record:
+                raise ValidationError("Hotel information is not configured. Please contact the administrator.")
+
             booking_data = {
                 'name': reservation_data['name'].strip(),
                 'phone': reservation_data['phone'].strip(),
@@ -93,7 +131,11 @@ class ReservationService:
                 'checkout_date': checkout_date,
                 'adults': adults,
                 'children': children,
-                'notes': reservation_data.get('notes', '').strip()
+                'room_type': stored_room_type,
+                'booking_date': timezone.now().date(),
+                'total_days': stay_duration,
+                'total_cost_amount': total_cost,
+                'hotel': hotel_record
             }
             
             # Create the booking using repository
@@ -109,21 +151,51 @@ class ReservationService:
     @staticmethod
     def _parse_date(date_string):
         """
-        Parse date string from MM/DD/YYYY format
-        
+        Parse incoming date strings and normalise to a date object.
+
+        Supports multiple common formats produced by the UI datepicker or
+        entered manually by users.
+
         Args:
-            date_string (str): Date in MM/DD/YYYY format
-            
+            date_string (str): Date string supplied by the reservation form.
+
         Returns:
             date: Python date object
-            
+
         Raises:
-            ValueError: If date format is invalid
+            ValueError: If no supported format matches the input value
         """
-        try:
-            return datetime.strptime(date_string, '%m/%d/%Y').date()
-        except ValueError:
-            raise ValueError(f"Invalid date format: {date_string}. Expected MM/DD/YYYY")
+        if not date_string:
+            raise ValueError("Date value is required")
+
+        cleaned_value = date_string.strip()
+        supported_formats = [
+            '%m/%d/%Y',          # 10/23/2025
+            '%Y-%m-%d',          # 2025-10-23
+            '%d %B, %Y',         # 23 October, 2025
+            '%B %d, %Y',         # October 23, 2025
+            '%d %b %Y',          # 23 Oct 2025
+            '%b %d, %Y',         # Oct 23, 2025
+        ]
+
+        for fmt in supported_formats:
+            try:
+                return datetime.strptime(cleaned_value, fmt).date()
+            except ValueError:
+                continue
+
+        readable_formats = [
+            'MM/DD/YYYY',
+            'YYYY-MM-DD',
+            'DD Month, YYYY',
+            'Month DD, YYYY'
+        ]
+        raise ValueError(
+            "Invalid date format: {}. Expected one of: {}".format(
+                cleaned_value,
+                ', '.join(readable_formats)
+            )
+        )
     
     @staticmethod
     def _validate_dates(checkin_date, checkout_date):

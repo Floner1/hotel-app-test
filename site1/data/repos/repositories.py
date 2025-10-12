@@ -40,7 +40,11 @@ class ReservationRepository:
                 - checkout_date: Check-out date (date object)
                 - adults: Number of adults
                 - children: Number of children
-                - notes: Special requests
+                - room_type: Selected room type
+                - booking_date: Date booking was created
+                - total_days: Total length of stay in nights
+                - total_cost_amount: Total booking cost in chosen currency units
+                - hotel: Related Hotel instance
         
         Returns:
             CustomerBookingInfo: The created booking object
@@ -66,7 +70,7 @@ class ReservationRepository:
             return None
     
     @staticmethod
-    def get_all(order_by='-created_at'):
+    def get_all(order_by='-booking_date'):
         """
         Retrieve all bookings
         
@@ -91,7 +95,12 @@ class ReservationRepository:
         """
         return CustomerBookingInfo.objects.filter(
             email__iexact=email
-        ).order_by('-created_at')
+        ).order_by('-booking_date', '-checkin_date')
+
+    @staticmethod
+    def email_exists(email):
+        """Check whether a reservation already exists for the email."""
+        return CustomerBookingInfo.objects.filter(email__iexact=email).exists()
     
     @staticmethod
     def get_upcoming_bookings():
@@ -102,9 +111,11 @@ class ReservationRepository:
             QuerySet: Upcoming bookings
         """
         today = datetime.now().date()
-        return CustomerBookingInfo.objects.filter(
-            checkin_date__gte=today
-        ).order_by('checkin_date')
+        return (
+            CustomerBookingInfo.objects
+            .filter(checkin_date__gte=today)
+            .order_by('checkin_date')
+        )
     
     @staticmethod
     def get_bookings_by_date_range(start_date, end_date):
@@ -134,11 +145,15 @@ class ReservationRepository:
         Returns:
             QuerySet: Matching bookings
         """
-        return CustomerBookingInfo.objects.filter(
-            Q(name__icontains=search_term) |
-            Q(email__icontains=search_term) |
-            Q(phone__icontains=search_term)
-        ).order_by('-created_at')
+        return (
+            CustomerBookingInfo.objects
+            .filter(
+                Q(name__icontains=search_term) |
+                Q(email__icontains=search_term) |
+                Q(phone__icontains=search_term)
+            )
+            .order_by('-booking_date', '-checkin_date')
+        )
     
     @staticmethod
     def get_booking_count():
@@ -161,7 +176,7 @@ class ReservationRepository:
         today = datetime.now().date()
         return CustomerBookingInfo.objects.filter(
             checkin_date=today
-        ).order_by('created_at')
+        ).order_by('booking_date', 'booking_id')
     
     @staticmethod
     def update_booking(booking_id, update_data):
