@@ -68,15 +68,24 @@ def get_reservation(request):
             
         except ValidationError as e:
             # Log error context for easier debugging
-            print('[reservation] validation error:', e, 'data:', reservation_data)
+            import traceback
+            print('[reservation] validation error:', e)
+            print('Traceback:', traceback.format_exc())
             # Return validation error response
+            error_message = str(e)
+            if hasattr(e, 'message_dict'):
+                error_message = '; '.join([f"{k}: {', '.join(v)}" for k, v in e.message_dict.items()])
+            elif hasattr(e, 'messages'):
+                error_message = '; '.join(e.messages)
             return JsonResponse({
                 'status': 'error',
-                'message': str(e)
+                'message': error_message
             }, status=400)
             
         except Exception as e:
-            print('[reservation] unexpected error:', e, 'data:', reservation_data)
+            import traceback
+            print('[reservation] unexpected error:', type(e).__name__, str(e))
+            print('Traceback:', traceback.format_exc())
             # Return generic error response
             return JsonResponse({
                 'status': 'error',

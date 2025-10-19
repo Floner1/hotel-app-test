@@ -129,6 +129,10 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Default contact details used when database columns are absent
+HOTEL_DEFAULT_PHONE = os.getenv('HOTEL_DEFAULT_PHONE', '+63 900 000 0000')
+HOTEL_DEFAULT_EMAIL = os.getenv('HOTEL_DEFAULT_EMAIL', 'info@hotelbooking.local')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

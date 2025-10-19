@@ -6,13 +6,14 @@ Run this with: python test_reservation_system.py
 import os
 import sys
 import django
+from decimal import Decimal, ROUND_HALF_UP
 
 # Setup Django environment
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'site1.settings')
 django.setup()
 
-from backend.services.services import ReservationService, ROOM_TYPE_RATES
+from backend.services.services import ReservationService
 from data.repos.repositories import ReservationRepository
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
@@ -73,8 +74,14 @@ def test_total_days_and_cost_calculation():
         'notes': 'Testing total cost logic'
     }
 
+    rates = ReservationService.get_room_rates(force_refresh=True)
+    nightly_rate = rates.get('1 bed balcony room')
+    if nightly_rate is None:
+        print("   ❌ No nightly rate configured for '1 bed balcony room'.")
+        return False
+
     expected_days = (checkout - checkin).days
-    expected_cost = expected_days * ROOM_TYPE_RATES['1 bed balcony room']
+    expected_cost = (nightly_rate * expected_days).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     booking = None
     try:

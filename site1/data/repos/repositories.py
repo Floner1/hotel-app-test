@@ -1,7 +1,13 @@
+from django.conf import settings
+
 from data.models.hotel import Hotel
 from data.models import CustomerBookingInfo
 from django.db.models import Q
 from datetime import datetime, timedelta
+
+_DEFAULT_PHONE = getattr(settings, 'HOTEL_DEFAULT_PHONE', '')
+_DEFAULT_EMAIL = getattr(settings, 'HOTEL_DEFAULT_EMAIL', '')
+
 
 class HotelRepository:
     @staticmethod
@@ -13,12 +19,33 @@ class HotelRepository:
     @staticmethod
     def get_hotel_info():
         # For contact page and other places where full info is needed
-        return Hotel.objects.values(
+        result = Hotel.objects.values(
             'hotel_name',
             'hotel_address',
-            'phone',
-            'email'
+            'star_rating',
+            'established_date',
+            'phone_number',
+            'hotel_email_address'
         ).first()
+
+        if not result:
+            return {
+                'hotel_name': 'Hotel Name Not Found',
+                'hotel_address': '',
+                'star_rating': None,
+                'established_date': None,
+                'phone': _DEFAULT_PHONE,
+                'email': _DEFAULT_EMAIL,
+            }
+
+        return {
+            'hotel_name': result.get('hotel_name') or 'Hotel Name Not Found',
+            'hotel_address': result.get('hotel_address') or '',
+            'star_rating': result.get('star_rating'),
+            'established_date': result.get('established_date'),
+            'phone': result.get('phone_number') or _DEFAULT_PHONE,
+            'email': result.get('hotel_email_address') or _DEFAULT_EMAIL,
+        }
 
 
 class ReservationRepository:
