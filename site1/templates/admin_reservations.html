@@ -1,0 +1,847 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{ hotel.hotel_name }} - Reservations Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Load Django static files -->
+    {% load static %}
+    {% load humanize %}
+
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <style>
+      /* Dashboard Specific Styles */
+      body {
+        background-color: #f5f7fa;
+        font-family: 'Roboto', sans-serif;
+      }
+
+      .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+
+      .dashboard-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+      }
+
+      .dashboard-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+      }
+
+      .stats-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      }
+
+      .stats-card .icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 1rem;
+      }
+
+      .stats-card.total .icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .stats-card.pending .icon {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+      }
+
+      .stats-card.confirmed .icon {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+      }
+
+      .stats-card.revenue .icon {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+      }
+
+      .stats-card h3 {
+        font-size: 0.875rem;
+        color: #8b92a7;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .stats-card .value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0.5rem 0 0 0;
+      }
+
+      .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      }
+
+      .filter-section h5 {
+        margin-bottom: 1rem;
+        color: #2c3e50;
+        font-weight: 600;
+      }
+
+      .search-box {
+        position: relative;
+        margin-bottom: 1rem;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 3rem;
+        border: 2px solid #e8ecf1;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.3s;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #8b92a7;
+      }
+
+      .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .filter-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid #e8ecf1;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .filter-btn:hover {
+        border-color: #667eea;
+        color: #667eea;
+      }
+
+      .filter-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: transparent;
+      }
+
+      .reservations-table {
+        background: white;
+        border-radius: 12px;
+        overflow: visible;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+      }
+
+      .table-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px 12px 0 0;
+      }
+
+      .table-header h5 {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .table-responsive {
+        overflow-x: visible;
+        border-radius: 0 0 12px 12px;
+      }
+
+      .table {
+        margin: 0;
+        width: 100%;
+        table-layout: auto;
+      }
+
+      .table thead th {
+        background-color: #f8f9fa;
+        border: none;
+        padding: 0.75rem 0.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+      }
+
+      .table tbody td {
+        padding: 0.75rem 0.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f2f5;
+        font-size: 0.813rem;
+      }
+
+      .table tbody tr {
+        transition: background-color 0.2s;
+      }
+
+      .table tbody tr:hover {
+        background-color: #f8f9fa;
+      }
+
+      .badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .badge-upcoming {
+        background-color: #e3f2fd;
+        color: #1976d2;
+      }
+
+      .badge-today {
+        background-color: #fff3e0;
+        color: #f57c00;
+      }
+
+      .badge-past {
+        background-color: #f3e5f5;
+        color: #7b1fa2;
+      }
+
+      .badge-cancelled {
+        background-color: #ffebee;
+        color: #c62828;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 0.3rem;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+      }
+
+      .btn-action {
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        white-space: nowrap;
+        text-align: center;
+        line-height: 1;
+      }
+
+      .btn-action i {
+        font-size: 0.75rem;
+        display: inline-block;
+      }
+
+      .btn-view {
+        background-color: #667eea;
+        color: white;
+      }
+
+      .btn-view:hover {
+        background-color: #5568d3;
+      }
+
+      .btn-edit {
+        background-color: #43e97b;
+        color: white;
+      }
+
+      .btn-edit:hover {
+        background-color: #38d669;
+      }
+
+      .btn-delete {
+        background-color: #f5576c;
+        color: white;
+        min-width: 35px;
+        padding: 0.4rem 0.5rem;
+      }
+
+      .btn-delete:hover {
+        background-color: #e24555;
+      }
+
+      .btn-delete i {
+        margin: 0;
+        display: inline-block;
+        font-size: 0.813rem;
+      }
+
+      .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: white;
+        border-top: 1px solid #f0f2f5;
+        border-radius: 0 0 12px 12px;
+      }
+
+      .pagination {
+        margin: 0;
+        display: flex;
+        list-style: none;
+        padding: 0;
+      }
+
+      .page-link {
+        border: 2px solid #e8ecf1;
+        color: #667eea;
+        padding: 0.5rem 0.75rem;
+        margin: 0 0.25rem;
+        border-radius: 6px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 38px;
+        min-height: 38px;
+      }
+
+      .page-link:hover {
+        background-color: #667eea;
+        color: white;
+        border-color: #667eea;
+        text-decoration: none;
+      }
+
+      .page-item.active .page-link {
+        background-color: #667eea;
+        border-color: #667eea;
+        color: white;
+      }
+
+      .page-item.disabled .page-link,
+      .page-item.disabled span.page-link {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .page-item.disabled .page-link:hover,
+      .page-item.disabled span.page-link:hover {
+        background-color: transparent;
+        color: #667eea;
+      }
+
+      .page-link i {
+        font-size: 0.875rem;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #8b92a7;
+      }
+
+      .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+      }
+
+      .empty-state h4 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+      }
+
+      @media (max-width: 768px) {
+        .stats-card {
+          margin-bottom: 1rem;
+        }
+
+        .dashboard-header h1 {
+          font-size: 1.5rem;
+        }
+
+        .table-responsive {
+          border-radius: 0;
+          margin: 0 -1rem;
+        }
+
+        .reservations-table {
+          border-radius: 0;
+        }
+
+        .action-buttons {
+          flex-direction: column;
+          gap: 0.3rem;
+        }
+
+        .btn-action {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .filter-buttons {
+          width: 100%;
+        }
+
+        .filter-btn {
+          flex: 1;
+        }
+
+        .pagination-container {
+          flex-direction: column;
+          gap: 1rem;
+          text-align: center;
+        }
+
+        .export-btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      .customer-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 180px;
+      }
+
+      .customer-avatar {
+        width: 35px;
+        height: 35px;
+        min-width: 35px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .customer-details {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .customer-name {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.125rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.813rem;
+      }
+
+      .customer-email {
+        font-size: 0.7rem;
+        color: #8b92a7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .export-btn {
+        padding: 0.75rem 1.5rem;
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .export-btn:hover {
+        background: #667eea;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h1><i class="fa fa-dashboard"></i> Reservations Dashboard</h1>
+            <p>{{ hotel.hotel_name }} - Employee Portal</p>
+          </div>
+          <div class="col-md-6 text-right">
+            <button class="export-btn">
+              <i class="fa fa-download"></i>
+              Export CSV
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Statistics Cards -->
+      <div class="row">
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card total">
+            <div class="icon">
+              <i class="fa fa-calendar"></i>
+            </div>
+            <h3>Total Reservations</h3>
+            <p class="value">{{ total_reservations }}</p>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card pending">
+            <div class="icon">
+              <i class="fa fa-clock-o"></i>
+            </div>
+            <h3>Check-ins Today</h3>
+            <p class="value">{{ today_checkins }}</p>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card confirmed">
+            <div class="icon">
+              <i class="fa fa-calendar-check-o"></i>
+            </div>
+            <h3>Upcoming</h3>
+            <p class="value">{{ upcoming_reservations }}</p>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card revenue">
+            <div class="icon">
+              <i class="fa fa-money"></i>
+            </div>
+            <h3>Total Revenue</h3>
+            <p class="value">₫{{ total_revenue|floatformat:0|intcomma|default:"0" }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Section -->
+      <div class="filter-section">
+        <h5><i class="fa fa-filter"></i> Filter & Search</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="search-box">
+              <i class="fa fa-search"></i>
+              <input type="text" id="searchInput" placeholder="Search by name, email, or booking ID...">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="filter-buttons">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="today">Today</button>
+              <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+              <button class="filter-btn" data-filter="past">Past</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reservations Table -->
+      <div class="reservations-table">
+        <div class="table-header">
+          <h5><i class="fa fa-list"></i> Recent Reservations</h5>
+        </div>
+        
+        <div class="table-responsive">
+          {% if reservations %}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Customer</th>
+                <th>Room Type</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Guests</th>
+                <th>Total Cost</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for booking in reservations %}
+              <tr data-booking-id="{{ booking.booking_id }}">
+                <td><strong>#{{ booking.booking_id }}</strong></td>
+                <td>
+                  <div class="customer-info">
+                    <div class="customer-avatar">
+                      {{ booking.name|slice:":1"|upper }}
+                    </div>
+                    <div class="customer-details">
+                      <span class="customer-name">{{ booking.name }}</span>
+                      <span class="customer-email">{{ booking.email }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ booking.room_type }}">{{ booking.room_type }}</td>
+                <td style="white-space: nowrap;">{{ booking.checkin_date|date:"M j, y" }}</td>
+                <td style="white-space: nowrap;">{{ booking.checkout_date|date:"M j, y" }}</td>
+                <td style="white-space: nowrap;">
+                  <i class="fa fa-user"></i> {{ booking.adults }}{% if booking.children > 0 %} <i class="fa fa-child"></i> {{ booking.children }}{% endif %}
+                </td>
+                <td><strong>₫{{ booking.total_cost_amount|floatformat:0|intcomma }}</strong></td>
+                <td>
+                  {% if booking.checkin_date == today %}
+                    <span class="badge badge-today">Today</span>
+                  {% elif booking.checkin_date > today %}
+                    <span class="badge badge-upcoming">Upcoming</span>
+                  {% else %}
+                    <span class="badge badge-past">Past</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn-action btn-view" onclick="viewBooking({{ booking.booking_id }})">
+                      <i class="fa fa-eye"></i> View
+                    </button>
+                    <button class="btn-action btn-edit" onclick="editBooking({{ booking.booking_id }})">
+                      <i class="fa fa-edit"></i> Edit
+                    </button>
+                    <button class="btn-action btn-delete" onclick="deleteBooking({{ booking.booking_id }})">
+                      <i class="fa fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state">
+            <i class="fa fa-inbox"></i>
+            <h4>No Reservations Found</h4>
+            <p>There are no reservations matching your criteria.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if reservations %}
+        <div class="pagination-container">
+          <div>
+            Showing <strong>{{ reservations.start_index }}-{{ reservations.end_index }}</strong> of <strong>{{ reservations.paginator.count }}</strong> reservations
+          </div>
+          <nav>
+            <ul class="pagination">
+              <!-- Previous Button -->
+              <li class="page-item {% if not reservations.has_previous %}disabled{% endif %}">
+                {% if reservations.has_previous %}
+                  <a class="page-link" href="?page={{ reservations.previous_page_number }}">
+                    <i class="fa fa-chevron-left"></i>
+                  </a>
+                {% else %}
+                  <span class="page-link">
+                    <i class="fa fa-chevron-left"></i>
+                  </span>
+                {% endif %}
+              </li>
+              
+              <!-- Page Numbers -->
+              {% for num in reservations.paginator.page_range %}
+                {% if reservations.number == num %}
+                  <li class="page-item active">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                  </li>
+                {% elif num > reservations.number|add:'-3' and num < reservations.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              
+              <!-- Next Button -->
+              <li class="page-item {% if not reservations.has_next %}disabled{% endif %}">
+                {% if reservations.has_next %}
+                  <a class="page-link" href="?page={{ reservations.next_page_number }}">
+                    <i class="fa fa-chevron-right"></i>
+                  </a>
+                {% else %}
+                  <span class="page-link">
+                    <i class="fa fa-chevron-right"></i>
+                  </span>
+                {% endif %}
+              </li>
+            </ul>
+          </nav>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    
+    <script>
+      // Search functionality
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+          const searchTerm = this.value.toLowerCase();
+          const rows = document.querySelectorAll('tbody tr');
+          
+          rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+          });
+        });
+      }
+
+      // Filter buttons
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          
+          const filter = this.dataset.filter;
+          const rows = document.querySelectorAll('tbody tr');
+          
+          rows.forEach(row => {
+            const badge = row.querySelector('.badge');
+            if (!badge) return;
+            
+            const badgeText = badge.textContent.toLowerCase();
+            
+            if (filter === 'all') {
+              row.style.display = '';
+            } else if (filter === 'today' && badgeText === 'today') {
+              row.style.display = '';
+            } else if (filter === 'upcoming' && badgeText === 'upcoming') {
+              row.style.display = '';
+            } else if (filter === 'past' && badgeText === 'past') {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        });
+      });
+
+      // Action functions
+      function viewBooking(id) {
+        alert('Viewing booking #' + id + '\n\nThis would open a detailed modal or navigate to a detail page.');
+      }
+
+      function editBooking(id) {
+        alert('Editing booking #' + id + '\n\nThis would open an edit form.');
+      }
+
+      function deleteBooking(id) {
+        if (confirm('Are you sure you want to delete booking #' + id + '?\n\nThis action cannot be undone!')) {
+          // Get CSRF token from cookies
+          const csrftoken = getCookie('csrftoken');
+          
+          // Send DELETE request to server
+          fetch(`/dashboard/reservations/delete/${id}/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': csrftoken,
+              'Content-Type': 'application/json',
+            },
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              alert(data.message);
+              // Remove the row from the table
+              const row = document.querySelector(`tr[data-booking-id="${id}"]`);
+              if (row) {
+                row.style.transition = 'opacity 0.3s';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                  row.remove();
+                  // Refresh the page to update statistics
+                  location.reload();
+                }, 300);
+              }
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            alert('An error occurred while deleting the booking: ' + error);
+            console.error('Delete error:', error);
+          });
+        }
+      }
+
+      // Function to get CSRF token from cookies
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      // Export functionality
+      document.querySelector('.export-btn').addEventListener('click', function() {
+        alert('Exporting reservations to CSV...\n\nThis would generate and download a CSV file.');
+      });
+    </script>
+  </body>
+</html>

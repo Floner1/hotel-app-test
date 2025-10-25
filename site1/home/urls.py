@@ -8,4 +8,6 @@ urlpatterns = [
     path('reservation/', views.get_reservation, name='reservation'),
     path('rooms/', views.get_rooms, name='rooms'),
     path('newsletter/signup/', views.newsletter_signup, name='newsletter_signup'),
+    path('dashboard/reservations/', views.admin_reservations, name='admin_reservations'),
+    path('dashboard/reservations/delete/<int:booking_id>/', views.delete_reservation, name='delete_reservation'),
 ]

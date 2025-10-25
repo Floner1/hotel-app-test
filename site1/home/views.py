@@ -2,7 +2,11 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from backend.services.services import HotelService, ReservationService
+from data.models.hotel import CustomerBookingInfo
+from django.db.models import Sum, Q
+from datetime import date
 
 # Create your views here.
 def get_home(request):
@@ -114,3 +118,92 @@ def newsletter_signup(request):
             'status': 'ok'
         })
     return JsonResponse({'status': 'ok'})
+
+
+def admin_reservations(request):
+    """
+    Admin dashboard view to display all customer reservations.
+    Shows statistics and a filterable table of bookings with pagination.
+    """
+    # Get hotel information
+    hotel_info = HotelService.get_hotel_info()
+    
+    # Get all reservations, ordered by most recent first
+    all_reservations = CustomerBookingInfo.objects.all().select_related('hotel')
+    
+    # Calculate statistics
+    today = date.today()
+    
+    total_reservations = all_reservations.count()
+    
+    # Check-ins happening today
+    today_checkins = all_reservations.filter(checkin_date=today).count()
+    
+    # Upcoming reservations (check-in date is in the future)
+    upcoming_reservations = all_reservations.filter(checkin_date__gt=today).count()
+    
+    # Calculate total revenue
+    total_revenue = all_reservations.aggregate(
+        total=Sum('total_cost_amount')
+    )['total'] or 0
+    
+    # Pagination - 10 items per page
+    page = request.GET.get('page', 1)
+    paginator = Paginator(all_reservations, 10)  # Show 10 reservations per page
+    
+    try:
+        reservations = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        reservations = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page
+        reservations = paginator.page(paginator.num_pages)
+    
+    # Prepare context data
+    context = {
+        'hotel': hotel_info,
+        'reservations': reservations,
+        'total_reservations': total_reservations,
+        'today_checkins': today_checkins,
+        'upcoming_reservations': upcoming_reservations,
+        'total_revenue': total_revenue,
+        'today': today,
+    }
+    
+    return render(request, 'admin_reservations.html', context)
+
+
+def delete_reservation(request, booking_id):
+    """
+    Delete a reservation by booking_id.
+    Only accepts POST requests for security.
+    """
+    if request.method == 'POST':
+        try:
+            # Find the booking
+            booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
+            booking_name = booking.name
+            
+            # Delete the booking
+            booking.delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Reservation for {booking_name} (Booking #{booking_id}) has been deleted successfully.'
+            })
+        except CustomerBookingInfo.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Booking #{booking_id} not found.'
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'An error occurred: {str(e)}'
+            }, status=500)
+    else:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Only POST requests are allowed.'
+        }, status=405)

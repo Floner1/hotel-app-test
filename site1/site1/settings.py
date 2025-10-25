@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',  
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',  # For number formatting (intcomma)
     'home',  # Keep original app name
     'backend',  # Add backend package
     'data',  # Add data package

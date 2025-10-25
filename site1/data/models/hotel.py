@@ -46,7 +46,6 @@ class CustomerBookingInfo(models.Model):
     def __str__(self) -> str:
         return f"Booking #{self.booking_id} - {self.name}"
 
-
 class RoomPrice(models.Model):
     """Snapshot of nightly pricing for each room type in a hotel."""
 
