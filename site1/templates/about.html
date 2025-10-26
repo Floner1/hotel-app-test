@@ -274,37 +274,17 @@
         </div>
 
         <div class="row">
-          <div class="col-md-6 col-lg-3 mb-4" data-aos="fade-up">
+          {% for service in hotel_services %}
+          <div class="col-md-6 col-lg-3 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
             <div class="service text-center">
-              <span class="icon d-block mb-3"><span class="flaticon-room-service display-4"></span></span>
-              <h3 class="mb-3">Room Service</h3>
-              <p>Enjoy 24/7 room service with a wide selection of delicious meals and beverages delivered right to your door. Our dedicated staff ensures prompt and professional service.</p>
+              <span class="icon d-block mb-3">
+                <span class="flaticon-{% if 'Motorbike' in service.name_of_service %}motorcycle{% elif 'Laundry' in service.name_of_service %}laundry{% elif 'Restaurant' in service.name_of_service %}restaurant{% else %}room-service{% endif %} display-4"></span>
+              </span>
+              <h3 class="mb-3">{{ service.name_of_service }}</h3>
+              <p>{{ service.service_description }}</p>
             </div>
           </div>
-          
-          <div class="col-md-6 col-lg-3 mb-4" data-aos="fade-up" data-aos-delay="100">
-            <div class="service text-center">
-              <span class="icon d-block mb-3"><span class="flaticon-restaurant display-4"></span></span>
-              <h3 class="mb-3">Restaurant</h3>
-              <p>Experience fine dining at our in-house restaurant featuring local and international cuisine. Our expert chefs prepare fresh, delectable dishes for breakfast, lunch, and dinner.</p>
-            </div>
-          </div>
-
-          <div class="col-md-6 col-lg-3 mb-4" data-aos="fade-up" data-aos-delay="200">
-            <div class="service text-center">
-              <span class="icon d-block mb-3"><span class="flaticon-laundry display-4"></span></span>
-              <h3 class="mb-3">Laundry Service</h3>
-              <p>Professional laundry and dry-cleaning services available daily. Quick turnaround time and careful handling of your garments guaranteed.</p>
-            </div>
-          </div>
-
-          <div class="col-md-6 col-lg-3 mb-4" data-aos="fade-up" data-aos-delay="300">
-            <div class="service text-center">
-              <span class="icon d-block mb-3"><span class="flaticon-motorcycle display-4"></span></span>
-              <h3 class="mb-3">Motorbike Rental</h3>
-              <p>Explore the city at your own pace with our motorbike rental service. Well-maintained vehicles, competitive rates, and easy booking process available.</p>
-            </div>
-          </div>
+          {% endfor %}
         </div>
       </div>
     </div>

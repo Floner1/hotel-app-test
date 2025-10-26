@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from backend.services.services import HotelService, ReservationService
-from data.models.hotel import CustomerBookingInfo
+from data.models.hotel import CustomerBookingInfo, HotelServices
 from django.db.models import Sum, Q
 from datetime import date
 
@@ -14,27 +14,41 @@ def get_home(request):
     hotel_name = HotelService.get_hotel_name()
     hotel_info = HotelService.get_hotel_info()
     
+    # Get hotel services from database
+    hotel_services = HotelServices.objects.all()
+    
     return render(request, 'home.html', {
         'hotel_name': hotel_name,
-        'hotel': hotel_info  # For contact info in footer
+        'hotel': hotel_info,  # For contact info in footer
+        'hotel_services': hotel_services
     })
 
 def get_about(request):
     # Get hotel name and contact information
     hotel_name = HotelService.get_hotel_name()
     hotel_info = HotelService.get_hotel_info()
+    
+    # Get hotel services from database
+    hotel_services = HotelServices.objects.all()
+    
     return render(request, 'about.html', {
         'hotel_name': hotel_name,
-        'hotel': hotel_info
+        'hotel': hotel_info,
+        'hotel_services': hotel_services
     })
 
 def get_contact(request):
     # Get hotel name and contact information
     hotel_name = HotelService.get_hotel_name()
     hotel_info = HotelService.get_hotel_info()
+    
+    # Get hotel services from database
+    hotel_services = HotelServices.objects.all()
+    
     return render(request, 'contact.html', {
         'hotel_name': hotel_name,
-        'hotel': hotel_info
+        'hotel': hotel_info,
+        'hotel_services': hotel_services
     })
 
 def get_reservation(request):
@@ -96,10 +110,14 @@ def get_reservation(request):
                 'message': f'An unexpected error occurred: {str(e)}'
             }, status=500)
     
+    # Get hotel services from database
+    hotel_services = HotelServices.objects.all()
+    
     # Handle GET request (display form)
     return render(request, 'reservation.html', {
         'hotel_name': hotel_name,
-        'hotel': hotel_info
+        'hotel': hotel_info,
+        'hotel_services': hotel_services
     })
 
 def get_rooms(request):
@@ -174,6 +192,56 @@ def admin_reservations(request):
     return render(request, 'admin_reservations.html', context)
 
 
+def view_reservation(request, booking_id):
+    """
+    View detailed information about a specific reservation.
+    Returns JSON data for AJAX requests or renders a detail page.
+    """
+    try:
+        # Find the booking
+        booking = CustomerBookingInfo.objects.select_related('hotel').get(booking_id=booking_id)
+        
+        # Prepare booking data
+        booking_data = {
+            'booking_id': booking.booking_id,
+            'name': booking.name,
+            'email': booking.email,
+            'phone': booking.phone,
+            'room_type': booking.room_type,
+            'booking_date': booking.booking_date.strftime('%B %d, %Y'),
+            'checkin_date': booking.checkin_date.strftime('%B %d, %Y'),
+            'checkout_date': booking.checkout_date.strftime('%B %d, %Y'),
+            'total_days': booking.total_days,
+            'adults': booking.adults,
+            'children': booking.children,
+            'total_cost_amount': str(booking.total_cost_amount),
+            'notes': booking.notes if booking.notes else '',
+            'hotel_name': booking.hotel.hotel_name if booking.hotel else 'N/A',
+        }
+        
+        # Return JSON for AJAX requests
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'booking': booking_data
+            })
+        
+        # Otherwise, return as context for template rendering (optional detail page)
+        context = {
+            'booking': booking,
+            'hotel': HotelService.get_hotel_info(),
+        }
+        return render(request, 'reservation_detail.html', context)
+        
+    except CustomerBookingInfo.DoesNotExist:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Booking #{booking_id} not found.'
+            }, status=404)
+        return render(request, '404.html', status=404)
+
+
 def delete_reservation(request, booking_id):
     """
     Delete a reservation by booking_id.
@@ -198,6 +266,114 @@ def delete_reservation(request, booking_id):
                 'message': f'Booking #{booking_id} not found.'
             }, status=404)
         except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'An error occurred: {str(e)}'
+            }, status=500)
+    else:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Only POST requests are allowed.'
+        }, status=405)
+
+
+def edit_reservation(request, booking_id):
+    """
+    Edit an existing reservation.
+    Only accepts POST requests with JSON data.
+    """
+    if request.method == 'POST':
+        try:
+            import json
+            from datetime import datetime
+            from decimal import Decimal
+            
+            # Find the booking
+            booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
+            
+            # Parse JSON data
+            data = json.loads(request.body)
+            
+            # Validate required fields
+            required_fields = ['name', 'email', 'phone', 'room_type', 'checkin_date', 'checkout_date', 'adults']
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Missing required field: {field}'
+                    }, status=400)
+            
+            # Parse dates
+            try:
+                checkin_date = datetime.strptime(data['checkin_date'], '%Y-%m-%d').date()
+                checkout_date = datetime.strptime(data['checkout_date'], '%Y-%m-%d').date()
+            except ValueError as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Invalid date format: {str(e)}'
+                }, status=400)
+            
+            # Validate dates
+            if checkout_date <= checkin_date:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Check-out date must be after check-in date.'
+                }, status=400)
+            
+            # Calculate new totals
+            total_days = (checkout_date - checkin_date).days
+            
+            # Get room rate and calculate new cost
+            try:
+                rate = ReservationService._resolve_rate(data['room_type'])
+                total_cost = rate * total_days
+            except ValidationError as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': str(e)
+                }, status=400)
+            
+            # Update booking fields
+            booking.name = data['name'].strip()
+            booking.email = data['email'].strip().lower()
+            booking.phone = data['phone'].strip()
+            booking.room_type = data['room_type'].strip()
+            booking.checkin_date = checkin_date
+            booking.checkout_date = checkout_date
+            booking.adults = int(data['adults'])
+            booking.children = int(data.get('children', 0))
+            booking.total_days = total_days
+            booking.total_cost_amount = total_cost
+            booking.notes = data.get('notes', '').strip()
+            
+            # Save changes
+            booking.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Reservation #{booking_id} updated successfully!',
+                'booking': {
+                    'booking_id': booking.booking_id,
+                    'name': booking.name,
+                    'total_days': booking.total_days,
+                    'total_cost_amount': str(booking.total_cost_amount),
+                }
+            })
+            
+        except CustomerBookingInfo.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Booking #{booking_id} not found.'
+            }, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON data.'
+            }, status=400)
+        except Exception as e:
+            import traceback
+            print('[edit_reservation] error:', type(e).__name__, str(e))
+            print('Traceback:', traceback.format_exc())
             return JsonResponse({
                 'status': 'error',
                 'message': f'An error occurred: {str(e)}'

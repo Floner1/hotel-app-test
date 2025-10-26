@@ -22,7 +22,7 @@ class Hotel(models.Model):
 
 
 class CustomerBookingInfo(models.Model):
-    """Model mapped to SQL Server's customer_booking_info table."""
+    """Model mapped to SQL Server's booking_info table."""
 
     booking_id = models.AutoField(db_column='customer_id', primary_key=True)
     name = models.CharField(db_column='customer_name', max_length=255)
@@ -36,10 +36,11 @@ class CustomerBookingInfo(models.Model):
     total_cost_amount = models.DecimalField(db_column='total_cost_amount', max_digits=10, decimal_places=2)
     adults = models.IntegerField(db_column='number_of_adults')
     children = models.IntegerField(db_column='number_of_children')
+    notes = models.CharField(db_column='admin_notes', max_length=255, default='')
     hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='hotel_id')
 
     class Meta:
-        db_table = 'customer_booking_info'
+        db_table = 'booking_info'
         managed = False
         ordering = ['-booking_date', '-checkin_date']
 
@@ -79,7 +80,7 @@ class RoomInfo(models.Model):
     """Detailed information about each room including nightly price."""
 
     room_number = models.IntegerField(primary_key=True, db_column='room_number')
-    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='room_hotel', null=True, blank=True)
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='room_hotel_id', null=True, blank=True)
     room_type = models.CharField(db_column='room_type', max_length=255, null=True, blank=True)
     room_size_sqm = models.IntegerField(db_column='room_size_sqm', null=True, blank=True)
     max_guests = models.IntegerField(db_column='max_guests', null=True, blank=True)
@@ -102,3 +103,102 @@ class RoomInfo(models.Model):
 
     def __str__(self) -> str:
         return f"Room {self.room_number} ({self.room_type})"
+
+
+class Account(models.Model):
+    """Model mapped to the SQL Server `account` table."""
+
+    account_id = models.IntegerField(primary_key=True, db_column='account_id')
+    first_name = models.CharField(db_column='first_name', max_length=255, null=True, blank=True)
+    last_name = models.CharField(db_column='last_name', max_length=255, null=True, blank=True)
+    age = models.IntegerField(db_column='age', null=True, blank=True)
+    gender = models.CharField(db_column='gender', max_length=255, null=True, blank=True)
+    country_of_origin = models.CharField(db_column='country_of_origin', max_length=255, null=True, blank=True)
+    country_current = models.CharField(db_column='country_current', max_length=255, null=True, blank=True)
+    address_current = models.CharField(db_column='address_current', max_length=255, null=True, blank=True)
+    phone_number = models.CharField(db_column='phone_number', max_length=20, null=True, blank=True)
+    email = models.CharField(db_column='email', max_length=255, null=True, blank=True)
+    username = models.CharField(db_column='username', max_length=255, null=True, blank=True)
+    account_password = models.CharField(db_column='account_password', max_length=255, null=True, blank=True)
+    account_type = models.CharField(db_column='account_type', max_length=255, null=True, blank=True)
+    date_created = models.DateTimeField(db_column='date_created', null=True, blank=True)
+    last_login = models.DateTimeField(db_column='last_login', null=True, blank=True)
+
+    class Meta:
+        db_table = 'account'
+        managed = False
+
+    def __str__(self) -> str:
+        return f"{self.username} ({self.account_type})"
+
+
+class HotelServices(models.Model):
+    """Model mapped to the SQL Server `hotel_services` table."""
+
+    hotel_services_id = models.IntegerField(primary_key=True, db_column='hotel_services_id')
+    name_of_service = models.CharField(db_column='name_of_service', max_length=255, null=True, blank=True)
+    price = models.DecimalField(db_column='price', max_digits=10, decimal_places=2, null=True, blank=True)
+    service_description = models.CharField(db_column='service_description', max_length=255, null=True, blank=True)
+
+    class Meta:
+        db_table = 'hotel_services'
+        managed = False
+
+    def __str__(self) -> str:
+        return f"{self.name_of_service}"
+
+
+class Minibar(models.Model):
+    """Model mapped to the SQL Server `minibar` table."""
+
+    room_number = models.IntegerField(primary_key=True, db_column='room_number')
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='minibar_hotel_id', null=True, blank=True)
+    coke = models.IntegerField(db_column='coke', null=True, blank=True)
+    coffee = models.IntegerField(db_column='coffee', null=True, blank=True)
+    water = models.IntegerField(db_column='water', null=True, blank=True)
+    tea = models.IntegerField(db_column='tea', null=True, blank=True)
+    snack_packet = models.IntegerField(db_column='snack_packet', null=True, blank=True)
+
+    class Meta:
+        db_table = 'minibar'
+        managed = False
+
+    def __str__(self) -> str:
+        return f"Minibar for Room {self.room_number}"
+
+
+class MinibarPrice(models.Model):
+    """Model mapped to the SQL Server `minibar_price` table."""
+
+    minibar_price_id = models.IntegerField(primary_key=True, db_column='minibar_price_id')
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='minibar_price_hotel_id', null=True, blank=True)
+    coke_price = models.DecimalField(db_column='coke_price', max_digits=10, decimal_places=2, null=True, blank=True)
+    coffee_price = models.DecimalField(db_column='coffee_price', max_digits=10, decimal_places=2, null=True, blank=True)
+    water_price = models.DecimalField(db_column='water_price', max_digits=10, decimal_places=2, null=True, blank=True)
+    tea_price = models.DecimalField(db_column='tea_price', max_digits=10, decimal_places=2, null=True, blank=True)
+    snack_packet_price = models.DecimalField(db_column='snack_packet_price', max_digits=10, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        db_table = 'minibar_price'
+        managed = False
+
+    def __str__(self) -> str:
+        return f"Minibar Price #{self.minibar_price_id}"
+
+
+class Payment(models.Model):
+    """Model mapped to the SQL Server `payments` table."""
+
+    payment_id = models.IntegerField(primary_key=True, db_column='payment_id')
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='payments_hotel_id', null=True, blank=True)
+    booking = models.ForeignKey('CustomerBookingInfo', models.DO_NOTHING, db_column='booking_id', null=True, blank=True)
+    payment_date = models.DateField(db_column='payment_date', null=True, blank=True)
+    amount = models.DecimalField(db_column='amount', max_digits=10, decimal_places=2, null=True, blank=True)
+    payment_method = models.CharField(db_column='payment_method', max_length=50, null=True, blank=True)
+
+    class Meta:
+        db_table = 'payments'
+        managed = False
+
+    def __str__(self) -> str:
+        return f"Payment #{self.payment_id} - {self.payment_method}"
