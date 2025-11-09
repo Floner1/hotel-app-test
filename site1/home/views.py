@@ -17,10 +17,14 @@ def get_home(request):
     # Get hotel services from database
     hotel_services = HotelServices.objects.all()
     
+    # Get available room types with pricing from database
+    room_types = HotelService.get_available_room_types()
+    
     return render(request, 'home.html', {
         'hotel_name': hotel_name,
         'hotel': hotel_info,  # For contact info in footer
-        'hotel_services': hotel_services
+        'hotel_services': hotel_services,
+        'room_types': room_types
     })
 
 def get_about(request):
@@ -75,13 +79,19 @@ def get_reservation(request):
             # Create reservation using the service
             booking = ReservationService.create_reservation(reservation_data)
             
+            # Calculate total days
+            from datetime import datetime
+            checkin = datetime.strptime(request.POST.get('checkin_date'), '%m/%d/%Y').date()
+            checkout = datetime.strptime(request.POST.get('checkout_date'), '%m/%d/%Y').date()
+            total_days = (checkout - checkin).days
+            
             # Return success response
             return JsonResponse({
                 'status': 'success',
                 'message': 'Reservation submitted successfully!',
                 'booking_id': booking.booking_id,
-                'total_days': booking.total_days,
-                'total_cost_amount': booking.total_cost_amount
+                'total_days': total_days,
+                'total_cost_amount': str(booking.total_price)
             })
             
         except ValidationError as e:
@@ -113,20 +123,33 @@ def get_reservation(request):
     # Get hotel services from database
     hotel_services = HotelServices.objects.all()
     
+    # Get available room types from database
+    room_types = HotelService.get_available_room_types()
+    
     # Handle GET request (display form)
     return render(request, 'reservation.html', {
         'hotel_name': hotel_name,
         'hotel': hotel_info,
-        'hotel_services': hotel_services
+        'hotel_services': hotel_services,
+        'room_types': room_types
     })
 
 def get_rooms(request):
     # Get hotel name and contact information
     hotel_name = HotelService.get_hotel_name()
     hotel_info = HotelService.get_hotel_info()
+    
+    # Get hotel services from database
+    hotel_services = HotelServices.objects.all()
+    
+    # Get available room types with pricing from database
+    room_types = HotelService.get_available_room_types()
+    
     return render(request, 'rooms.html', {
         'hotel_name': hotel_name,
-        'hotel': hotel_info
+        'hotel': hotel_info,
+        'hotel_services': hotel_services,
+        'room_types': room_types
     })
 
 def newsletter_signup(request):
@@ -146,6 +169,9 @@ def admin_reservations(request):
     # Get hotel information
     hotel_info = HotelService.get_hotel_info()
     
+    # Get available room types from database
+    room_types = HotelService.get_available_room_types()
+    
     # Get all reservations, ordered by most recent first
     all_reservations = CustomerBookingInfo.objects.all().select_related('hotel')
     
@@ -155,14 +181,14 @@ def admin_reservations(request):
     total_reservations = all_reservations.count()
     
     # Check-ins happening today
-    today_checkins = all_reservations.filter(checkin_date=today).count()
+    today_checkins = all_reservations.filter(check_in=today).count()
     
     # Upcoming reservations (check-in date is in the future)
-    upcoming_reservations = all_reservations.filter(checkin_date__gt=today).count()
+    upcoming_reservations = all_reservations.filter(check_in__gt=today).count()
     
     # Calculate total revenue
     total_revenue = all_reservations.aggregate(
-        total=Sum('total_cost_amount')
+        total=Sum('total_price')
     )['total'] or 0
     
     # Pagination - 10 items per page
@@ -187,6 +213,7 @@ def admin_reservations(request):
         'upcoming_reservations': upcoming_reservations,
         'total_revenue': total_revenue,
         'today': today,
+        'room_types': room_types,
     }
     
     return render(request, 'admin_reservations.html', context)
@@ -201,20 +228,28 @@ def view_reservation(request, booking_id):
         # Find the booking
         booking = CustomerBookingInfo.objects.select_related('hotel').get(booking_id=booking_id)
         
+        # Calculate total days
+        total_days = (booking.check_out - booking.check_in).days
+        
         # Prepare booking data
         booking_data = {
             'booking_id': booking.booking_id,
-            'name': booking.name,
-            'email': booking.email,
-            'phone': booking.phone,
+            'name': booking.guest_name,
+            'email': booking.email if booking.email else '',
+            'phone': booking.phone if booking.phone else '',
             'room_type': booking.room_type,
             'booking_date': booking.booking_date.strftime('%B %d, %Y'),
-            'checkin_date': booking.checkin_date.strftime('%B %d, %Y'),
-            'checkout_date': booking.checkout_date.strftime('%B %d, %Y'),
-            'total_days': booking.total_days,
+            'checkin_date': booking.check_in.strftime('%B %d, %Y'),
+            'checkout_date': booking.check_out.strftime('%B %d, %Y'),
+            'total_days': total_days,
             'adults': booking.adults,
-            'children': booking.children,
-            'total_cost_amount': str(booking.total_cost_amount),
+            'children': booking.children if booking.children else 0,
+            'booked_rate': str(booking.booked_rate),
+            'total_cost_amount': str(booking.total_price),
+            'status': booking.status,
+            'payment_status': booking.payment_status,
+            'amount_paid': str(booking.amount_paid),
+            'special_requests': booking.special_requests if booking.special_requests else '',
             'notes': booking.notes if booking.notes else '',
             'hotel_name': booking.hotel.hotel_name if booking.hotel else 'N/A',
         }
@@ -251,7 +286,7 @@ def delete_reservation(request, booking_id):
         try:
             # Find the booking
             booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
-            booking_name = booking.name
+            booking_name = booking.guest_name
             
             # Delete the booking
             booking.delete()
@@ -295,7 +330,7 @@ def edit_reservation(request, booking_id):
             data = json.loads(request.body)
             
             # Validate required fields
-            required_fields = ['name', 'email', 'phone', 'room_type', 'checkin_date', 'checkout_date', 'adults']
+            required_fields = ['name', 'checkin_date', 'checkout_date', 'adults', 'room_type']
             for field in required_fields:
                 if not data.get(field):
                     return JsonResponse({
@@ -323,8 +358,11 @@ def edit_reservation(request, booking_id):
             # Calculate new totals
             total_days = (checkout_date - checkin_date).days
             
-            # Get room rate and calculate new cost
+            # Get room rate for the selected room type
             try:
+                canonical_room_type = ReservationService._canonicalise_room_type(data['room_type'])
+                if not canonical_room_type:
+                    raise ValidationError('Invalid room type selected.')
                 rate = ReservationService._resolve_rate(data['room_type'])
                 total_cost = rate * total_days
             except ValidationError as e:
@@ -334,18 +372,26 @@ def edit_reservation(request, booking_id):
                 }, status=400)
             
             # Update booking fields
-            booking.name = data['name'].strip()
-            booking.email = data['email'].strip().lower()
-            booking.phone = data['phone'].strip()
-            booking.room_type = data['room_type'].strip()
-            booking.booked_rate = rate
-            booking.checkin_date = checkin_date
-            booking.checkout_date = checkout_date
+            booking.guest_name = data['name'].strip()
+            booking.email = data.get('email', '').strip().lower() if data.get('email') else None
+            booking.phone = data.get('phone', '').strip() if data.get('phone') else None
+            booking.room_type = canonical_room_type
+            booking.check_in = checkin_date
+            booking.check_out = checkout_date
             booking.adults = int(data['adults'])
-            booking.children = int(data.get('children', 0))
-            booking.total_days = total_days
-            booking.total_cost_amount = total_cost
+            booking.children = int(data.get('children', 0)) if data.get('children') else None
+            booking.booked_rate = rate
+            booking.total_price = total_cost
+            booking.special_requests = data.get('special_requests', '').strip() if data.get('special_requests') else None
             booking.notes = data.get('notes', '').strip() if data.get('notes') else None
+            
+            # Update status if provided
+            if 'status' in data:
+                booking.status = data['status']
+            if 'payment_status' in data:
+                booking.payment_status = data['payment_status']
+            if 'amount_paid' in data:
+                booking.amount_paid = Decimal(str(data['amount_paid']))
             
             # Save changes
             booking.save()
@@ -355,9 +401,9 @@ def edit_reservation(request, booking_id):
                 'message': f'Reservation #{booking_id} updated successfully!',
                 'booking': {
                     'booking_id': booking.booking_id,
-                    'name': booking.name,
-                    'total_days': booking.total_days,
-                    'total_cost_amount': str(booking.total_cost_amount),
+                    'name': booking.guest_name,
+                    'total_days': total_days,
+                    'total_cost_amount': str(booking.total_price),
                 }
             })
             

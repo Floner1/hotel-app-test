@@ -1,6 +1,8 @@
 <!DOCTYPE HTML>
 <html>
   <head>
+    {% load static %}
+    {% load humanize %}
     <!-- Meta Tags Section -->
     <!-- Essential meta tags for SEO and responsive design -->
     <meta charset="utf-8">
@@ -227,44 +229,19 @@
         </div>
         <!-- Room Cards Grid -->
         <div class="row">
-          <!-- 1 Bed Window Room Card -->
+          {% for room in room_types %}
           <div class="col-md-6 col-lg-4" data-aos="fade-up">
             <a href="#" class="room">
               <figure class="img-wrap">
-                <img src="{% static 'images/img_1.jpg' %}" alt="1 Bed Window Room View" class="img-fluid mb-3">
+                <img src="{% static 'images/img_1.jpg' %}" alt="{{ room.display }}" class="img-fluid mb-3">
               </figure>
               <div class="p-3 text-center room-info">
-                <h2>1 Bed Window Room</h2>
-                <span class="text-uppercase letter-spacing-1">700,000₫ / PER NIGHT</span>
+                <h2>{{ room.display }}</h2>
+                <span class="text-uppercase letter-spacing-1">₫{{ room.price|floatformat:0|intcomma }} / PER NIGHT</span>
               </div>
             </a>
           </div>
-
-          <!-- 2 Bed No Window Room Card -->
-          <div class="col-md-6 col-lg-4" data-aos="fade-up">
-            <a href="#" class="room">
-              <figure class="img-wrap">
-                <img src="{% static 'images/img_2.jpg' %}" alt="2 Bed No Window Room View" class="img-fluid mb-3">
-              </figure>
-              <div class="p-3 text-center room-info">
-                <h2>2 Bed No Window Room</h2>
-                <span class="text-uppercase letter-spacing-1">650,000₫ / PER NIGHT</span>
-              </div>
-            </a>
-          </div>
-
-          <!-- Condotel Suite Card -->
-          <div class="col-md-6 col-lg-4" data-aos="fade-up">
-            <a href="#" class="room">
-              <figure class="img-wrap">
-                <img src="{% static 'images/img_3.jpg' %}" alt="Condotel 2 Bed and Balcony View" class="img-fluid mb-3">
-              </figure>
-              <div class="p-3 text-center room-info">
-                <h2>Condotel 2 Bed & Balcony</h2>
-                <span class="text-uppercase letter-spacing-1">1,000,000₫ / PER NIGHT</span>
-              </div>
-            </a>
-          </div>
+          {% endfor %}
         </div>
       </div>
     </section>
@@ -282,10 +259,7 @@
           {% for service in hotel_services %}
           <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
             <div class="service text-center">
-              <span class="icon d-block mb-3">
-                <span class="flaticon-{% if 'Motorbike' in service.name_of_service %}motorcycle{% elif 'Laundry' in service.name_of_service %}laundry{% elif 'Restaurant' in service.name_of_service %}restaurant{% else %}room-service{% endif %} display-4"></span>
-              </span>
-              <h3 class="mb-3">{{ service.name_of_service }}</h3>
+              <h3 class="mb-4">{{ service.name_of_service }}</h3>
               <p>{{ service.service_description }}</p>
             </div>
           </div>

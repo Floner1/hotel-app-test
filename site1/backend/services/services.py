@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, Optional
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from data.models.hotel import Hotel as BookingHotel, RoomInfo, RoomPrice
+from data.models.hotel import Hotel as BookingHotel, RoomPrice
 from data.repos.repositories import HotelRepository, ReservationRepository
 
 
@@ -22,6 +22,56 @@ class HotelService:
     @staticmethod
     def get_hotel_info() -> Optional[Dict[str, Any]]:
         return HotelRepository.get_hotel_info()
+    
+    @staticmethod
+    def get_available_room_types() -> list:
+        """
+        Get list of available room types from database.
+        Returns list of tuples: (canonical_name, display_name, price)
+        """
+        from data.models.hotel import RoomPrice
+        
+        room_types = []
+        try:
+            # Get all room types from room_price table
+            price_rows = RoomPrice.objects.filter(
+                room_type__isnull=False,
+                price_per_night__isnull=False
+            ).values_list('room_type', 'price_per_night', 'room_description')
+            
+            for room_type, price, description in price_rows:
+                if room_type:
+                    # Canonicalize the room type
+                    canonical = ReservationService._canonicalise_room_type(room_type)
+                    if canonical:
+                        # Create display name from canonical name
+                        display_name = canonical.replace('_', ' ').title()
+                        room_types.append({
+                            'canonical': canonical,
+                            'display': display_name,
+                            'price': price,
+                            'description': description
+                        })
+            
+            # Remove duplicates based on canonical name
+            seen = set()
+            unique_rooms = []
+            for room in room_types:
+                if room['canonical'] not in seen:
+                    seen.add(room['canonical'])
+                    unique_rooms.append(room)
+            
+            return unique_rooms
+        except Exception as e:
+            print(f"[HotelService] Error loading room types: {e}")
+            # Fallback to hardcoded list if database fails
+            return [
+                {'canonical': 'one_bed_balcony_room', 'display': 'One Bed Balcony Room', 'price': None, 'description': None},
+                {'canonical': 'one_bed_window_room', 'display': 'One Bed Window Room', 'price': None, 'description': None},
+                {'canonical': 'two_bed_no_window_room', 'display': 'Two Bed No Window Room', 'price': None, 'description': None},
+                {'canonical': 'one_bed_no_window_room', 'display': 'One Bed No Window Room', 'price': None, 'description': None},
+                {'canonical': 'two_bed_condotel_balcony', 'display': 'Two Bed Condotel Balcony', 'price': None, 'description': None},
+            ]
 
 
 class ReservationService:
@@ -66,14 +116,6 @@ class ReservationService:
         ),
     }
 
-    _ROOM_PRICE_FIELD_MAP: Dict[str, str] = {
-        'one_bed_balcony_room': 'bed_1_balcony_room',
-        'one_bed_window_room': 'bed_1_window_room',
-        'two_bed_no_window_room': 'bed_2_no_window_room',
-        'one_bed_no_window_room': 'bed_1_no_window_room',
-        'two_bed_condotel_balcony': 'bed_2_condotel_balcony',
-    }
-
     @classmethod
     def create_reservation(cls, reservation_data: Dict[str, Any]):
         cls._ensure_required_fields(reservation_data)
@@ -86,17 +128,17 @@ class ReservationService:
 
         cls._validate_dates(checkin_date, checkout_date)
 
-        email = (reservation_data.get('email') or '').strip()
-        # Validate email format (now required)
-        if not email:
-            raise ValidationError('Email is required.')
-        if '@' not in email or '.' not in email:
-            raise ValidationError('Invalid email format.')
-
         adults = cls._parse_positive_int(reservation_data.get('adults', 1), 'adults', minimum=1)
         children = cls._parse_positive_int(reservation_data.get('children', 0), 'children', minimum=0)
 
-        rate = cls._resolve_rate(reservation_data.get('room_type', ''))
+        # Get canonical room type
+        room_type_input = reservation_data.get('room_type', '')
+        canonical_room_type = cls._canonicalise_room_type(room_type_input)
+        if not canonical_room_type:
+            raise ValidationError('Invalid room type selected.')
+
+        # Get the rate for this room type
+        rate = cls._resolve_rate(room_type_input)
         total_days = (checkout_date - checkin_date).days
         if total_days <= 0:
             raise ValidationError('Stay must be at least one night.')
@@ -107,30 +149,34 @@ class ReservationService:
         if hotel_record is None:
             raise ValidationError('Hotel information is not configured. Please contact the administrator.')
 
+        guest_name = (reservation_data.get('name') or '').strip()
+        if not guest_name:
+            raise ValidationError('Guest name is required.')
+
+        email = (reservation_data.get('email') or '').strip()
+        phone = (reservation_data.get('phone') or '').strip()
         notes = (reservation_data.get('notes') or '').strip()
-        stored_room_type = cls._canonicalise_room_type(reservation_data.get('room_type', '')) or reservation_data.get('room_type', '').strip()
+        special_requests = (reservation_data.get('special_requests') or '').strip()
 
         booking_data = {
             'hotel': hotel_record,
-            'name': (reservation_data.get('name') or '').strip(),
-            'phone': (reservation_data.get('phone') or '').strip(),
-            'room_type': stored_room_type,
-            'booked_rate': rate,
-            'email': email.lower(),
-            'booking_date': timezone.now().date(),
-            'checkin_date': checkin_date,
-            'checkout_date': checkout_date,
-            'total_days': total_days,
-            'total_cost_amount': total_cost,
+            'guest_name': guest_name,
+            'email': email if email else None,
+            'phone': phone if phone else None,
+            'room_type': canonical_room_type,
+            'booking_date': timezone.now(),
+            'check_in': checkin_date,
+            'check_out': checkout_date,
             'adults': adults,
-            'children': children,
+            'children': children if children > 0 else None,
+            'booked_rate': rate,
+            'total_price': total_cost,
+            'status': 'confirmed',
+            'payment_status': reservation_data.get('payment_status', 'unpaid'),
+            'amount_paid': Decimal('0.00'),
+            'special_requests': special_requests if special_requests else None,
             'notes': notes if notes else None,
         }
-
-        if not booking_data['name']:
-            raise ValidationError('Guest name is required.')
-        if not booking_data['phone']:
-            raise ValidationError('Phone number is required.')
 
         return ReservationRepository.create(booking_data)
 
@@ -206,38 +252,22 @@ class ReservationService:
 
     @classmethod
     def _load_room_rates(cls) -> Dict[str, Decimal]:
-        """Load room rates from database, preferring room_info over room_price."""
+        """Load room rates from database room_price table."""
         rates: Dict[str, Decimal] = {}
 
-        # Try room_info table first
+        # Load from room_price table
         try:
-            info_rows = RoomInfo.objects.filter(price_per_night__isnull=False).values_list('room_type', 'price_per_night')
-            for room_type, price in info_rows:
+            price_rows = RoomPrice.objects.filter(price_per_night__isnull=False).values_list('room_type', 'price_per_night')
+            for room_type, price_str in price_rows:
                 canonical = cls._canonicalise_room_type(room_type or '')
-                if canonical and price is not None:
-                    rates[canonical] = Decimal(str(price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                    print(f"[RATES] Loaded from room_info: {canonical} = {rates[canonical]}")
-
-            if rates:
-                print(f"[RATES] Loaded {len(rates)} rates from room_info table")
-                return rates
-        except Exception as e:
-            print(f"[RATES] Could not load from room_info table: {e}")
-
-        # Fallback to room_price snapshot table
-        try:
-            snapshot = RoomPrice.objects.order_by('-room_price_id').first()
-            if snapshot:
-                print(f"[RATES] Loading from room_price snapshot ID {snapshot.room_price_id}")
-                for canonical, field_name in cls._ROOM_PRICE_FIELD_MAP.items():
-                    value = getattr(snapshot, field_name, None)
-                    if value is not None:
-                        rates[canonical] = Decimal(str(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                if canonical and price_str:
+                    try:
+                        # Convert string price to Decimal
+                        price = Decimal(str(price_str)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        rates[canonical] = price
                         print(f"[RATES] Loaded: {canonical} = {rates[canonical]}")
-                    else:
-                        print(f"[RATES] Skipped {canonical} (value is None)")
-            else:
-                print("[RATES] WARNING: No room_price records found in database")
+                    except (ValueError, TypeError) as e:
+                        print(f"[RATES] Could not parse price for {room_type}: {e}")
         except Exception as e:
             print(f"[RATES] Could not load from room_price table: {e}")
 
@@ -266,7 +296,7 @@ class ReservationService:
 
     @staticmethod
     def _ensure_required_fields(payload: Dict[str, Any]) -> None:
-        required = ('name', 'phone', 'email', 'checkin_date', 'checkout_date', 'room_type')
+        required = ('name', 'checkin_date', 'checkout_date', 'room_type')
         missing = [field for field in required if not (payload.get(field) or '').strip()]
         if missing:
             joined = ', '.join(missing)

@@ -659,25 +659,25 @@
                 <td>
                   <div class="customer-info">
                     <div class="customer-avatar">
-                      {{ booking.name|slice:":1"|upper }}
+                      {{ booking.guest_name|slice:":1"|upper }}
                     </div>
                     <div class="customer-details">
-                      <span class="customer-name">{{ booking.name }}</span>
-                      <span class="customer-email">{{ booking.email }}</span>
+                      <span class="customer-name">{{ booking.guest_name }}</span>
+                      <span class="customer-email">{{ booking.email|default:"No email" }}</span>
                     </div>
                   </div>
                 </td>
-                <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ booking.room_type }}">{{ booking.room_type }}</td>
-                <td style="white-space: nowrap;">{{ booking.checkin_date|date:"M j, y" }}</td>
-                <td style="white-space: nowrap;">{{ booking.checkout_date|date:"M j, y" }}</td>
+                <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ booking.room_type }}">{{ booking.room_type|title }}</td>
+                <td style="white-space: nowrap;">{{ booking.check_in|date:"M j, y" }}</td>
+                <td style="white-space: nowrap;">{{ booking.check_out|date:"M j, y" }}</td>
                 <td style="white-space: nowrap;">
-                  <i class="fa fa-user"></i> {{ booking.adults }}{% if booking.children > 0 %} <i class="fa fa-child"></i> {{ booking.children }}{% endif %}
+                  <i class="fa fa-user"></i> {{ booking.adults }}{% if booking.children %} <i class="fa fa-child"></i> {{ booking.children }}{% endif %}
                 </td>
-                <td><strong>₫{{ booking.total_cost_amount|floatformat:0|intcomma }}</strong></td>
+                <td><strong>₫{{ booking.total_price|floatformat:0|intcomma }}</strong></td>
                 <td>
-                  {% if booking.checkin_date == today %}
+                  {% if booking.check_in == today %}
                     <span class="badge badge-today">Today</span>
-                  {% elif booking.checkin_date > today %}
+                  {% elif booking.check_in > today %}
                     <span class="badge badge-upcoming">Upcoming</span>
                   {% else %}
                     <span class="badge badge-past">Past</span>
@@ -766,6 +766,17 @@
     <script src="{% static 'js/bootstrap.min.js' %}"></script>
     
     <script>
+      // Room types from database
+      const ROOM_TYPES = [
+        {% for room in room_types %}
+        {
+          canonical: '{{ room.canonical }}',
+          display: '{{ room.display }}',
+          price: {% if room.price %}'{{ room.price }}'{% else %}null{% endif %}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ];
+      
       // Search functionality
       const searchInput = document.getElementById('searchInput');
       if (searchInput) {
@@ -866,7 +877,7 @@
                   
                   <div style="grid-column: 1 / -1;">
                     <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Room Type</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${booking.room_type}</p>
+                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0; text-transform: capitalize;">${booking.room_type.replace(/_/g, ' ')}</p>
                   </div>
                   
                   <div>
@@ -897,10 +908,19 @@
                     <p style="color: white; font-weight: 700; font-size: 1.5rem; margin: 0;">₫${parseFloat(booking.total_cost_amount).toLocaleString()}</p>
                   </div>
                   
+                  ${booking.special_requests ? `
+                  <div style="grid-column: 1 / -1; background: #fff3cd; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #ffc107;">
+                    <h4 style="color: #856404; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">
+                      <i class="fa fa-comment"></i> Special Requests
+                    </h4>
+                    <p style="color: #856404; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${booking.special_requests}</p>
+                  </div>
+                  ` : ''}
+                  
                   ${booking.notes ? `
                   <div style="grid-column: 1 / -1; background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #667eea;">
                     <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">
-                      <i class="fa fa-sticky-note"></i> Notes
+                      <i class="fa fa-sticky-note"></i> Admin Notes
                     </h4>
                     <p style="color: #2c3e50; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${booking.notes}</p>
                   </div>
@@ -1004,11 +1024,11 @@
                     </label>
                     <select id="edit_room_type" required
                       style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                      <option value="1 bed balcony room" ${booking.room_type.includes('1 bed balcony') ? 'selected' : ''}>1 Bed Balcony Room</option>
-                      <option value="1 bed window room" ${booking.room_type.includes('1 bed window') ? 'selected' : ''}>1 Bed Window Room</option>
-                      <option value="2 bed no window" ${booking.room_type.includes('2 bed no window') ? 'selected' : ''}>2 Bed No Window</option>
-                      <option value="1 bed no window" ${booking.room_type.includes('1 bed no window') ? 'selected' : ''}>1 Bed No Window</option>
-                      <option value="condotel 2 bed and balcony" ${booking.room_type.includes('condotel') ? 'selected' : ''}>Condotel 2 Bed and Balcony</option>
+                      ${ROOM_TYPES.map(room => `
+                        <option value="${room.canonical}" ${booking.room_type === room.canonical ? 'selected' : ''}>
+                          ${room.display}${room.price ? ' - ₫' + parseFloat(room.price).toLocaleString() + '/night' : ''}
+                        </option>
+                      `).join('')}
                     </select>
                   </div>
                   
@@ -1046,10 +1066,20 @@
                   
                   <div style="grid-column: 1 / -1;">
                     <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                      <i class="fa fa-comment"></i> Special Requests
+                    </label>
+                    <textarea id="edit_special_requests" rows="2"
+                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
+                      placeholder="e.g., Non-smoking room, high floor, early check-in...">${booking.special_requests || ''}</textarea>
+                  </div>
+                  
+                  <div style="grid-column: 1 / -1;">
+                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
                       <i class="fa fa-sticky-note"></i> Admin Notes
                     </label>
-                    <textarea id="edit_notes" rows="3"
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;">${booking.notes}</textarea>
+                    <textarea id="edit_notes" rows="2"
+                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
+                      placeholder="Internal notes for staff...">${booking.notes || ''}</textarea>
                   </div>
                   
                   <div style="grid-column: 1 / -1; margin-top: 1rem; display: flex; gap: 1rem; justify-content: flex-end;">
@@ -1122,6 +1152,7 @@
           checkout_date: document.getElementById('edit_checkout_date').value,
           adults: document.getElementById('edit_adults').value,
           children: document.getElementById('edit_children').value,
+          special_requests: document.getElementById('edit_special_requests').value,
           notes: document.getElementById('edit_notes').value,
         };
         
@@ -1252,11 +1283,9 @@
                 <select id="add_room_type" required
                   style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
                   <option value="">Select a room type</option>
-                  <option value="1 bed balcony room">1 Bed Balcony Room</option>
-                  <option value="1 bed window room">1 Bed Window Room</option>
-                  <option value="2 bed no window">2 Bed No Window</option>
-                  <option value="1 bed no window">1 Bed No Window</option>
-                  <option value="condotel 2 bed and balcony">Condotel 2 Bed and Balcony</option>
+                  {% for room in room_types %}
+                  <option value="{{ room.canonical }}">{{ room.display }}{% if room.price %} - ₫{{ room.price|floatformat:0|intcomma }}/night{% endif %}</option>
+                  {% endfor %}
                 </select>
               </div>
               
@@ -1305,10 +1334,20 @@
               
               <div style="grid-column: 1 / -1;">
                 <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-sticky-note"></i> Notes
+                  <i class="fa fa-comment"></i> Special Requests
                 </label>
-                <textarea id="add_notes" rows="3"
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"></textarea>
+                <textarea id="add_special_requests" rows="2"
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
+                  placeholder="e.g., Non-smoking room, high floor, early check-in..."></textarea>
+              </div>
+              
+              <div style="grid-column: 1 / -1;">
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-sticky-note"></i> Admin Notes
+                </label>
+                <textarea id="add_notes" rows="2"
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
+                  placeholder="Internal notes for staff..."></textarea>
               </div>
               
               <div style="grid-column: 1 / -1; margin-top: 1rem; display: flex; gap: 1rem; justify-content: flex-end;">
@@ -1365,6 +1404,7 @@
           checkout_date: formatDateForSubmit(document.getElementById('add_checkout_date').value),
           adults: document.getElementById('add_adults').value,
           children: document.getElementById('add_children').value,
+          special_requests: document.getElementById('add_special_requests').value.trim(),
           notes: document.getElementById('add_notes').value.trim()
         };
         

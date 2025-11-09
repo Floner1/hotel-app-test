@@ -21,11 +21,11 @@ class HotelRepository:
         # For contact page and other places where full info is needed
         result = Hotel.objects.values(
             'hotel_name',
-            'hotel_address',
+            'address',
             'star_rating',
             'established_date',
-            'phone_number',
-            'hotel_email_address'
+            'phone',
+            'email'
         ).first()
 
         if not result:
@@ -37,14 +37,25 @@ class HotelRepository:
                 'phone': _DEFAULT_PHONE,
                 'email': _DEFAULT_EMAIL,
             }
-
+        
+        # Map the database field names to template-expected names
         return {
-            'hotel_name': result.get('hotel_name') or 'Hotel Name Not Found',
-            'hotel_address': result.get('hotel_address') or '',
-            'star_rating': result.get('star_rating'),
-            'established_date': result.get('established_date'),
-            'phone': result.get('phone_number') or _DEFAULT_PHONE,
-            'email': result.get('hotel_email_address') or _DEFAULT_EMAIL,
+            'hotel_name': result['hotel_name'],
+            'hotel_address': result['address'],  # Map 'address' to 'hotel_address'
+            'star_rating': result['star_rating'],
+            'established_date': result['established_date'],
+            'phone': result['phone'],
+            'email': result['email'],
+        }
+
+        # Return with consistent key names
+        return {
+            'hotel_name': result['hotel_name'],
+            'address': result['address'],
+            'star_rating': result['star_rating'],
+            'established_date': result['established_date'],
+            'phone': result['phone'] or _DEFAULT_PHONE,
+            'email': result['email'] or _DEFAULT_EMAIL,
         }
 
 

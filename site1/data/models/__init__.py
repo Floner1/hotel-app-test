@@ -2,25 +2,17 @@
 from .hotel import (
     Hotel, 
     CustomerBookingInfo, 
-    RoomInfo, 
     RoomPrice,
-    Account,
     HotelServices,
-    Minibar,
-    MinibarPrice,
-    Payment
+    HotelKeysMain
 )
 from .images import ImagesRef
 
 __all__ = [
     'Hotel', 
     'CustomerBookingInfo', 
-    'RoomInfo', 
     'RoomPrice',
-    'Account',
     'HotelServices',
-    'Minibar',
-    'MinibarPrice',
-    'Payment',
+    'HotelKeysMain',
     'ImagesRef'
 ]
