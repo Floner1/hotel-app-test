@@ -338,13 +338,14 @@ def edit_reservation(request, booking_id):
             booking.email = data['email'].strip().lower()
             booking.phone = data['phone'].strip()
             booking.room_type = data['room_type'].strip()
+            booking.booked_rate = rate
             booking.checkin_date = checkin_date
             booking.checkout_date = checkout_date
             booking.adults = int(data['adults'])
             booking.children = int(data.get('children', 0))
             booking.total_days = total_days
             booking.total_cost_amount = total_cost
-            booking.notes = data.get('notes', '').strip()
+            booking.notes = data.get('notes', '').strip() if data.get('notes') else None
             
             # Save changes
             booking.save()

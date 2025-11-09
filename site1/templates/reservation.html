@@ -218,9 +218,9 @@
           </div>
         </div>
 
-        <div class="row">
+        <div class="row justify-content-center">
           {% for service in hotel_services %}
-          <div class="col-md-6 col-lg-3 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
+          <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
             <div class="service text-center">
               <span class="icon d-block mb-3">
                 <span class="flaticon-{% if 'Motorbike' in service.name_of_service %}motorcycle{% elif 'Laundry' in service.name_of_service %}laundry{% elif 'Restaurant' in service.name_of_service %}restaurant{% else %}room-service{% endif %} display-4"></span>
@@ -437,6 +437,22 @@
           });
         });
 
+        // Helper function to format date for submission (MM/DD/YYYY format)
+        function formatDateForSubmit(dateString) {
+          if (!dateString) return '';
+          // Try to parse the date string
+          var date = new Date(dateString);
+          // Check if date is valid
+          if (isNaN(date.getTime())) {
+            // If not valid, try datepicker format (assuming mm/dd/yyyy already)
+            return dateString;
+          }
+          var month = String(date.getMonth() + 1).padStart(2, '0');
+          var day = String(date.getDate()).padStart(2, '0');
+          var year = date.getFullYear();
+          return month + '/' + day + '/' + year;
+        }
+
         // Handle reservation form submission
         $('#reservation-form').on('submit', function(e) {
           e.preventDefault();
@@ -449,13 +465,13 @@
           submitButton.prop('disabled', true);
           submitButton.val('Submitting...');
 
-          // Get form data
+          // Get form data with formatted dates
           var formData = {
             'name': $('#name').val(),
             'phone': $('#phone').val(),
             'email': $('#email').val(),
-            'checkin_date': $('#checkin_date').val(),
-            'checkout_date': $('#checkout_date').val(),
+            'checkin_date': formatDateForSubmit($('#checkin_date').val()),
+            'checkout_date': formatDateForSubmit($('#checkout_date').val()),
             'adults': $('#adults').val(),
             'children': $('#children').val(),
             'room_type': $('#room_type').val(),

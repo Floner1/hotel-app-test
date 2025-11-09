@@ -172,6 +172,33 @@
         border-color: transparent;
       }
 
+      .btn-add-reservation {
+        padding: 0.5rem 1.25rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        cursor: pointer;
+      }
+
+      .btn-add-reservation:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-add-reservation i {
+        font-size: 1rem;
+      }
+
       .reservations-table {
         background: white;
         border-radius: 12px;
@@ -436,6 +463,12 @@
           flex: 1;
         }
 
+        .btn-add-reservation {
+          width: 100%;
+          justify-content: center;
+          margin-top: 0.5rem;
+        }
+
         .pagination-container {
           flex-direction: column;
           gap: 1rem;
@@ -589,6 +622,9 @@
               <button class="filter-btn" data-filter="today">Today</button>
               <button class="filter-btn" data-filter="upcoming">Upcoming</button>
               <button class="filter-btn" data-filter="past">Past</button>
+              <button class="btn-add-reservation" onclick="openAddModal()">
+                <i class="fa fa-plus-circle"></i> Add Reservation
+              </button>
             </div>
           </div>
         </div>
@@ -619,7 +655,7 @@
             <tbody>
               {% for booking in reservations %}
               <tr data-booking-id="{{ booking.booking_id }}">
-                <td><strong>#{{ booking.booking_id }}</strong></td>
+                <td style="text-align: center;"><strong>#{{ booking.booking_id }}</strong></td>
                 <td>
                   <div class="customer-info">
                     <div class="customer-avatar">
@@ -1171,6 +1207,226 @@
           }
         }
         return cookieValue;
+      }
+
+      // Open Add Reservation Modal
+      function openAddModal() {
+        const modalContent = `
+          <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 700px; margin: 2rem auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #667eea; padding-bottom: 1rem;">
+              <h2 style="margin: 0; color: #2c3e50; font-size: 1.5rem;">
+                <i class="fa fa-plus-circle"></i> Add New Reservation
+              </h2>
+              <button onclick="closeAddModal()" style="background: none; border: none; font-size: 1.5rem; color: #8b92a7; cursor: pointer;">×</button>
+            </div>
+            
+            <form id="addBookingForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+              <div style="grid-column: 1 / -1;">
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-user"></i> Customer Name <span style="color: red;">*</span>
+                </label>
+                <input type="text" id="add_name" required
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+              </div>
+              
+              <div>
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-envelope"></i> Email <span style="color: red;">*</span>
+                </label>
+                <input type="email" id="add_email" required
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+              </div>
+              
+              <div>
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-phone"></i> Phone <span style="color: red;">*</span>
+                </label>
+                <input type="tel" id="add_phone" required
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+              </div>
+              
+              <div>
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-bed"></i> Room Type <span style="color: red;">*</span>
+                </label>
+                <select id="add_room_type" required
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+                  <option value="">Select a room type</option>
+                  <option value="1 bed balcony room">1 Bed Balcony Room</option>
+                  <option value="1 bed window room">1 Bed Window Room</option>
+                  <option value="2 bed no window">2 Bed No Window</option>
+                  <option value="1 bed no window">1 Bed No Window</option>
+                  <option value="condotel 2 bed and balcony">Condotel 2 Bed and Balcony</option>
+                </select>
+              </div>
+              
+              <div>
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-calendar"></i> Check-in Date <span style="color: red;">*</span>
+                </label>
+                <input type="date" id="add_checkin_date" required
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+              </div>
+              
+              <div>
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-calendar"></i> Check-out Date <span style="color: red;">*</span>
+                </label>
+                <input type="date" id="add_checkout_date" required
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+              </div>
+              
+              <div>
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-users"></i> Adults <span style="color: red;">*</span>
+                </label>
+                <select id="add_adults" required
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4+</option>
+                </select>
+              </div>
+              
+              <div>
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-child"></i> Children
+                </label>
+                <select id="add_children"
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4+</option>
+                </select>
+              </div>
+              
+              <div style="grid-column: 1 / -1;">
+                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                  <i class="fa fa-sticky-note"></i> Notes
+                </label>
+                <textarea id="add_notes" rows="3"
+                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"></textarea>
+              </div>
+              
+              <div style="grid-column: 1 / -1; margin-top: 1rem; display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" onclick="closeAddModal()" 
+                  style="padding: 0.75rem 2rem; background: #e8ecef; color: #5a6c7d; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                  Cancel
+                </button>
+                <button type="submit" 
+                  style="padding: 0.75rem 2rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                  <i class="fa fa-save"></i> Create Reservation
+                </button>
+              </div>
+            </form>
+          </div>
+        `;
+        
+        // Create modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'addBookingModal';
+        modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; overflow-y: auto; padding: 2rem 1rem;';
+        modalOverlay.innerHTML = modalContent;
+        
+        // Close modal when clicking overlay
+        modalOverlay.addEventListener('click', function(e) {
+          if (e.target === modalOverlay) {
+            closeAddModal();
+          }
+        });
+        
+        document.body.appendChild(modalOverlay);
+        
+        // Add form submit handler
+        document.getElementById('addBookingForm').addEventListener('submit', function(e) {
+          e.preventDefault();
+          saveNewBooking();
+        });
+      }
+      
+      function closeAddModal() {
+        const modal = document.getElementById('addBookingModal');
+        if (modal) {
+          modal.remove();
+        }
+      }
+      
+      function saveNewBooking() {
+        // Get form values
+        const formData = {
+          name: document.getElementById('add_name').value.trim(),
+          email: document.getElementById('add_email').value.trim(),
+          phone: document.getElementById('add_phone').value.trim(),
+          room_type: document.getElementById('add_room_type').value,
+          checkin_date: formatDateForSubmit(document.getElementById('add_checkin_date').value),
+          checkout_date: formatDateForSubmit(document.getElementById('add_checkout_date').value),
+          adults: document.getElementById('add_adults').value,
+          children: document.getElementById('add_children').value,
+          notes: document.getElementById('add_notes').value.trim()
+        };
+        
+        // Validate required fields
+        if (!formData.name || !formData.email || !formData.phone || !formData.room_type || !formData.checkin_date || !formData.checkout_date) {
+          alert('Error: Please fill in all required fields (Name, Email, Phone, Room Type, Check-in Date, Check-out Date)');
+          return;
+        }
+        
+        // Get CSRF token
+        const csrftoken = getCookie('csrftoken');
+        
+        // Send POST request
+        fetch('{% url "reservation" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken,
+          },
+          body: new URLSearchParams(formData)
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.message || 'Failed to create reservation');
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === 'success') {
+            alert(`Success! Reservation created.\n\nBooking ID: #${data.booking_id}\nTotal Days: ${data.total_days}\nTotal Cost: ₫${parseFloat(data.total_cost_amount).toLocaleString()}`);
+            closeAddModal();
+            // Reload page to show new reservation
+            location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          alert('An error occurred while creating the reservation:\n\n' + error.message);
+          console.error('Create error:', error);
+        });
+      }
+      
+      // Helper function to format date for submission (MM/DD/YYYY format)
+      function formatDateForSubmit(dateString) {
+        if (!dateString) return '';
+        // Input format from date picker is YYYY-MM-DD
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+          // Convert YYYY-MM-DD to MM/DD/YYYY
+          return `${parts[1]}/${parts[2]}/${parts[0]}`;
+        }
+        // Fallback: try to parse as date
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
       }
 
       // Export functionality

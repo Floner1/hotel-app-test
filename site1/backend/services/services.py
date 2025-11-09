@@ -32,41 +32,46 @@ class ReservationService:
     _RATE_CACHE_TTL_SECONDS = 300
 
     _ROOM_TYPE_ALIASES: Dict[str, Iterable[str]] = {
-        '1 bed balcony room': (
+        'one_bed_balcony_room': (
             '1 bed balcony room',
             '1 bed balcony',
             '1-bed balcony room',
             'one bed balcony room',
+            'one_bed_balcony_room',
         ),
-        '1 bed window room': (
+        'one_bed_window_room': (
             '1 bed window room',
             '1 bed window',
             'one bed window room',
+            'one_bed_window_room',
         ),
-        '2 bed no window': (
+        'two_bed_no_window_room': (
             '2 bed no window',
             'two bed no window',
             '2-bed no window room',
             '2 bed balcony room',
+            'two_bed_no_window_room',
         ),
-        '1 bed no window': (
+        'one_bed_no_window_room': (
             '1 bed no window',
             'one bed no window',
+            'one_bed_no_window_room',
         ),
-        'condotel 2 bed and balcony': (
+        'two_bed_condotel_balcony': (
             'condotel 2 bed and balcony',
             'condotel 2 bed balcony',
             '2 bed condotel balcony',
             'condotel 2 bed with balcony',
+            'two_bed_condotel_balcony',
         ),
     }
 
     _ROOM_PRICE_FIELD_MAP: Dict[str, str] = {
-        '1 bed balcony room': 'bed_1_balcony_room',
-        '1 bed window room': 'bed_1_window_room',
-        '2 bed no window': 'bed_2_no_window_room',
-        '1 bed no window': 'bed_1_no_window_room',
-        'condotel 2 bed and balcony': 'bed_2_condotel_balcony',
+        'one_bed_balcony_room': 'bed_1_balcony_room',
+        'one_bed_window_room': 'bed_1_window_room',
+        'two_bed_no_window_room': 'bed_2_no_window_room',
+        'one_bed_no_window_room': 'bed_1_no_window_room',
+        'two_bed_condotel_balcony': 'bed_2_condotel_balcony',
     }
 
     @classmethod
@@ -82,6 +87,9 @@ class ReservationService:
         cls._validate_dates(checkin_date, checkout_date)
 
         email = (reservation_data.get('email') or '').strip()
+        # Validate email format (now required)
+        if not email:
+            raise ValidationError('Email is required.')
         if '@' not in email or '.' not in email:
             raise ValidationError('Invalid email format.')
 
@@ -101,25 +109,22 @@ class ReservationService:
 
         notes = (reservation_data.get('notes') or '').strip()
         stored_room_type = cls._canonicalise_room_type(reservation_data.get('room_type', '')) or reservation_data.get('room_type', '').strip()
-        if notes:
-            stored_room_type = f'{stored_room_type} | Notes: {notes}' if stored_room_type else notes
-
-        if ReservationRepository.email_exists(email):
-            raise ValidationError('A reservation with this email already exists.')
 
         booking_data = {
+            'hotel': hotel_record,
             'name': (reservation_data.get('name') or '').strip(),
             'phone': (reservation_data.get('phone') or '').strip(),
+            'room_type': stored_room_type,
+            'booked_rate': rate,
             'email': email.lower(),
+            'booking_date': timezone.now().date(),
             'checkin_date': checkin_date,
             'checkout_date': checkout_date,
-            'adults': adults,
-            'children': children,
-            'room_type': stored_room_type,
-            'booking_date': timezone.now().date(),
             'total_days': total_days,
             'total_cost_amount': total_cost,
-            'hotel': hotel_record,
+            'adults': adults,
+            'children': children,
+            'notes': notes if notes else None,
         }
 
         if not booking_data['name']:
@@ -171,8 +176,6 @@ class ReservationService:
             raise ValidationError('Check-in date cannot be in the past.')
         if checkout_date <= checkin_date:
             raise ValidationError('Check-out date must be after check-in date.')
-        if (checkout_date - checkin_date).days > 30:
-            raise ValidationError('Maximum stay duration is 30 days.')
 
     @classmethod
     def _resolve_rate(cls, room_type: str) -> Decimal:
@@ -207,30 +210,36 @@ class ReservationService:
         rates: Dict[str, Decimal] = {}
 
         # Try room_info table first
-        info_rows = RoomInfo.objects.filter(price_per_night__isnull=False).values_list('room_type', 'price_per_night')
-        for room_type, price in info_rows:
-            canonical = cls._canonicalise_room_type(room_type or '')
-            if canonical and price is not None:
-                rates[canonical] = Decimal(str(price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                print(f"[RATES] Loaded from room_info: {canonical} = {rates[canonical]}")
+        try:
+            info_rows = RoomInfo.objects.filter(price_per_night__isnull=False).values_list('room_type', 'price_per_night')
+            for room_type, price in info_rows:
+                canonical = cls._canonicalise_room_type(room_type or '')
+                if canonical and price is not None:
+                    rates[canonical] = Decimal(str(price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    print(f"[RATES] Loaded from room_info: {canonical} = {rates[canonical]}")
 
-        if rates:
-            print(f"[RATES] Loaded {len(rates)} rates from room_info table")
-            return rates
+            if rates:
+                print(f"[RATES] Loaded {len(rates)} rates from room_info table")
+                return rates
+        except Exception as e:
+            print(f"[RATES] Could not load from room_info table: {e}")
 
         # Fallback to room_price snapshot table
-        snapshot = RoomPrice.objects.order_by('-room_price_id').first()
-        if snapshot:
-            print(f"[RATES] Loading from room_price snapshot ID {snapshot.room_price_id}")
-            for canonical, field_name in cls._ROOM_PRICE_FIELD_MAP.items():
-                value = getattr(snapshot, field_name, None)
-                if value is not None:
-                    rates[canonical] = Decimal(str(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                    print(f"[RATES] Loaded: {canonical} = {rates[canonical]}")
-                else:
-                    print(f"[RATES] Skipped {canonical} (value is None)")
-        else:
-            print("[RATES] WARNING: No room_price records found in database")
+        try:
+            snapshot = RoomPrice.objects.order_by('-room_price_id').first()
+            if snapshot:
+                print(f"[RATES] Loading from room_price snapshot ID {snapshot.room_price_id}")
+                for canonical, field_name in cls._ROOM_PRICE_FIELD_MAP.items():
+                    value = getattr(snapshot, field_name, None)
+                    if value is not None:
+                        rates[canonical] = Decimal(str(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        print(f"[RATES] Loaded: {canonical} = {rates[canonical]}")
+                    else:
+                        print(f"[RATES] Skipped {canonical} (value is None)")
+            else:
+                print("[RATES] WARNING: No room_price records found in database")
+        except Exception as e:
+            print(f"[RATES] Could not load from room_price table: {e}")
 
         print(f"[RATES] Total rates loaded: {len(rates)}")
         return rates

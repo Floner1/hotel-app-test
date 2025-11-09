@@ -3,41 +3,42 @@ from django.db import models
 
 
 class Hotel(models.Model):
-    """Model mapped to the SQL Server `hotel` table."""
+    """Model mapped to the SQL Server `hotel_info` table."""
 
-    hotel_id = models.IntegerField(primary_key=True)
-    hotel_name = models.CharField(max_length=255)
+    hotel_id = models.IntegerField(primary_key=True, db_column='hotel_info_id')
+    hotel_name = models.CharField(max_length=255, null=True, blank=True)
     star_rating = models.IntegerField(null=True, blank=True)
     hotel_address = models.CharField(max_length=255, null=True, blank=True)
-    hotel_email_address = models.CharField(max_length=30, null=True, blank=True)
+    hotel_email_address = models.CharField(db_column='hotel_email_address', max_length=255, null=True, blank=True)
     phone_number = models.CharField(max_length=30, null=True, blank=True)
     established_date = models.DateField(null=True, blank=True)
 
     class Meta:
-        db_table = 'hotel'
+        db_table = 'hotel_info'
         managed = False
 
     def __str__(self) -> str:
-        return self.hotel_name
+        return self.hotel_name or 'Unnamed Hotel'
 
 
 class CustomerBookingInfo(models.Model):
     """Model mapped to SQL Server's booking_info table."""
 
-    booking_id = models.AutoField(db_column='customer_id', primary_key=True)
+    booking_id = models.AutoField(primary_key=True)
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='hotel_id')
     name = models.CharField(db_column='customer_name', max_length=255)
     phone = models.CharField(db_column='customer_phone_number', max_length=20)
-    email = models.EmailField(db_column='customer_email', max_length=255, unique=True)
-    room_type = models.CharField(db_column='customer_room_type', max_length=255)
-    booking_date = models.DateField(db_column='booking_date')
-    checkin_date = models.DateField(db_column='checkin_date')
-    checkout_date = models.DateField(db_column='checkout_date')
-    total_days = models.IntegerField(db_column='total_days')
-    total_cost_amount = models.DecimalField(db_column='total_cost_amount', max_digits=10, decimal_places=2)
+    room_type = models.CharField(db_column='customer_room_type', max_length=100)
+    booked_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    email = models.CharField(db_column='customer_email', max_length=255, null=True, blank=True)
+    booking_date = models.DateField()
+    checkin_date = models.DateField()
+    checkout_date = models.DateField()
+    total_days = models.IntegerField()
+    total_cost_amount = models.DecimalField(max_digits=10, decimal_places=2)
     adults = models.IntegerField(db_column='number_of_adults')
     children = models.IntegerField(db_column='number_of_children')
-    notes = models.CharField(db_column='admin_notes', max_length=255, default='')
-    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='hotel_id')
+    notes = models.CharField(db_column='admin_notes', max_length=255, null=True, blank=True)
 
     class Meta:
         db_table = 'booking_info'
@@ -50,22 +51,22 @@ class CustomerBookingInfo(models.Model):
 class RoomPrice(models.Model):
     """Snapshot of nightly pricing for each room type in a hotel."""
 
-    room_price_id = models.IntegerField(primary_key=True, db_column='room_price_id')
-    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='hotel_id', null=True, blank=True)
+    room_price_id = models.IntegerField(primary_key=True)
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='hotel_id')
     bed_1_balcony_room = models.DecimalField(
-        db_column='1_bed_balcony_room', max_digits=10, decimal_places=2, null=True, blank=True
+        db_column='one_bed_balcony_room', max_digits=10, decimal_places=2, null=True, blank=True
     )
     bed_1_window_room = models.DecimalField(
-        db_column='1_bed_window_room', max_digits=10, decimal_places=2, null=True, blank=True
+        db_column='one_bed_window_room', max_digits=10, decimal_places=2, null=True, blank=True
     )
     bed_2_no_window_room = models.DecimalField(
-        db_column='2_bed_no_window_room', max_digits=10, decimal_places=2, null=True, blank=True
+        db_column='two_bed_no_window_room', max_digits=10, decimal_places=2, null=True, blank=True
     )
     bed_1_no_window_room = models.DecimalField(
-        db_column='1_bed_no_window_room', max_digits=10, decimal_places=2, null=True, blank=True
+        db_column='one_bed_no_window_room', max_digits=10, decimal_places=2, null=True, blank=True
     )
     bed_2_condotel_balcony = models.DecimalField(
-        db_column='2_bed_condotel_balcony', max_digits=10, decimal_places=2, null=True, blank=True
+        db_column='two_bed_condotel_balcony', max_digits=10, decimal_places=2, null=True, blank=True
     )
 
     class Meta:
@@ -135,10 +136,11 @@ class Account(models.Model):
 class HotelServices(models.Model):
     """Model mapped to the SQL Server `hotel_services` table."""
 
-    hotel_services_id = models.IntegerField(primary_key=True, db_column='hotel_services_id')
-    name_of_service = models.CharField(db_column='name_of_service', max_length=255, null=True, blank=True)
-    price = models.DecimalField(db_column='price', max_digits=10, decimal_places=2, null=True, blank=True)
-    service_description = models.CharField(db_column='service_description', max_length=255, null=True, blank=True)
+    hotel_services_id = models.IntegerField(primary_key=True)
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING, db_column='hotel_id')
+    name_of_service = models.CharField(db_column='service_name', max_length=255)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    service_description = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         db_table = 'hotel_services'
