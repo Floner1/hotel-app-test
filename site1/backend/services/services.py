@@ -27,7 +27,7 @@ class HotelService:
     def get_available_room_types() -> list:
         """
         Get list of available room types from database.
-        Returns list of tuples: (canonical_name, display_name, price)
+        Returns list of dicts: {canonical, display, price, description}
         """
         from data.models.hotel import RoomPrice
         
@@ -41,19 +41,28 @@ class HotelService:
             
             for room_type, price, description in price_rows:
                 if room_type:
-                    # Canonicalize the room type
-                    canonical = ReservationService._canonicalise_room_type(room_type)
-                    if canonical:
-                        # Create display name from canonical name
-                        display_name = canonical.replace('_', ' ').title()
-                        room_types.append({
-                            'canonical': canonical,
-                            'display': display_name,
-                            'price': price,
-                            'description': description
-                        })
+                    # Use the database room_type directly as canonical
+                    canonical = room_type.strip()
+                    
+                    # Create a nice display name from the room_type
+                    display_name = canonical.replace('_', ' ').title()
+                    
+                    # Convert price to Decimal if it's a string
+                    try:
+                        from decimal import Decimal
+                        if isinstance(price, str):
+                            price = Decimal(price)
+                    except:
+                        pass
+                    
+                    room_types.append({
+                        'canonical': canonical,
+                        'display': display_name,
+                        'price': price,
+                        'description': description
+                    })
             
-            # Remove duplicates based on canonical name
+            # Remove duplicates based on canonical name (keep first occurrence)
             seen = set()
             unique_rooms = []
             for room in room_types:
@@ -64,14 +73,10 @@ class HotelService:
             return unique_rooms
         except Exception as e:
             print(f"[HotelService] Error loading room types: {e}")
-            # Fallback to hardcoded list if database fails
-            return [
-                {'canonical': 'one_bed_balcony_room', 'display': 'One Bed Balcony Room', 'price': None, 'description': None},
-                {'canonical': 'one_bed_window_room', 'display': 'One Bed Window Room', 'price': None, 'description': None},
-                {'canonical': 'two_bed_no_window_room', 'display': 'Two Bed No Window Room', 'price': None, 'description': None},
-                {'canonical': 'one_bed_no_window_room', 'display': 'One Bed No Window Room', 'price': None, 'description': None},
-                {'canonical': 'two_bed_condotel_balcony', 'display': 'Two Bed Condotel Balcony', 'price': None, 'description': None},
-            ]
+            import traceback
+            traceback.print_exc()
+            # Return empty list if database fails
+            return []
 
 
 class ReservationService:

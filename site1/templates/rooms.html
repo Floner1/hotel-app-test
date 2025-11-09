@@ -160,16 +160,24 @@
     
     <section class="section">
       <div class="container">
+        <!-- Section Header -->
+        <div class="row justify-content-center text-center mb-5">
+          <div class="col-md-7">
+            <h2 class="heading" data-aos="fade-up">Rooms &amp; Suites</h2>
+            <p data-aos="fade-up" data-aos-delay="100">Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean.</p>
+          </div>
+        </div>
         
-        <div class="row">
+        <!-- Room Cards Grid -->
+        <div class="row justify-content-center">
           {% for room in room_types %}
-          <div class="col-md-6 col-lg-4 mb-5" data-aos="fade-up">
+          <div class="col-md-6 col-lg-4 {% if forloop.counter == 4 %}offset-lg-2{% endif %}" data-aos="fade-up">
             <a href="#" class="room">
               <figure class="img-wrap">
-                <img src="{% static 'images/img_1.jpg' %}" alt="{{ room.display }}" class="img-fluid mb-3">
+                <img src="{% static 'images/img_' %}{{ forloop.counter }}.jpg" alt="{{ room.display }}" class="img-fluid mb-3">
               </figure>
               <div class="p-3 text-center room-info">
-                <h2>{{ room.display }}</h2>
+                <h2 style="white-space: nowrap;">{{ room.display }}</h2>
                 <span class="text-uppercase letter-spacing-1">₫{{ room.price|floatformat:0|intcomma }} / PER NIGHT</span>
               </div>
             </a>
@@ -210,7 +218,7 @@
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up">Hotel Services</h2>
+            <h2 class="heading" data-aos="fade-up">Our Premium Services</h2>
             <p data-aos="fade-up" data-aos-delay="100">Enhance your stay with our premium services designed for your comfort and convenience.</p>
           </div>
         </div>
@@ -264,10 +272,10 @@
             </ul>
           </div>
           <div class="col-md-3 mb-5 pr-md-5 contact-info">
-            <p><span class="d-block"><span class="ion-ios-location h5 mr-3 text-primary"></span>Address:</span> <span> {{ hotel.hotel_address }}</span></p>
-            <p><span class="d-block"><span class="ion-ios-telephone h5 mr-3 text-primary"></span>Phone:</span> <span> {{ hotel.phone }}</span></p>
-            <p><span class="d-block"><span class="ion-ios-email h5 mr-3 text-primary"></span>Email:</span> <span> {{ hotel.email }}</span></p>
-          </div>
+            <p><span class="d-block"><span class="ion-ios-location h5 text-primary"></span>Address:</span> <span> {{ hotel.hotel_address }}</span></p>
+            <p><span class="d-block"><span class="ion-ios-telephone h5 text-primary"></span>Phone:</span> <span> {{ hotel.phone }}</span></p>
+            <p><span class="d-block"><span class="ion-ios-email h5 text-primary"></span>Email:</span> <span> {{ hotel.email }}</span></p>
+         </div>
           <div class="col-md-3 mb-5">
             <p>Sign up for our newsletter</p>
             <form id="newsletter-form" class="footer-newsletter">
