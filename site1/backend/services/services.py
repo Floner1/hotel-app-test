@@ -250,9 +250,22 @@ class ReservationService:
         if not room_type:
             return None
         normalised = room_type.strip().lower()
+        
+        # First, check if it's already a valid database room type (direct match)
+        # This handles room types coming directly from the database like '1_bed_with_window'
+        from data.models.hotel import RoomPrice
+        try:
+            if RoomPrice.objects.filter(room_type__iexact=normalised).exists():
+                return normalised
+        except Exception as e:
+            print(f"[_canonicalise_room_type] Database check error: {e}")
+        
+        # Then check against aliases for backward compatibility
         for canonical, aliases in cls._ROOM_TYPE_ALIASES.items():
             if normalised in (alias.lower() for alias in aliases):
                 return canonical
+        
+        # If no match found, return None
         return None
 
     @classmethod
@@ -264,8 +277,9 @@ class ReservationService:
         try:
             price_rows = RoomPrice.objects.filter(price_per_night__isnull=False).values_list('room_type', 'price_per_night')
             for room_type, price_str in price_rows:
-                canonical = cls._canonicalise_room_type(room_type or '')
-                if canonical and price_str:
+                if room_type and price_str:
+                    # Use the database room_type directly as the key (already normalized)
+                    canonical = room_type.strip().lower()
                     try:
                         # Convert string price to Decimal
                         price = Decimal(str(price_str)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)

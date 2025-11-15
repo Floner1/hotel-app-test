@@ -440,17 +440,33 @@
         // Helper function to format date for submission (MM/DD/YYYY format)
         function formatDateForSubmit(dateString) {
           if (!dateString) return '';
-          // Try to parse the date string
-          var date = new Date(dateString);
-          // Check if date is valid
-          if (isNaN(date.getTime())) {
-            // If not valid, try datepicker format (assuming mm/dd/yyyy already)
+          
+          // If already in MM/DD/YYYY format, return as is
+          var dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
+          if (dateRegex.test(dateString)) {
             return dateString;
           }
-          var month = String(date.getMonth() + 1).padStart(2, '0');
-          var day = String(date.getDate()).padStart(2, '0');
-          var year = date.getFullYear();
-          return month + '/' + day + '/' + year;
+          
+          // Try to parse and reformat the date
+          var parts = dateString.split('/');
+          if (parts.length === 3) {
+            var month = parts[0].padStart(2, '0');
+            var day = parts[1].padStart(2, '0');
+            var year = parts[2];
+            return month + '/' + day + '/' + year;
+          }
+          
+          // If format is different, try Date parsing
+          var date = new Date(dateString);
+          if (!isNaN(date.getTime())) {
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            var year = date.getFullYear();
+            return month + '/' + day + '/' + year;
+          }
+          
+          // Return original if can't parse
+          return dateString;
         }
 
         // Handle reservation form submission

@@ -87,6 +87,12 @@ class ReservationRepository:
         Returns:
             CustomerBookingInfo: The created booking object
         """
+        from django.utils import timezone
+        
+        # Add timestamp fields
+        booking_data['created_at'] = timezone.now()
+        booking_data['updated_at'] = timezone.now()
+        
         booking = CustomerBookingInfo(**booking_data)
         booking.save()
         return booking
