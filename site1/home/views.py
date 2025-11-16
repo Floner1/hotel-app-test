@@ -1,12 +1,19 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
+from django.contrib.auth import logout, authenticate, login
+from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.auth.decorators import login_required, user_passes_test
 from backend.services.services import HotelService, ReservationService
 from data.models.hotel import CustomerBookingInfo, HotelServices
 from django.db.models import Sum, Q
 from datetime import date
+
+# Helper function to check if user is admin/staff
+def is_staff_or_admin(user):
+    return user.is_staff or user.is_superuser
 
 # Create your views here.
 def get_home(request):
@@ -161,10 +168,46 @@ def newsletter_signup(request):
     return JsonResponse({'status': 'ok'})
 
 
+def login_view(request):
+    """
+    Custom login view that logs in the user and shows a success message.
+    """
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.success(request, 'You have been successfully logged in.')
+                # Redirect to next parameter or home
+                next_url = request.POST.get('next') or request.GET.get('next') or 'home'
+                return redirect(next_url)
+        else:
+            messages.error(request, 'Invalid username or password.')
+    else:
+        form = AuthenticationForm()
+    
+    return render(request, 'registration/login.html', {'form': form})
+
+
+def logout_view(request):
+    """
+    Custom logout view that logs out the user and redirects to home page.
+    """
+    logout(request)
+    messages.success(request, 'You have been successfully logged out.')
+    return redirect('home')
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def admin_reservations(request):
     """
     Admin dashboard view to display all customer reservations.
     Shows statistics and a filterable table of bookings with pagination.
+    Requires user to be logged in and have staff/admin role.
     """
     # Get hotel information
     hotel_info = HotelService.get_hotel_info()
@@ -219,10 +262,13 @@ def admin_reservations(request):
     return render(request, 'admin_reservations.html', context)
 
 
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def view_reservation(request, booking_id):
     """
     View detailed information about a specific reservation.
     Returns JSON data for AJAX requests or renders a detail page.
+    Requires user to be logged in and have staff/admin role.
     """
     try:
         # Find the booking
@@ -277,10 +323,13 @@ def view_reservation(request, booking_id):
         return render(request, '404.html', status=404)
 
 
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def delete_reservation(request, booking_id):
     """
     Delete a reservation by booking_id.
     Only accepts POST requests for security.
+    Requires user to be logged in and have staff/admin role.
     """
     if request.method == 'POST':
         try:
@@ -312,10 +361,13 @@ def delete_reservation(request, booking_id):
         }, status=405)
 
 
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def edit_reservation(request, booking_id):
     """
     Edit an existing reservation.
     Only accepts POST requests with JSON data.
+    Requires user to be logged in and have staff/admin role.
     """
     if request.method == 'POST':
         try:

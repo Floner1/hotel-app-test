@@ -73,9 +73,53 @@
         justify-content: space-around;
         align-items: stretch;
       }
+      
+      /* Toast Notification Styles */
+      .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #28a745;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        display: none;
+        animation: slideInRight 0.4s ease-out;
+      }
+      
+      .toast-notification.show {
+        display: block;
+      }
+      
+      .toast-notification.error {
+        background-color: #dc3545;
+      }
+      
+      .toast-notification .toast-icon {
+        margin-right: 10px;
+        font-size: 18px;
+      }
+      
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
     </style>
   </head>
   <body>
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="toast-notification">
+      <span class="toast-icon">✓</span>
+      <span class="toast-message"></span>
+    </div>
     
     <header class="site-header js-site-header">
       <div class="container-fluid">
@@ -102,6 +146,14 @@
                         <li><a href="{% url 'about' %}">About</a></li>
                         <li><a href="{% url 'contact' %}">Contact</a></li>
                         <li><a href="{% url 'reservation' %}">Reservation</a></li>
+                        {% if user.is_authenticated %}
+                          {% if user.is_staff or user.is_superuser %}
+                            <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+                          {% endif %}
+                          <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
+                        {% else %}
+                          <li><a href="{% url 'login' %}">Staff Login</a></li>
+                        {% endif %}
                       </ul>
                     </div>
                   </div>
@@ -358,6 +410,33 @@
     <script src="{% static 'js/main.js' %}"></script>
 
     <script>
+      // Toast notification function
+      function showToast(message, isError = false) {
+        var toast = $('#toast-notification');
+        toast.find('.toast-message').text(message);
+        
+        if (isError) {
+          toast.addClass('error');
+          toast.find('.toast-icon').text('✗');
+        } else {
+          toast.removeClass('error');
+          toast.find('.toast-icon').text('✓');
+        }
+        
+        toast.addClass('show');
+        
+        setTimeout(function() {
+          toast.removeClass('show');
+        }, 3000);
+      }
+      
+      // Check for Django messages and display as toast
+      {% if messages %}
+        {% for message in messages %}
+          showToast('{{ message }}', {% if 'error' in message.tags %}true{% else %}false{% endif %});
+        {% endfor %}
+      {% endif %}
+      
       $(document).ready(function() {
         $('#newsletter-form').on('submit', function(e) {
           e.preventDefault();
