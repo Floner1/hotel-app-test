@@ -91,6 +91,9 @@ def get_reservation(request):
             checkin = datetime.strptime(request.POST.get('checkin_date'), '%m/%d/%Y').date()
             checkout = datetime.strptime(request.POST.get('checkout_date'), '%m/%d/%Y').date()
             total_days = (checkout - checkin).days
+            # For same-day bookings, display as 1 day
+            if total_days == 0:
+                total_days = 1
             
             # Return success response
             return JsonResponse({
@@ -226,8 +229,17 @@ def admin_reservations(request):
     # Check-ins happening today
     today_checkins = all_reservations.filter(check_in=today).count()
     
+    # Check-outs happening today
+    today_checkouts = all_reservations.filter(check_out=today).count()
+    
     # Upcoming reservations (check-in date is in the future)
     upcoming_reservations = all_reservations.filter(check_in__gt=today).count()
+    
+    # Currently checked in (check-in date is today or past, check-out date is today or future)
+    currently_checked_in = all_reservations.filter(
+        check_in__lte=today,
+        check_out__gte=today
+    ).count()
     
     # Calculate total revenue
     total_revenue = all_reservations.aggregate(
@@ -253,6 +265,8 @@ def admin_reservations(request):
         'reservations': reservations,
         'total_reservations': total_reservations,
         'today_checkins': today_checkins,
+        'today_checkouts': today_checkouts,
+        'currently_checked_in': currently_checked_in,
         'upcoming_reservations': upcoming_reservations,
         'total_revenue': total_revenue,
         'today': today,
@@ -401,14 +415,17 @@ def edit_reservation(request, booking_id):
                 }, status=400)
             
             # Validate dates
-            if checkout_date <= checkin_date:
+            if checkout_date < checkin_date:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Check-out date must be after check-in date.'
+                    'message': 'Check-out date cannot be before check-in date.'
                 }, status=400)
             
             # Calculate new totals
             total_days = (checkout_date - checkin_date).days
+            # For same-day bookings, charge for at least 1 day
+            if total_days == 0:
+                total_days = 1
             
             # Get room rate for the selected room type
             try:
@@ -423,19 +440,26 @@ def edit_reservation(request, booking_id):
                     'message': str(e)
                 }, status=400)
             
+            # Prepare new email value
+            new_email = data.get('email', '').strip() if data.get('email') else None
+            
             # Update booking fields
             booking.guest_name = data['name'].strip()
-            booking.email = data.get('email', '').strip().lower() if data.get('email') else None
+            booking.email = new_email
             booking.phone = data.get('phone', '').strip() if data.get('phone') else None
             booking.room_type = canonical_room_type
             booking.check_in = checkin_date
             booking.check_out = checkout_date
             booking.adults = int(data['adults'])
-            booking.children = int(data.get('children', 0)) if data.get('children') else None
+            booking.children = int(data.get('children', 0))
             booking.booked_rate = rate
             booking.total_price = total_cost
             booking.special_requests = data.get('special_requests', '').strip() if data.get('special_requests') else None
             booking.notes = data.get('notes', '').strip() if data.get('notes') else None
+            
+            # Update timestamp
+            from django.utils import timezone
+            booking.updated_at = timezone.now()
             
             # Update status if provided
             if 'status' in data:
@@ -470,9 +494,6 @@ def edit_reservation(request, booking_id):
                 'message': 'Invalid JSON data.'
             }, status=400)
         except Exception as e:
-            import traceback
-            print('[edit_reservation] error:', type(e).__name__, str(e))
-            print('Traceback:', traceback.format_exc())
             return JsonResponse({
                 'status': 'error',
                 'message': f'An error occurred: {str(e)}'

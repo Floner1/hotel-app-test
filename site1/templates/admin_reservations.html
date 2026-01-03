@@ -86,6 +86,26 @@
         color: white;
       }
 
+      .stats-card.checkout .icon {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+      }
+
+      .stats-card.active .icon {
+        background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        color: white;
+      }
+
+      .stats-card.info .icon {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        color: white;
+      }
+
+      .stats-card.warning .icon {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        color: white;
+      }
+
       .stats-card h3 {
         font-size: 0.875rem;
         color: #8b92a7;
@@ -240,6 +260,43 @@
         text-transform: uppercase;
         letter-spacing: 0.3px;
         white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        transition: all 0.2s;
+      }
+
+      .table thead th:hover {
+        background-color: #e9ecef;
+        color: #667eea;
+      }
+
+      .table thead th.sortable::after {
+        content: '⇅';
+        margin-left: 0.5rem;
+        opacity: 0.3;
+        font-size: 0.9rem;
+      }
+
+      .table thead th.sortable.asc::after {
+        content: '↑';
+        opacity: 1;
+        color: #667eea;
+      }
+
+      .table thead th.sortable.desc::after {
+        content: '↓';
+        opacity: 1;
+        color: #667eea;
+      }
+
+      .table thead th:last-child {
+        cursor: default;
+      }
+
+      .table thead th:last-child:hover {
+        background-color: #f8f9fa;
+        color: #2c3e50;
       }
 
       .table tbody td {
@@ -611,7 +668,7 @@
     </div>
 
     <div class="container">
-      <!-- Statistics Cards -->
+      <!-- Statistics Cards - Row 1 -->
       <div class="row">
         <div class="col-md-3 col-sm-6">
           <div class="stats-card total">
@@ -625,12 +682,34 @@
         <div class="col-md-3 col-sm-6">
           <div class="stats-card pending">
             <div class="icon">
-              <i class="fa fa-clock-o"></i>
+              <i class="fa fa-sign-in"></i>
             </div>
             <h3>Check-ins Today</h3>
             <p class="value">{{ today_checkins }}</p>
           </div>
         </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card checkout">
+            <div class="icon">
+              <i class="fa fa-sign-out"></i>
+            </div>
+            <h3>Check-outs Today</h3>
+            <p class="value">{{ today_checkouts }}</p>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card revenue">
+            <div class="icon">
+              <i class="fa fa-money"></i>
+            </div>
+            <h3>Total Revenue</h3>
+            <p class="value">₫{{ total_revenue|floatformat:0|intcomma|default:"0" }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Statistics Cards - Row 2 -->
+      <div class="row">
         <div class="col-md-3 col-sm-6">
           <div class="stats-card confirmed">
             <div class="icon">
@@ -641,12 +720,30 @@
           </div>
         </div>
         <div class="col-md-3 col-sm-6">
-          <div class="stats-card revenue">
+          <div class="stats-card active">
             <div class="icon">
-              <i class="fa fa-money"></i>
+              <i class="fa fa-bed"></i>
             </div>
-            <h3>Total Revenue</h3>
-            <p class="value">₫{{ total_revenue|floatformat:0|intcomma|default:"0" }}</p>
+            <h3>Currently Checked In</h3>
+            <p class="value">{{ currently_checked_in }}</p>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card info">
+            <div class="icon">
+              <i class="fa fa-users"></i>
+            </div>
+            <h3>Total Guests Today</h3>
+            <p class="value">{{ today_checkins|add:currently_checked_in }}</p>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="stats-card warning">
+            <div class="icon">
+              <i class="fa fa-clock-o"></i>
+            </div>
+            <h3>Pending Check-out</h3>
+            <p class="value">{{ currently_checked_in|add:today_checkouts }}</p>
           </div>
         </div>
       </div>
@@ -664,7 +761,8 @@
           <div class="col-md-6">
             <div class="filter-buttons">
               <button class="filter-btn active" data-filter="all">All</button>
-              <button class="filter-btn" data-filter="today">Today</button>
+              <button class="filter-btn" data-filter="checkin-today">Check-in Today</button>
+              <button class="filter-btn" data-filter="checkout-today">Check-out Today</button>
               <button class="filter-btn" data-filter="upcoming">Upcoming</button>
               <button class="filter-btn" data-filter="past">Past</button>
               <button class="btn-add-reservation" onclick="openAddModal()">
@@ -686,14 +784,14 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Booking ID</th>
-                <th>Customer</th>
-                <th>Room Type</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Guests</th>
-                <th>Total Cost</th>
-                <th>Status</th>
+                <th class="sortable" data-column="0" data-type="number">Booking ID</th>
+                <th class="sortable" data-column="1" data-type="text">Customer</th>
+                <th class="sortable" data-column="2" data-type="text">Room Type</th>
+                <th class="sortable" data-column="3" data-type="date">Check-in</th>
+                <th class="sortable" data-column="4" data-type="date">Check-out</th>
+                <th class="sortable" data-column="5" data-type="number">Guests</th>
+                <th class="sortable" data-column="6" data-type="number">Total Cost</th>
+                <th class="sortable" data-column="7" data-type="text">Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -871,17 +969,31 @@
           
           const filter = this.dataset.filter;
           const rows = document.querySelectorAll('tbody tr');
+          const today = new Date('{{ today|date:"Y-m-d" }}');
           
           rows.forEach(row => {
             const badge = row.querySelector('.badge');
-            if (!badge) return;
+            const checkinCell = row.cells[3]; // Check-in column
+            const checkoutCell = row.cells[4]; // Check-out column
+            
+            if (!badge || !checkinCell || !checkoutCell) return;
             
             const badgeText = badge.textContent.toLowerCase();
+            const checkinText = checkinCell.textContent.trim();
+            const checkoutText = checkoutCell.textContent.trim();
+            
+            // Parse dates from the table cells
+            const checkinDate = parseTableDate(checkinText);
+            const checkoutDate = parseTableDate(checkoutText);
             
             if (filter === 'all') {
               row.style.display = '';
-            } else if (filter === 'today' && badgeText === 'today') {
-              row.style.display = '';
+            } else if (filter === 'checkin-today') {
+              // Show rows where check-in date is today
+              row.style.display = (checkinDate && isSameDay(checkinDate, today)) ? '' : 'none';
+            } else if (filter === 'checkout-today') {
+              // Show rows where check-out date is today
+              row.style.display = (checkoutDate && isSameDay(checkoutDate, today)) ? '' : 'none';
             } else if (filter === 'upcoming' && badgeText === 'upcoming') {
               row.style.display = '';
             } else if (filter === 'past' && badgeText === 'past') {
@@ -890,6 +1002,92 @@
               row.style.display = 'none';
             }
           });
+        });
+      });
+      
+      // Helper function to parse date from table cell
+      function parseTableDate(dateStr) {
+        try {
+          // Expected format: "Jan 15, 2026" or similar
+          const parts = dateStr.split(' ');
+          if (parts.length >= 3) {
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = monthNames.indexOf(parts[0]);
+            const day = parseInt(parts[1].replace(',', ''));
+            const year = parseInt(parts[2]);
+            
+            if (month >= 0 && day && year) {
+              return new Date(year, month, day);
+            }
+          }
+          return null;
+        } catch (e) {
+          return null;
+        }
+      }
+      
+      // Helper function to check if two dates are the same day
+      function isSameDay(date1, date2) {
+        return date1.getFullYear() === date2.getFullYear() &&
+               date1.getMonth() === date2.getMonth() &&
+               date1.getDate() === date2.getDate();
+      }
+
+      // Table sorting functionality
+      let currentSortColumn = null;
+      let currentSortOrder = 'asc';
+
+      document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+          const column = parseInt(this.dataset.column);
+          const type = this.dataset.type;
+          const tbody = document.querySelector('tbody');
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          
+          // Determine sort order
+          if (currentSortColumn === column) {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortOrder = 'asc';
+          }
+          currentSortColumn = column;
+          
+          // Remove sort classes from all headers
+          document.querySelectorAll('.sortable').forEach(h => {
+            h.classList.remove('asc', 'desc');
+          });
+          
+          // Add sort class to current header
+          this.classList.add(currentSortOrder);
+          
+          // Sort rows
+          rows.sort((a, b) => {
+            let aValue = a.cells[column].textContent.trim();
+            let bValue = b.cells[column].textContent.trim();
+            
+            // Handle different data types
+            if (type === 'number') {
+              // Extract numbers from text (handle currency, booking IDs, etc.)
+              aValue = parseFloat(aValue.replace(/[^0-9.-]/g, '')) || 0;
+              bValue = parseFloat(bValue.replace(/[^0-9.-]/g, '')) || 0;
+              return currentSortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+            } else if (type === 'date') {
+              // Parse dates
+              aValue = parseTableDate(aValue);
+              bValue = parseTableDate(bValue);
+              if (!aValue && !bValue) return 0;
+              if (!aValue) return 1;
+              if (!bValue) return -1;
+              return currentSortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+            } else {
+              // Text comparison
+              const comparison = aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
+              return currentSortOrder === 'asc' ? comparison : -comparison;
+            }
+          });
+          
+          // Re-append sorted rows
+          rows.forEach(row => tbody.appendChild(row));
         });
       });
 
@@ -1258,42 +1456,114 @@
       }
 
       function deleteBooking(id) {
-        if (confirm('Are you sure you want to delete booking #' + id + '?\n\nThis action cannot be undone!')) {
-          // Get CSRF token from cookies
-          const csrftoken = getCookie('csrftoken');
+        // Create custom delete confirmation modal
+        const modalContent = `
+          <div style="background: white; padding: 2.5rem; border-radius: 16px; max-width: 500px; margin: 5rem auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease-out;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+              <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);">
+                <i class="fa fa-exclamation-triangle" style="font-size: 2.5rem; color: white;"></i>
+              </div>
+              <h2 style="margin: 0 0 0.5rem 0; color: #2c3e50; font-size: 1.75rem; font-weight: 700;">Delete Reservation?</h2>
+              <p style="color: #8b92a7; font-size: 1rem; margin: 0;">Are you sure you want to delete booking #${id}?</p>
+            </div>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 2rem;">
+              <p style="margin: 0; color: #856404; font-size: 0.95rem; line-height: 1.6;">
+                <i class="fa fa-info-circle" style="margin-right: 0.5rem;"></i>
+                <strong>Warning:</strong> This action cannot be undone!
+              </p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+              <button onclick="closeDeleteModal()" 
+                style="flex: 1; padding: 0.875rem 2rem; background: #e8ecef; color: #5a6c7d; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <i class="fa fa-times" style="margin-right: 0.5rem;"></i>Cancel
+              </button>
+              <button onclick="confirmDelete(${id})" 
+                style="flex: 1; padding: 0.875rem 2rem; background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);">
+                <i class="fa fa-trash" style="margin-right: 0.5rem;"></i>Delete
+              </button>
+            </div>
+          </div>
           
-          // Send DELETE request to server
-          fetch(`/dashboard/reservations/delete/${id}/`, {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': csrftoken,
-              'Content-Type': 'application/json',
-            },
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.status === 'success') {
-              alert(data.message);
-              // Remove the row from the table
-              const row = document.querySelector(`tr[data-booking-id="${id}"]`);
-              if (row) {
-                row.style.transition = 'opacity 0.3s';
-                row.style.opacity = '0';
-                setTimeout(() => {
-                  row.remove();
-                  // Refresh the page to update statistics
-                  location.reload();
-                }, 300);
+          <style>
+            @keyframes modalSlideIn {
+              from {
+                transform: translateY(-50px);
+                opacity: 0;
               }
-            } else {
-              alert('Error: ' + data.message);
+              to {
+                transform: translateY(0);
+                opacity: 1;
+              }
             }
-          })
-          .catch(error => {
-            alert('An error occurred while deleting the booking: ' + error);
-            console.error('Delete error:', error);
-          });
+          </style>
+        `;
+        
+        // Create modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'deleteModal';
+        modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 10000; overflow-y: auto; padding: 1rem; backdrop-filter: blur(4px);';
+        modalOverlay.innerHTML = modalContent;
+        
+        // Close modal when clicking overlay
+        modalOverlay.addEventListener('click', function(e) {
+          if (e.target === modalOverlay) {
+            closeDeleteModal();
+          }
+        });
+        
+        document.body.appendChild(modalOverlay);
+      }
+      
+      function closeDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        if (modal) {
+          modal.style.animation = 'fadeOut 0.2s ease-out';
+          setTimeout(() => modal.remove(), 200);
         }
+      }
+      
+      function confirmDelete(id) {
+        // Close the modal first
+        closeDeleteModal();
+        
+        // Get CSRF token from cookies
+        const csrftoken = getCookie('csrftoken');
+        
+        // Send DELETE request to server
+        fetch(`/dashboard/reservations/delete/${id}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            // Show success toast
+            showToast(data.message, 'success');
+            // Remove the row from the table
+            const row = document.querySelector(`tr[data-booking-id="${id}"]`);
+            if (row) {
+              row.style.transition = 'opacity 0.3s';
+              row.style.opacity = '0';
+              setTimeout(() => {
+                row.remove();
+                // Refresh the page to update statistics
+                location.reload();
+              }, 300);
+            }
+          } else {
+            // Show error toast
+            showToast('Error: ' + data.message, 'error');
+          }
+        })
+        .catch(error => {
+          showToast('An error occurred while deleting the booking: ' + error, 'error');
+          console.error('Delete error:', error);
+        });
       }
 
       // Function to get CSRF token from cookies

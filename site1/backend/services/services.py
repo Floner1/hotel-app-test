@@ -145,8 +145,9 @@ class ReservationService:
         # Get the rate for this room type
         rate = cls._resolve_rate(room_type_input)
         total_days = (checkout_date - checkin_date).days
-        if total_days <= 0:
-            raise ValidationError('Stay must be at least one night.')
+        # For same-day bookings, charge for at least 1 day
+        if total_days == 0:
+            total_days = 1
 
         total_cost = (rate * total_days).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
@@ -173,7 +174,7 @@ class ReservationService:
             'check_in': checkin_date,
             'check_out': checkout_date,
             'adults': adults,
-            'children': children if children > 0 else None,
+            'children': children,
             'booked_rate': rate,
             'total_price': total_cost,
             'status': 'confirmed',
@@ -225,8 +226,8 @@ class ReservationService:
         today = timezone.now().date()
         if checkin_date < today:
             raise ValidationError('Check-in date cannot be in the past.')
-        if checkout_date <= checkin_date:
-            raise ValidationError('Check-out date must be after check-in date.')
+        if checkout_date < checkin_date:
+            raise ValidationError('Check-out date cannot be before check-in date.')
 
     @classmethod
     def _resolve_rate(cls, room_type: str) -> Decimal:
