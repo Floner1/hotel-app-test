@@ -607,27 +607,62 @@
         position: fixed;
         top: 20px;
         right: 20px;
+        min-width: 350px;
+        max-width: 500px;
         background-color: #28a745;
         color: white;
-        padding: 15px 25px;
-        border-radius: 5px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 18px 25px;
+        border-radius: 10px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
         z-index: 9999;
         display: none;
         animation: slideInRight 0.4s ease-out;
+        font-family: 'Roboto', sans-serif;
       }
       
       .toast-notification.show {
         display: block;
       }
       
+      /* Success (2xx) - Green */
+      .toast-notification.success {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      }
+      
+      /* Warning (4xx) - Yellow/Orange */
+      .toast-notification.warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+      }
+      
+      /* Error (5xx) - Red */
       .toast-notification.error {
-        background-color: #dc3545;
+        background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+      }
+      
+      .toast-notification .toast-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
       
       .toast-notification .toast-icon {
-        margin-right: 10px;
-        font-size: 18px;
+        font-size: 22px;
+        font-weight: bold;
+      }
+      
+      .toast-notification .toast-status-code {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.25);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 14px;
+        margin-right: 8px;
+      }
+      
+      .toast-notification .toast-message {
+        flex: 1;
+        line-height: 1.4;
       }
       
       @keyframes slideInRight {
@@ -645,8 +680,10 @@
   <body>
     <!-- Toast Notification -->
     <div id="toast-notification" class="toast-notification">
-      <span class="toast-icon">✓</span>
-      <span class="toast-message"></span>
+      <div class="toast-content">
+        <span class="toast-icon">✓</span>
+        <span class="toast-message"></span>
+      </div>
     </div>
     
     <!-- Dashboard Header -->
@@ -811,19 +848,23 @@
                   </div>
                 </td>
                 <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ booking.room_type }}">{{ booking.room_type|title }}</td>
-                <td style="white-space: nowrap;">{{ booking.check_in|date:"M j, y" }}</td>
-                <td style="white-space: nowrap;">{{ booking.check_out|date:"M j, y" }}</td>
+                <td style="white-space: nowrap;">{{ booking.check_in|date:"M j, Y" }}</td>
+                <td style="white-space: nowrap;">{{ booking.check_out|date:"M j, Y" }}</td>
                 <td style="white-space: nowrap;">
                   <i class="fa fa-user"></i> {{ booking.adults }}{% if booking.children %} <i class="fa fa-child"></i> {{ booking.children }}{% endif %}
                 </td>
                 <td><strong>₫{{ booking.total_price|floatformat:0|intcomma }}</strong></td>
                 <td>
                   {% if booking.check_in == today %}
-                    <span class="badge badge-today">Today</span>
+                    <span class="badge badge-today">Checking In</span>
+                  {% elif booking.check_out == today %}
+                    <span class="badge badge-today">Checking Out</span>
+                  {% elif booking.check_in < today and booking.check_out > today %}
+                    <span class="badge badge-upcoming">Staying</span>
                   {% elif booking.check_in > today %}
                     <span class="badge badge-upcoming">Upcoming</span>
                   {% else %}
-                    <span class="badge badge-past">Past</span>
+                    <span class="badge badge-past">Completed</span>
                   {% endif %}
                 </td>
                 <td>
@@ -909,24 +950,62 @@
     <script src="{% static 'js/bootstrap.min.js' %}"></script>
     
     <script>
-      // Toast notification function
-      function showToast(message, isError = false) {
-        var toast = $('#toast-notification');
-        toast.find('.toast-message').text(message);
+      // Toast notification function with HTTP status code support
+      function showToast(message, type = 'success', statusCode = null) {
+        const toast = document.getElementById('toast-notification');
+        const messageEl = toast.querySelector('.toast-message');
+        const iconEl = toast.querySelector('.toast-icon');
         
-        if (isError) {
-          toast.addClass('error');
-          toast.find('.toast-icon').text('✗');
+        // Remove all type classes
+        toast.classList.remove('success', 'warning', 'error');
+        
+        // Determine type from status code if provided
+        let displayType = type;
+        let icon = '✓';
+        
+        if (statusCode) {
+          if (statusCode >= 200 && statusCode < 300) {
+            displayType = 'success';
+            icon = '✓';
+          } else if (statusCode >= 400 && statusCode < 500) {
+            displayType = 'warning';
+            icon = '⚠';
+          } else if (statusCode >= 500) {
+            displayType = 'error';
+            icon = '✗';
+          }
         } else {
-          toast.removeClass('error');
-          toast.find('.toast-icon').text('✓');
+          // Legacy support for type parameter
+          if (type === 'error' || type === true) {
+            displayType = 'error';
+            icon = '✗';
+          } else if (type === 'warning') {
+            displayType = 'warning';
+            icon = '⚠';
+          } else {
+            displayType = 'success';
+            icon = '✓';
+          }
         }
         
-        toast.addClass('show');
+        // Add status code badge if provided
+        let displayMessage = message;
+        if (statusCode) {
+          displayMessage = `<span class="toast-status-code">${statusCode}</span>${message}`;
+        }
         
+        // Update toast content
+        toast.classList.add(displayType);
+        iconEl.textContent = icon;
+        messageEl.innerHTML = displayMessage;
+        
+        // Show toast
+        toast.classList.add('show');
+        
+        // Hide after 4 seconds (longer to read status code)
         setTimeout(function() {
-          toast.removeClass('show');
-        }, 3000);
+          toast.classList.remove('show');
+        }, 4000);
       }
       
       // Check for Django messages and display as toast
@@ -947,17 +1026,63 @@
         {% endfor %}
       ];
       
+      // Global state for filter and search
+      let currentFilter = 'all';
+      let currentSearchTerm = '';
+
+      // Combined filter and search function
+      function applyFilterAndSearch() {
+        const rows = document.querySelectorAll('tbody tr');
+        const today = new Date('{{ today|date:"Y-m-d" }}');
+        
+        rows.forEach(row => {
+          const badge = row.querySelector('.badge');
+          const checkinCell = row.cells[3]; // Check-in column
+          const checkoutCell = row.cells[4]; // Check-out column
+          
+          if (!badge || !checkinCell || !checkoutCell) return;
+          
+          // Check filter condition
+          let passesFilter = false;
+          const badgeText = badge.textContent.toLowerCase();
+          const checkinText = checkinCell.textContent.trim();
+          const checkoutText = checkoutCell.textContent.trim();
+          
+          // Parse dates from the table cells
+          const checkinDate = parseTableDate(checkinText);
+          const checkoutDate = parseTableDate(checkoutText);
+          
+          if (currentFilter === 'all') {
+            passesFilter = true;
+          } else if (currentFilter === 'checkin-today') {
+            // Show rows where check-in date is today
+            passesFilter = (checkinDate && isSameDay(checkinDate, today));
+          } else if (currentFilter === 'checkout-today') {
+            // Show rows where check-out date is today
+            passesFilter = (checkoutDate && isSameDay(checkoutDate, today));
+          } else if (currentFilter === 'upcoming') {
+            // Show rows with "Upcoming" or "Staying" status
+            passesFilter = (badgeText === 'upcoming' || badgeText === 'staying');
+          } else if (currentFilter === 'past') {
+            // Show rows with "Past" or "Completed" status
+            passesFilter = (badgeText === 'past' || badgeText === 'completed');
+          }
+          
+          // Check search condition
+          const passesSearch = currentSearchTerm === '' || 
+                               row.textContent.toLowerCase().includes(currentSearchTerm);
+          
+          // Show row only if it passes both filter AND search
+          row.style.display = (passesFilter && passesSearch) ? '' : 'none';
+        });
+      }
+
       // Search functionality
       const searchInput = document.getElementById('searchInput');
       if (searchInput) {
         searchInput.addEventListener('keyup', function() {
-          const searchTerm = this.value.toLowerCase();
-          const rows = document.querySelectorAll('tbody tr');
-          
-          rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(searchTerm) ? '' : 'none';
-          });
+          currentSearchTerm = this.value.toLowerCase();
+          applyFilterAndSearch();
         });
       }
 
@@ -967,54 +1092,26 @@
           document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
           this.classList.add('active');
           
-          const filter = this.dataset.filter;
-          const rows = document.querySelectorAll('tbody tr');
-          const today = new Date('{{ today|date:"Y-m-d" }}');
-          
-          rows.forEach(row => {
-            const badge = row.querySelector('.badge');
-            const checkinCell = row.cells[3]; // Check-in column
-            const checkoutCell = row.cells[4]; // Check-out column
-            
-            if (!badge || !checkinCell || !checkoutCell) return;
-            
-            const badgeText = badge.textContent.toLowerCase();
-            const checkinText = checkinCell.textContent.trim();
-            const checkoutText = checkoutCell.textContent.trim();
-            
-            // Parse dates from the table cells
-            const checkinDate = parseTableDate(checkinText);
-            const checkoutDate = parseTableDate(checkoutText);
-            
-            if (filter === 'all') {
-              row.style.display = '';
-            } else if (filter === 'checkin-today') {
-              // Show rows where check-in date is today
-              row.style.display = (checkinDate && isSameDay(checkinDate, today)) ? '' : 'none';
-            } else if (filter === 'checkout-today') {
-              // Show rows where check-out date is today
-              row.style.display = (checkoutDate && isSameDay(checkoutDate, today)) ? '' : 'none';
-            } else if (filter === 'upcoming' && badgeText === 'upcoming') {
-              row.style.display = '';
-            } else if (filter === 'past' && badgeText === 'past') {
-              row.style.display = '';
-            } else {
-              row.style.display = 'none';
-            }
-          });
+          currentFilter = this.dataset.filter;
+          applyFilterAndSearch();
         });
       });
       
       // Helper function to parse date from table cell
       function parseTableDate(dateStr) {
         try {
-          // Expected format: "Jan 15, 2026" or similar
+          // Expected format: "Jan 15, 2026" or "Jan 15, 26"
           const parts = dateStr.split(' ');
           if (parts.length >= 3) {
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const month = monthNames.indexOf(parts[0]);
             const day = parseInt(parts[1].replace(',', ''));
-            const year = parseInt(parts[2]);
+            let year = parseInt(parts[2]);
+            
+            // Handle 2-digit years (convert to 4-digit)
+            if (year < 100) {
+              year += 2000;
+            }
             
             if (month >= 0 && day && year) {
               return new Date(year, month, day);
@@ -1387,11 +1484,11 @@
               saveBookingChanges(id);
             });
           } else {
-            alert('Error: ' + data.message);
+            showToast(data.message || 'Failed to load booking details', 'error', statusCode);
           }
         })
         .catch(error => {
-          alert('An error occurred while fetching booking details: ' + error);
+          showToast('An error occurred while fetching booking details: ' + error.message, 'error', 500);
           console.error('Edit error:', error);
         });
       }
@@ -1400,6 +1497,57 @@
         const modal = document.getElementById('editBookingModal');
         if (modal) {
           modal.remove();
+        }
+      }
+      
+      function updateBookingRow(id, formData) {
+        // Find the row
+        const row = document.querySelector(`tr[data-booking-id="${id}"]`);
+        if (!row) return;
+        
+        // Parse dates
+        const checkinDate = new Date(formData.checkin_date);
+        const checkoutDate = new Date(formData.checkout_date);
+        const today = new Date('{{ today|date:"Y-m-d" }}');
+        
+        // Update check-in date cell
+        const checkinCell = row.cells[3];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        checkinCell.textContent = `${monthNames[checkinDate.getMonth()]} ${checkinDate.getDate()}, ${checkinDate.getFullYear().toString().slice(-2)}`;
+        
+        // Update check-out date cell
+        const checkoutCell = row.cells[4];
+        checkoutCell.textContent = `${monthNames[checkoutDate.getMonth()]} ${checkoutDate.getDate()}, ${checkoutDate.getFullYear().toString().slice(-2)}`;
+        
+        // Update status badge
+        const statusCell = row.cells[7];
+        const badge = statusCell.querySelector('.badge');
+        
+        if (badge) {
+          // Remove old classes
+          badge.classList.remove('badge-today', 'badge-upcoming', 'badge-past');
+          
+          // Determine new status
+          const checkinDateOnly = new Date(checkinDate.toDateString());
+          const checkoutDateOnly = new Date(checkoutDate.toDateString());
+          const todayDateOnly = new Date(today.toDateString());
+          
+          if (checkinDateOnly.getTime() === todayDateOnly.getTime()) {
+            badge.classList.add('badge-today');
+            badge.textContent = 'Checking In';
+          } else if (checkoutDateOnly.getTime() === todayDateOnly.getTime()) {
+            badge.classList.add('badge-today');
+            badge.textContent = 'Checking Out';
+          } else if (checkinDateOnly < todayDateOnly && checkoutDateOnly > todayDateOnly) {
+            badge.classList.add('badge-upcoming');
+            badge.textContent = 'Staying';
+          } else if (checkinDateOnly > todayDateOnly) {
+            badge.classList.add('badge-upcoming');
+            badge.textContent = 'Upcoming';
+          } else {
+            badge.classList.add('badge-past');
+            badge.textContent = 'Completed';
+          }
         }
       }
       
@@ -1438,19 +1586,26 @@
           },
           body: JSON.stringify(formData),
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(response => {
+          const statusCode = response.status;
+          return response.json().then(data => ({ data, statusCode }));
+        })
+        .then(({ data, statusCode }) => {
           if (data.status === 'success') {
-            alert(data.message);
+            showToast(data.message, 'success', statusCode);
             closeEditModal();
-            // Reload the page to show updated data
-            location.reload();
+            
+            // Update the row in the table instead of reloading
+            updateBookingRow(id, formData);
+            
+            // Also reload after a delay to ensure statistics are updated
+            setTimeout(() => location.reload(), 1500);
           } else {
-            alert('Error: ' + data.message);
+            showToast(data.message || 'Failed to update reservation', 'error', statusCode);
           }
         })
         .catch(error => {
-          alert('An error occurred while saving changes: ' + error);
+          showToast('An error occurred while saving changes: ' + error.message, 'error', 500);
           console.error('Save error:', error);
         });
       }
@@ -1539,11 +1694,14 @@
             'Content-Type': 'application/json',
           },
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(response => {
+          const statusCode = response.status;
+          return response.json().then(data => ({ data, statusCode }));
+        })
+        .then(({ data, statusCode }) => {
           if (data.status === 'success') {
-            // Show success toast
-            showToast(data.message, 'success');
+            // Show success toast with green notification
+            showToast(data.message || 'Reservation deleted successfully!', 'success', statusCode);
             // Remove the row from the table
             const row = document.querySelector(`tr[data-booking-id="${id}"]`);
             if (row) {
@@ -1556,12 +1714,13 @@
               }, 300);
             }
           } else {
-            // Show error toast
-            showToast('Error: ' + data.message, 'error');
+            // Show error toast with appropriate color based on status code
+            const toastType = statusCode >= 500 ? 'error' : 'warning';
+            showToast(data.message || 'Failed to delete booking', toastType, statusCode);
           }
         })
         .catch(error => {
-          showToast('An error occurred while deleting the booking: ' + error, 'error');
+          showToast('An error occurred while deleting the booking: ' + error.message, 'error', 500);
           console.error('Delete error:', error);
         });
       }
@@ -1752,7 +1911,7 @@
         
         // Validate required fields
         if (!formData.name || !formData.email || !formData.phone || !formData.room_type || !formData.checkin_date || !formData.checkout_date) {
-          alert('Error: Please fill in all required fields (Name, Email, Phone, Room Type, Check-in Date, Check-out Date)');
+          showToast('Please fill in all required fields (Name, Email, Phone, Room Type, Check-in Date, Check-out Date)', 'warning', 400);
           return;
         }
         
@@ -1770,25 +1929,26 @@
           body: new URLSearchParams(formData)
         })
         .then(response => {
-          if (!response.ok) {
-            return response.json().then(data => {
-              throw new Error(data.message || 'Failed to create reservation');
-            });
-          }
-          return response.json();
+          const statusCode = response.status;
+          return response.json().then(data => ({ data, statusCode }));
         })
-        .then(data => {
+        .then(({ data, statusCode }) => {
           if (data.status === 'success') {
-            alert(`Success! Reservation created.\n\nBooking ID: #${data.booking_id}\nTotal Days: ${data.total_days}\nTotal Cost: ₫${parseFloat(data.total_cost_amount).toLocaleString()}`);
+            const message = `Reservation created successfully!\nBooking ID: #${data.booking_id}\nTotal Days: ${data.total_days}\nTotal Cost: ₫${parseFloat(data.total_cost_amount).toLocaleString()}`;
+            showToast(message, 'success', statusCode);
             closeAddModal();
             // Reload page to show new reservation
-            location.reload();
+            setTimeout(() => location.reload(), 1500);
           } else {
-            alert('Error: ' + data.message);
+            // Show appropriate notification based on status code
+            const toastType = statusCode >= 500 ? 'error' : 'warning';
+            showToast(data.message || 'Failed to create reservation', toastType, statusCode);
           }
         })
         .catch(error => {
-          alert('An error occurred while creating the reservation:\n\n' + error.message);
+          const statusCode = error.statusCode || 500;
+          const toastType = statusCode >= 500 ? 'error' : 'warning';
+          showToast('An error occurred: ' + (error.message || 'Failed to create reservation'), toastType, statusCode);
           console.error('Create error:', error);
         });
       }

@@ -143,3 +143,12 @@ HOTEL_DEFAULT_EMAIL = os.getenv('HOTEL_DEFAULT_EMAIL', 'info@hotelbooking.local'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom User Model
+AUTH_USER_MODEL = 'data.User'
+
+# Authentication Backend - Use custom backend for RBAC User model
+AUTHENTICATION_BACKENDS = [
+    'home.auth_backend.CustomUserBackend',  # Custom backend for our User model
+    'django.contrib.auth.backends.ModelBackend',  # Fallback for Django admin
+]

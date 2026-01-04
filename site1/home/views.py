@@ -7,13 +7,17 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from backend.services.services import HotelService, ReservationService
-from data.models.hotel import CustomerBookingInfo, HotelServices
+from data.models import User, CustomerBookingInfo, HotelServices
 from django.db.models import Sum, Q
 from datetime import date
 
 # Helper function to check if user is admin/staff
 def is_staff_or_admin(user):
-    return user.is_staff or user.is_superuser
+    """Check if user has staff or admin role."""
+    if not user.is_authenticated:
+        return False
+    # Use the new role-based system
+    return hasattr(user, 'role') and user.role in ['admin', 'staff']
 
 # Create your views here.
 def get_home(request):
@@ -105,10 +109,6 @@ def get_reservation(request):
             })
             
         except ValidationError as e:
-            # Log error context for easier debugging
-            import traceback
-            print('[reservation] validation error:', e)
-            print('Traceback:', traceback.format_exc())
             # Return validation error response
             error_message = str(e)
             if hasattr(e, 'message_dict'):
@@ -121,9 +121,6 @@ def get_reservation(request):
             }, status=400)
             
         except Exception as e:
-            import traceback
-            print('[reservation] unexpected error:', type(e).__name__, str(e))
-            print('Traceback:', traceback.format_exc())
             # Return generic error response
             return JsonResponse({
                 'status': 'error',
