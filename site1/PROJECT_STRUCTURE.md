@@ -20,7 +20,7 @@ hotel-app-test/
 │   │   ├── urls.py            # URL patterns for the app
 │   │   ├── admin.py           # Admin configuration
 │   │   ├── apps.py            # App configuration
-│   │   └── migrations/        # Database migrations (old - from before separation)
+│   │   └── migrations/         # Database migrations (old - from before separation)
 │   │
 │   ├── backend/               # Business logic layer
 │   │   ├── services/

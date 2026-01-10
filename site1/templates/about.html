@@ -5,7 +5,7 @@
     <!-- Basic meta tags for character encoding and browser compatibility -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{ hotel_name }}</title>
+    <title>About Us | Thien Tai Hotel</title>
     <!-- Responsive viewport settings -->
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- SEO meta tags -->
@@ -36,6 +36,39 @@
     
     <!-- Toast Notification Styles -->
     <style>
+      /* NAVBAR FIX - Force horizontal layout */
+      .inline-nav {
+        display: flex !important;
+        flex: 1 !important;
+      }
+      
+      .inline-nav ul {
+        display: flex !important;
+        flex-direction: row !important;
+        list-style: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        width: 100% !important;
+        justify-content: space-evenly !important;
+      }
+      
+      .inline-nav ul li {
+        display: inline-block !important;
+      }
+      
+      /* FOOTER FIX - Force labels and values on separate lines */
+      .footer-section .contact-info .contact-label {
+        display: block !important;
+        font-weight: normal !important;
+        margin-bottom: 5px !important;
+      }
+      
+      .footer-section .contact-info .contact-value {
+        display: block !important;
+        font-weight: normal !important;
+      }
+      
       .toast-notification {
         position: fixed;
         top: 20px;
@@ -87,13 +120,31 @@
     <header class="site-header js-site-header">
       <div class="container-fluid">
         <div class="row align-items-center">
-          <!-- Hotel Logo -->
-          <div class="col-6 col-lg-4 site-logo" data-aos="fade"><a href="{% url 'home' %}">{{ hotel_name }}</a></div>
-          <!-- Navigation Menu Container -->
-          <div class="col-6 col-lg-8">
+          <div class="col-6 col-lg-3 site-logo" data-aos="fade"><a href="{% url 'home' %}">{{ hotel_name }}</a></div>
+          <div class="col-6 col-lg-9">
+            
+            <!-- Inline Navigation for Desktop -->
+            <div class="d-none d-lg-block inline-nav" data-aos="fade">
+              <ul>
+                <li><a href="{% url 'home' %}">Home</a></li>
+                <li><a href="{% url 'rooms' %}">Rooms</a></li>
+                <li class="active"><a href="{% url 'about' %}">About</a></li>
+                <li><a href="{% url 'contact' %}">Contact</a></li>
+                <li><a href="{% url 'reservation' %}">Reservation</a></li>
+                {% if user.is_authenticated %}
+                  {% if user.role == 'admin' or user.role == 'staff' %}
+                    <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+                  {% endif %}
+                  <li><a href="{% url 'logout' %}">Logout</a></li>
+                {% else %}
+                  <li><a href="{% url 'login' %}">Login</a></li>
+                  <li><a href="{% url 'register' %}">Register</a></li>
+                {% endif %}
+              </ul>
+            </div>
 
-
-            <div class="site-menu-toggle js-site-menu-toggle"  data-aos="fade">
+            <!-- Mobile Menu Toggle -->
+            <div class="site-menu-toggle js-site-menu-toggle d-lg-none" data-aos="fade">
               <span></span>
               <span></span>
               <span></span>
@@ -112,12 +163,13 @@
                         <li><a href="{% url 'contact' %}">Contact</a></li>
                         <li><a href="{% url 'reservation' %}">Reservation</a></li>
                         {% if user.is_authenticated %}
-                          {% if user.is_staff or user.is_superuser %}
+                          {% if user.role == 'admin' or user.role == 'staff' %}
                             <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
                           {% endif %}
                           <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
                         {% else %}
-                          <li><a href="{% url 'login' %}">Staff Login</a></li>
+                          <li><a href="{% url 'login' %}">Login</a></li>
+                          <li><a href="{% url 'register' %}">Create Account</a></li>
                         {% endif %}
                       </ul>
                     </div>
@@ -364,21 +416,28 @@
               <li><a href="{% url 'about' %}">About Us</a></li>
               <li><a href="{% url 'home' %}">Terms &amp; Conditions</a></li>
               <li><a href="{% url 'home' %}">Privacy Policy</a></li>
-              <li><a href="{% url 'rooms' %}">Rooms</a></li>
             </ul>
           </div>
           <div class="col-md-3 mb-5">
             <ul class="list-unstyled link">
-              <li><a href="{% url 'rooms' %}">The Rooms &amp; Suites</a></li>
               <li><a href="{% url 'about' %}">About Us</a></li>
               <li><a href="{% url 'contact' %}">Contact Us</a></li>
-              <li><a href="{% url 'home' %}">Restaurant</a></li>
+              <li><a href="{% url 'reservation' %}">Reservation</a></li>
             </ul>
           </div>
-          <div class="col-md-3 mb-5 pr-md-5 contact-info">
-            <p><span class="d-block"><span class="ion-ios-location h5 mr-3 text-primary"></span>Address:</span> <span> {{ hotel.hotel_address }}</span></p>
-            <p><span class="d-block"><span class="ion-ios-telephone h5 mr-3 text-primary"></span>Phone:</span> <span> {{ hotel.phone }}</span></p>
-            <p><span class="d-block"><span class="ion-ios-email h5 mr-3 text-primary"></span>Email:</span> <span> {{ hotel.email }}</span></p>
+          <div class="col-md-3 mb-5 contact-info">
+            <div class="contact-item">
+              <span class="contact-label">Address:</span>
+              <span class="contact-value">{{ hotel.hotel_address }}</span>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">Phone:</span>
+              <span class="contact-value">{{ hotel.phone }}</span>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">Email:</span>
+              <span class="contact-value">{{ hotel.email }}</span>
+            </div>
           </div>
           <div class="col-md-3 mb-5">
             <p>Sign up for our newsletter</p>

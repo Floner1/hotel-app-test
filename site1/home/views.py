@@ -71,8 +71,16 @@ def get_reservation(request):
     hotel_name = HotelService.get_hotel_name()
     hotel_info = HotelService.get_hotel_info()
     
-    # Handle POST request (form submission)
+    # Handle POST request (form submission) - requires login
     if request.method == 'POST':
+        # Check if user is logged in before processing reservation
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Please log in to make a reservation',
+                'redirect': '/accounts/login/?next=/reservation/'
+            }, status=401)
+        
         try:
             # Prepare reservation data from form
             reservation_data = {
@@ -84,7 +92,8 @@ def get_reservation(request):
                 'adults': request.POST.get('adults', 1),
                 'children': request.POST.get('children', 0),
                 'room_type': request.POST.get('room_type'),
-                'notes': request.POST.get('notes', '')
+                'notes': request.POST.get('notes', ''),
+                'user': request.user,  # Link booking to logged-in user
             }
             
             # Create reservation using the service
@@ -180,6 +189,13 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
+                
+                # Set SQL Server session context for RBAC triggers
+                from django.db import connection
+                with connection.cursor() as cursor:
+                    cursor.execute("EXEC sp_set_session_context 'user_id', %s", [user.id])
+                    cursor.execute("EXEC sp_set_session_context 'user_role', %s", [user.role])
+                
                 messages.success(request, 'You have been successfully logged in.')
                 # Redirect to next parameter or home
                 next_url = request.POST.get('next') or request.GET.get('next') or 'home'
@@ -199,6 +215,101 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'You have been successfully logged out.')
     return redirect('home')
+
+
+def register_view(request):
+    """
+    Registration view for creating new customer accounts.
+    """
+    if request.user.is_authenticated:
+        # Redirect if already logged in
+        return redirect('home')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+        
+        # Validation
+        errors = {}
+        
+        if not username:
+            errors['username'] = 'Username is required.'
+        elif User.objects.filter(username=username).exists():
+            errors['username'] = 'Username already exists.'
+        elif len(username) < 3:
+            errors['username'] = 'Username must be at least 3 characters.'
+        
+        if not email:
+            errors['email'] = 'Email is required.'
+        elif User.objects.filter(email=email).exists():
+            errors['email'] = 'Email already registered.'
+        elif '@' not in email:
+            errors['email'] = 'Enter a valid email address.'
+        
+        if not password1:
+            errors['password1'] = 'Password is required.'
+        elif len(password1) < 8:
+            errors['password1'] = 'Password must be at least 8 characters.'
+        
+        if not password2:
+            errors['password2'] = 'Please confirm your password.'
+        elif password1 != password2:
+            errors['password2'] = 'Passwords do not match.'
+        
+        if errors:
+            # Return form with errors
+            context = {
+                'form': {
+                    'username': {'value': username, 'errors': [errors.get('username')]},
+                    'email': {'value': email, 'errors': [errors.get('email')]},
+                    'password1': {'errors': [errors.get('password1')]},
+                    'password2': {'errors': [errors.get('password2')]},
+                },
+                'hotel_name': HotelService.get_hotel_name(),
+                'hotel': HotelService.get_hotel_info(),
+            }
+            return render(request, 'register.html', context)
+        
+        # Create user
+        try:
+            from django.utils import timezone
+            from django.contrib.auth.hashers import make_password
+            
+            user = User.objects.create(
+                username=username,
+                email=email,
+                password_hash=make_password(password1),
+                role='customer',
+                is_active=True,
+                created_at=timezone.now()
+            )
+            
+            # Log the user in - specify backend since we have multiple
+            login(request, user, backend='home.auth_backend.CustomUserBackend')
+            messages.success(request, f'Welcome {username}! Your account has been created successfully.')
+            return redirect('reservation')
+            
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+            context = {
+                'form': {
+                    'username': {'value': username},
+                    'email': {'value': email},
+                },
+                'hotel_name': HotelService.get_hotel_name(),
+                'hotel': HotelService.get_hotel_info(),
+            }
+            return render(request, 'register.html', context)
+    
+    # GET request
+    context = {
+        'form': {},
+        'hotel_name': HotelService.get_hotel_name(),
+        'hotel': HotelService.get_hotel_info(),
+    }
+    return render(request, 'register.html', context)
 
 
 @login_required

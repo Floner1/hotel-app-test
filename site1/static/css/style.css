@@ -1297,3 +1297,149 @@ textarea.form-control {
   display: flex;
   align-items: center;
 }
+
+/* =============================================
+   CUSTOM OVERRIDES - Hotel Booking App
+============================================= */
+
+/* Increased font sizes for better readability */
+body {
+  font-size: 18px !important;
+  line-height: 1.8;
+}
+
+p {
+  font-size: 18px;
+  line-height: 1.8;
+}
+
+h1, .h1 {
+  font-size: 3.2rem;
+}
+
+h2, .h2, .heading {
+  font-size: 2.6rem;
+}
+
+h3, .h3 {
+  font-size: 1.9rem;
+}
+
+h4, .h4 {
+  font-size: 1.6rem;
+}
+
+h5, .h5 {
+  font-size: 1.3rem;
+}
+
+.btn {
+  font-size: 16px;
+}
+
+.form-control {
+  font-size: 16px;
+}
+
+/* Premium Services Section - Subtle Background */
+.services-section {
+  background-color: #f7f7f7 !important;
+  padding: 5em 0;
+}
+
+.services-section .service {
+  background: #fff;
+  padding: 2rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  height: 100%;
+}
+
+/* Inline Navigation Bar - Horizontal Even Spacing */
+.inline-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.inline-nav ul {
+  display: flex;
+  flex-direction: row !important;
+  flex-wrap: nowrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 20px;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.inline-nav ul li {
+  display: inline-block;
+  margin: 0;
+}
+
+.inline-nav ul li a {
+  color: #333;
+  font-size: 15px;
+  padding: 10px 15px;
+  text-decoration: none;
+  transition: color 0.3s;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.inline-nav ul li a:hover {
+  color: #f8b739;
+}
+
+.inline-nav ul li.active a {
+  color: #f8b739;
+}
+
+/* Footer Contact Info Alignment */
+.footer-section .contact-info .contact-item {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-section .contact-info .contact-label {
+  display: block !important;
+  font-weight: normal;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+
+.footer-section .contact-info .contact-value {
+  display: block !important;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+  font-weight: normal;
+  padding-left: 0;
+}
+
+/* Reduced negative space */
+.section {
+  padding: 5em 0;
+}
+
+.footer-section {
+  padding: 50px 0 30px;
+}
+
+.footer-section .link li a {
+  font-size: 15px;
+}
+
+/* Room and service cards */
+.room h3, .service h3 {
+  font-size: 1.5rem;
+}
+
+.service p, .room p {
+  font-size: 16px;
+}

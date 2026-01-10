@@ -1,0 +1,274 @@
+/* Custom CSS Overrides for Hotel Booking App */
+
+/* =============================================
+   GLOBAL FONT SIZE ADJUSTMENTS
+   Increased for better readability
+============================================= */
+
+body {
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+p {
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+/* Navigation Links */
+.site-nav-wrap a {
+  font-size: 16px !important;
+}
+
+/* Headings */
+h1, .h1 {
+  font-size: 2.8rem;
+}
+
+h2, .h2 {
+  font-size: 2.2rem;
+}
+
+h3, .h3 {
+  font-size: 1.6rem;
+}
+
+h4, .h4 {
+  font-size: 1.4rem;
+}
+
+h5, .h5 {
+  font-size: 1.2rem;
+}
+
+/* Buttons */
+.btn {
+  font-size: 15px;
+}
+
+/* Form Controls */
+.form-control {
+  font-size: 15px;
+}
+
+/* =============================================
+   REDUCE NEGATIVE SPACE
+============================================= */
+
+.section {
+  padding: 4em 0 !important;
+}
+
+.site-hero-inner {
+  padding: 100px 0 !important;
+}
+
+.mb-5 {
+  margin-bottom: 2rem !important;
+}
+
+.py-5 {
+  padding-top: 2.5rem !important;
+  padding-bottom: 2.5rem !important;
+}
+
+/* Reduce spacing between section headers and content */
+.row.justify-content-center.text-center.mb-5 {
+  margin-bottom: 2rem !important;
+}
+
+/* =============================================
+   PREMIUM SERVICES SECTION - DISTINCT STYLING
+============================================= */
+
+.services-section {
+  background-color: #e8e2d9 !important;
+  padding: 4em 0;
+}
+
+.services-section .service {
+  background: #fff;
+  padding: 2rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+  height: 100%;
+}
+
+/* =============================================
+   INLINE NAVIGATION BAR
+============================================= */
+
+.site-header {
+  padding: 15px 0;
+}
+
+.inline-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.inline-nav ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 5px;
+}
+
+.inline-nav ul li a {
+  color: #333;
+  font-size: 14px;
+  padding: 8px 15px;
+  text-decoration: none;
+  transition: color 0.3s;
+  white-space: nowrap;
+}
+
+.inline-nav ul li a:hover {
+  color: #f8b739;
+}
+
+.inline-nav ul li.active a {
+  color: #f8b739;
+}
+
+/* =============================================
+   FOOTER SECTION - PROPER ALIGNMENT
+============================================= */
+
+.footer-section {
+  padding: 50px 0 30px;
+}
+
+.footer-section p {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.footer-section .link li {
+  margin-bottom: 10px;
+}
+
+.footer-section .link li a {
+  font-size: 15px;
+}
+
+/* Contact info with proper label-value alignment */
+.footer-section .contact-info .contact-item {
+  margin-bottom: 15px;
+}
+
+.footer-section .contact-info .contact-label {
+  display: block;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 3px;
+  font-size: 14px;
+}
+
+.footer-section .contact-info .contact-value {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  padding-left: 0;
+}
+
+/* Newsletter form */
+.footer-newsletter .form-control {
+  font-size: 14px;
+}
+
+/* Social links section */
+.footer-section .social a {
+  font-size: 18px;
+  padding: 8px;
+  margin-left: 5px;
+}
+
+/* Ensure footer columns are properly aligned */
+.footer-section .row {
+  align-items: flex-start;
+}
+
+.footer-section .col-md-3 {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* =============================================
+   GENERAL IMPROVEMENTS
+============================================= */
+
+/* Cards and content blocks */
+.room {
+  font-size: 15px;
+  margin-bottom: 1.5rem;
+}
+
+.room h3 {
+  font-size: 1.4rem;
+}
+
+/* Services section */
+.service h3 {
+  font-size: 1.3rem;
+}
+
+.service p {
+  font-size: 15px;
+}
+
+/* Testimonials */
+.testimonial blockquote p {
+  font-size: 16px;
+}
+
+/* Table content */
+table {
+  font-size: 15px;
+}
+
+/* Lists */
+ul, ol {
+  font-size: 16px;
+}
+
+/* Hero section text */
+.site-hero h1.heading {
+  font-size: 2.8rem;
+}
+
+.site-hero p {
+  font-size: 1.1rem;
+}
+
+/* Breadcrumb */
+.breadcrumb li, .breadcrumb a {
+  font-size: 14px;
+}
+
+/* Welcome section images */
+.img-absolute {
+  margin-bottom: 1rem;
+}
+}
+
+/* Lists */
+ul, ol {
+  font-size: 17px;
+}
+
+/* Hero section text */
+.hero-section h1 {
+  font-size: 3.5rem;
+}
+
+.hero-section p {
+  font-size: 1.2rem;
+}
+
+/* Breadcrumb */
+.breadcrumb li, .breadcrumb a {
+  font-size: 15px;
+}

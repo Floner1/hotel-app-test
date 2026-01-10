@@ -110,6 +110,11 @@ class User(AbstractBaseUser):
     @property
     def is_customer(self):
         return self.role == 'customer'
+    
+    @property
+    def id(self):
+        """Provide 'id' property for Django admin compatibility."""
+        return self.user_id
 
 
 class Hotel(models.Model):

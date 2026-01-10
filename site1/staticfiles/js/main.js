@@ -155,11 +155,11 @@
 
   var dateAndTime = function() {
     $('#m_date').datepicker({
-      'format': 'm/d/yyyy',
+      'format': 'mm/dd/yyyy',
       'autoclose': true
     });
     $('#checkin_date, #checkout_date').datepicker({
-      'format': 'm/d/yyyy',
+      'format': 'mm/dd/yyyy',
       'autoclose': true,
       'startDate': 'today',
       'todayHighlight': true
@@ -184,6 +184,33 @@
   };
   windowScroll();
 
+
+  // Initialize image carousel
+  $('.image-carousel').owlCarousel({
+    loop: true,
+    autoplay: true,
+    margin: 20,
+    nav: true,
+    dots: true,
+    autoplayHoverPause: true,
+    items: 3,
+    navText : ["<span class='ion-chevron-left'></span>","<span class='ion-chevron-right'></span>"],
+    responsive:{
+      0:{
+        items:1,
+        nav:false
+      },
+      600:{
+        items:2,
+        nav:false
+      },
+      1000:{
+        items:3,
+        nav:true,
+        loop:false
+      }
+    }
+  });
 
   var goToTop = function() {
 

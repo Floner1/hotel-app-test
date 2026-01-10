@@ -1,0 +1,440 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    {% load static %}
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Create Account | Thien Tai Hotel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Create a new account" />
+    
+    <!-- Google Fonts -->
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=|Roboto+Sans:400,700|Playfair+Display:400,700">
+
+    <!-- Static Files -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/animate.css' %}">
+    <link rel="stylesheet" href="{% static 'css/owl.carousel.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/aos.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-datepicker.css' %}">
+    <link rel="stylesheet" href="{% static 'css/jquery.timepicker.css' %}">
+    <link rel="stylesheet" href="{% static 'css/fancybox.min.css' %}">
+    
+    <!-- Icon Fonts -->
+    <link rel="stylesheet" href="{% static 'fonts/ionicons/css/ionicons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'fonts/fontawesome/css/font-awesome.min.css' %}">
+
+    <!-- Main Theme Style -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <style>
+      /* NAVBAR FIX - Force horizontal layout */
+      .inline-nav {
+        display: flex !important;
+        flex: 1 !important;
+      }
+      
+      .inline-nav ul {
+        display: flex !important;
+        flex-direction: row !important;
+        list-style: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        width: 100% !important;
+        justify-content: space-evenly !important;
+      }
+      
+      .inline-nav ul li {
+        display: inline-block !important;
+      }
+      
+      /* FOOTER FIX - Force labels and values on separate lines */
+      .footer-section .contact-info .contact-label {
+        display: block !important;
+        font-weight: normal !important;
+        margin-bottom: 5px !important;
+      }
+      
+      .footer-section .contact-info .contact-value {
+        display: block !important;
+        font-weight: normal !important;
+      }
+      
+      .register-section {
+        padding: 7em 0;
+        min-height: 80vh;
+      }
+      
+      .register-form {
+        background: white;
+        padding: 3rem;
+        border-radius: 10px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.1);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      
+      .register-form h2 {
+        margin-bottom: 1.5rem;
+        color: #333;
+        font-weight: 600;
+      }
+      
+      .register-form .form-group {
+        margin-bottom: 1.5rem;
+      }
+      
+      .register-form label {
+        font-weight: 500;
+        color: #555;
+        margin-bottom: 0.5rem;
+      }
+      
+      .register-form input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+      }
+      
+      .register-form input:focus {
+        outline: none;
+        border-color: #f8b739;
+        box-shadow: 0 0 0 0.2rem rgba(248, 183, 57, 0.25);
+      }
+      
+      .register-form .btn-register {
+        width: 100%;
+        padding: 0.875rem;
+        background-color: #f8b739;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        margin-top: 1rem;
+      }
+      
+      .register-form .btn-register:hover {
+        background-color: #e0a530;
+      }
+      
+      .register-form .form-text {
+        font-size: 0.875rem;
+        color: #666;
+        margin-top: 0.5rem;
+      }
+      
+      .register-form .alert {
+        padding: 0.75rem 1rem;
+        border-radius: 5px;
+        margin-bottom: 1.5rem;
+      }
+      
+      .register-form .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      
+      .register-form .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      
+      .register-form .login-link {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #666;
+      }
+      
+      .register-form .login-link a {
+        color: #f8b739;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      
+      .register-form .login-link a:hover {
+        text-decoration: underline;
+      }
+      
+      .required-field::after {
+        content: " *";
+        color: #dc3545;
+      }
+    </style>
+  </head>
+  <body>
+    
+    <header class="site-header js-site-header">
+      <div class="container-fluid">
+        <div class="row align-items-center">
+          <div class="col-6 col-lg-3 site-logo" data-aos="fade"><a href="{% url 'home' %}">{{ hotel_name }}</a></div>
+          <div class="col-6 col-lg-9">
+            
+            <!-- Inline Navigation for Desktop -->
+            <div class="d-none d-lg-block inline-nav" data-aos="fade">
+              <ul>
+                <li><a href="{% url 'home' %}">Home</a></li>
+                <li><a href="{% url 'rooms' %}">Rooms</a></li>
+                <li><a href="{% url 'about' %}">About</a></li>
+                <li><a href="{% url 'contact' %}">Contact</a></li>
+                <li><a href="{% url 'reservation' %}">Reservation</a></li>
+                {% if user.is_authenticated %}
+                  {% if user.role == 'admin' or user.role == 'staff' %}
+                    <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+                  {% endif %}
+                  <li><a href="{% url 'logout' %}">Logout</a></li>
+                {% else %}
+                  <li><a href="{% url 'login' %}">Login</a></li>
+                  <li class="active"><a href="{% url 'register' %}">Register</a></li>
+                {% endif %}
+              </ul>
+            </div>
+
+            <!-- Mobile Menu Toggle -->
+            <div class="site-menu-toggle js-site-menu-toggle d-lg-none" data-aos="fade">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+            <div class="site-navbar js-site-navbar">
+              <nav role="navigation">
+                <div class="container">
+                  <div class="row full-height align-items-center">
+                    <div class="col-md-6 mx-auto">
+                      <ul class="list-unstyled menu">
+                        <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'rooms' %}">Rooms</a></li>
+                        <li><a href="{% url 'about' %}">About</a></li>
+                        <li><a href="{% url 'contact' %}">Contact</a></li>
+                        <li><a href="{% url 'reservation' %}">Reservation</a></li>
+                        {% if user.is_authenticated %}
+                          {% if user.role == 'admin' or user.role == 'staff' %}
+                            <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+                          {% endif %}
+                          <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
+                        {% else %}
+                          <li><a href="{% url 'login' %}">Login</a></li>
+                          <li class="active"><a href="{% url 'register' %}">Create Account</a></li>
+                        {% endif %}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- END header -->
+
+    <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/hero_4.jpg' %})" data-stellar-background-ratio="0.5">
+      <div class="container">
+        <div class="row site-hero-inner justify-content-center align-items-center">
+          <div class="col-md-10 text-center" data-aos="fade">
+            <h1 class="heading mb-3">Create Your Account</h1>
+            <ul class="custom-breadcrumbs mb-4">
+              <li><a href="{% url 'home' %}">Home</a></li>
+              <li>&bullet;</li>
+              <li>Create Account</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <a class="mouse smoothscroll" href="#next">
+        <div class="mouse-icon">
+          <span class="mouse-wheel"></span>
+        </div>
+      </a>
+    </section>
+    <!-- END section -->
+
+    <section class="section register-section" id="next">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="register-form" data-aos="fade-up">
+              <h2>Join {{ hotel_name }}</h2>
+              <p class="mb-4">Create an account to make reservations and manage your bookings.</p>
+              
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+              
+              <form method="post" action="{% url 'register' %}" novalidate>
+                {% csrf_token %}
+                
+                <div class="form-group">
+                  <label for="username" class="required-field">Username</label>
+                  <input type="text" class="form-control" id="username" name="username" required 
+                         value="{{ form.username.value|default:'' }}"
+                         placeholder="Choose a unique username">
+                  <small class="form-text">Letters, numbers, and @/./+/-/_ only</small>
+                  {% if form.username.errors %}
+                    <div class="text-danger mt-2">{{ form.username.errors.0 }}</div>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label for="email" class="required-field">Email Address</label>
+                  <input type="email" class="form-control" id="email" name="email" required 
+                         value="{{ form.email.value|default:'' }}"
+                         placeholder="your.email@example.com">
+                  <small class="form-text">We'll never share your email with anyone</small>
+                  {% if form.email.errors %}
+                    <div class="text-danger mt-2">{{ form.email.errors.0 }}</div>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label for="password1" class="required-field">Password</label>
+                  <input type="password" class="form-control" id="password1" name="password1" required 
+                         placeholder="Create a strong password">
+                  <small class="form-text">Minimum 8 characters</small>
+                  {% if form.password1.errors %}
+                    <div class="text-danger mt-2">{{ form.password1.errors.0 }}</div>
+                  {% endif %}
+                </div>
+                
+                <div class="form-group">
+                  <label for="password2" class="required-field">Confirm Password</label>
+                  <input type="password" class="form-control" id="password2" name="password2" required 
+                         placeholder="Re-enter your password">
+                  {% if form.password2.errors %}
+                    <div class="text-danger mt-2">{{ form.password2.errors.0 }}</div>
+                  {% endif %}
+                </div>
+                
+                <button type="submit" class="btn-register">Create Account</button>
+                
+                <div class="login-link">
+                  Already have an account? <a href="{% url 'login' %}">Login here</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section slider-section">
+      <div class="container">
+        <div class="row justify-content-center text-center mb-5">
+          <div class="col-md-8">
+            <h2 class="heading" data-aos="fade-up">Why Create an Account?</h2>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+            <div class="media d-block room mb-0">
+              <div class="media-body">
+                <h3 class="mt-0"><span class="ion-ios-checkmark-circle"></span> Quick Booking</h3>
+                <p>Save your information for faster reservations in the future.</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+            <div class="media d-block room mb-0">
+              <div class="media-body">
+                <h3 class="mt-0"><span class="ion-ios-list-box"></span> View Bookings</h3>
+                <p>Access and manage all your reservations in one place.</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+            <div class="media d-block room mb-0">
+              <div class="media-body">
+                <h3 class="mt-0"><span class="ion-ios-bell"></span> Get Updates</h3>
+                <p>Receive notifications about your booking status and confirmations.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="section footer-section">
+      <div class="container">
+        <div class="row mb-4">
+          <div class="col-md-3 mb-5">
+            <ul class="list-unstyled link">
+              <li><a href="{% url 'about' %}">About Us</a></li>
+              <li><a href="{% url 'home' %}">Terms &amp; Conditions</a></li>
+              <li><a href="{% url 'home' %}">Privacy Policy</a></li>
+            </ul>
+          </div>
+          <div class="col-md-3 mb-5">
+            <ul class="list-unstyled link">
+              <li><a href="{% url 'about' %}">About Us</a></li>
+              <li><a href="{% url 'contact' %}">Contact Us</a></li>
+              <li><a href="{% url 'reservation' %}">Reservation</a></li>
+            </ul>
+          </div>
+          <div class="col-md-3 mb-5 contact-info">
+            <div class="contact-item">
+              <span class="contact-label">Address:</span>
+              <span class="contact-value">{{ hotel.hotel_address }}</span>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">Phone:</span>
+              <span class="contact-value">{{ hotel.phone }}</span>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">Email:</span>
+              <span class="contact-value">{{ hotel.email }}</span>
+            </div>
+          </div>
+          <div class="col-md-3 mb-5">
+            <p>Sign up for our newsletter</p>
+            <form id="newsletter-form" class="footer-newsletter">
+              <div class="form-group">
+                <input type="email" class="form-control" name="email" placeholder="Email..." required>
+                <button type="submit" class="btn"><span class="fa fa-paper-plane"></span></button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="row pt-5">
+          <p class="col-md-6 text-left">
+          </p>
+            
+          <p class="col-md-6 text-right social">
+            <a href="#"><span class="fa fa-tripadvisor"></span></a>
+            <a href="#"><span class="fa fa-facebook"></span></a>
+            <a href="#"><span class="fa fa-twitter"></span></a>
+            <a href="#"><span class="fa fa-linkedin"></span></a>
+            <a href="#"><span class="fa fa-vimeo"></span></a>
+          </p>
+        </div>
+      </div>
+    </footer>
+    
+    <!-- JavaScript Files -->
+    <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+    <script src="{% static 'js/jquery-migrate-3.0.1.min.js' %}"></script>
+    <script src="{% static 'js/popper.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'js/owl.carousel.min.js' %}"></script>
+    <script src="{% static 'js/jquery.stellar.min.js' %}"></script>
+    <script src="{% static 'js/jquery.fancybox.min.js' %}"></script>
+    <script src="{% static 'js/aos.js' %}"></script>
+    <script src="{% static 'js/bootstrap-datepicker.js' %}"></script> 
+    <script src="{% static 'js/jquery.timepicker.min.js' %}"></script> 
+    <script src="{% static 'js/main.js' %}"></script>
+    
+  </body>
+</html>

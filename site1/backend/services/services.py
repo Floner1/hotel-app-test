@@ -164,8 +164,12 @@ class ReservationService:
         notes = (reservation_data.get('notes') or '').strip()
         special_requests = (reservation_data.get('special_requests') or '').strip()
 
+        # Get user from reservation_data if provided (for logged-in users)
+        user = reservation_data.get('user', None)
+        
         booking_data = {
             'hotel': hotel_record,
+            'user': user,  # Link to user if logged in
             'guest_name': guest_name,
             'email': email if email else None,
             'phone': phone if phone else None,
@@ -177,7 +181,7 @@ class ReservationService:
             'children': children,
             'booked_rate': rate,
             'total_price': total_cost,
-            'status': 'confirmed',
+            'status': 'pending',  # Changed to pending - admin must confirm
             'payment_status': reservation_data.get('payment_status', 'unpaid'),
             'amount_paid': Decimal('0.00'),
             'special_requests': special_requests if special_requests else None,
