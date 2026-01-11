@@ -34,7 +34,7 @@
     
     <!-- Toast Notification Styles -->
     <style>
-      /* NAVBAR FIX - Force horizontal layout */
+      /* NAVBAR FIX - Force horizontal layout with color matching site logo */
       .inline-nav {
         display: flex !important;
         flex: 1 !important;
@@ -53,6 +53,32 @@
       
       .inline-nav ul li {
         display: inline-block !important;
+      }
+      
+      /* Match nav link colors to site logo - white by default, black on scroll */
+      .inline-nav ul li a {
+        color: #fff !important;
+        transition: color 0.3s ease !important;
+      }
+      
+      .site-header.scrolled .inline-nav ul li a {
+        color: #000 !important;
+      }
+      
+      .inline-nav ul li a:hover {
+        color: #f8b739 !important;
+      }
+      
+      /* Responsive: Hide inline nav on small/medium screens, show hamburger only */
+      @media (max-width: 991.98px) {
+        .inline-nav {
+          display: none !important;
+        }
+      }
+      
+      /* LOGO FIX - Prevent hotel name from wrapping to multiple lines */
+      .site-logo {
+        white-space: nowrap !important;
       }
       
       /* FOOTER FIX - Force labels and values on separate lines */
