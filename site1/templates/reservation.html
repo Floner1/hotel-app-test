@@ -31,6 +31,19 @@
     <link rel="stylesheet" href="{% static 'fonts/ionicons/css/ionicons.min.css' %}">
     <link rel="stylesheet" href="{% static 'fonts/fontawesome/css/font-awesome.min.css' %}">
 
+    <!-- Google Translate -->
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          includedLanguages: 'en,vi,zh-CN,ko',
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        }, 'google_translate_element');
+      }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
     <!-- Main Theme Style -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     
@@ -61,13 +74,19 @@
       .inline-nav ul li a {
         color: #fff !important;
         transition: color 0.3s ease !important;
+        font-size: 18px !important;
       }
       
       .site-header.scrolled .inline-nav ul li a {
         color: #000 !important;
+        font-size: 18px !important;
       }
       
       .inline-nav ul li a:hover {
+        color: #f8b739 !important;
+      }
+      
+      .site-header.scrolled .inline-nav ul li a:hover {
         color: #f8b739 !important;
       }
       
@@ -82,6 +101,121 @@
       .site-logo {
         white-space: nowrap !important;
       }
+      
+      /* PAGE HEADING AND BREADCRUMB FONT SIZES */
+      .site-hero-inner h1.heading {
+        font-size: 72px !important;
+      }
+      
+      .custom-breadcrumbs {
+        font-size: 20px !important;
+      }
+      
+      .custom-breadcrumbs li {
+        font-size: 20px !important;
+      }
+      
+      /* ROOM IMAGE CONSISTENCY */
+      .room .img-wrap img {
+        width: 100% !important;
+        height: 240px !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+      
+      .room-info {
+        text-align: center !important;
+      }
+      
+      .room-info h2 {
+        font-size: 1.75rem !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.75rem !important;
+        color: #333 !important;
+        white-space: nowrap !important;
+      }
+      
+      .room-info span {
+        color: #f8b739 !important;
+        font-size: 1.125rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 2px !important;
+        display: block !important;
+      }
+      
+      /* LANGUAGE SELECTOR */
+      .language-selector {
+        display: inline-block !important;
+        position: relative !important;
+      }
+      
+      .language-selector .lang-button {
+        background: none !important;
+        border: none !important;
+        cursor: pointer !important;
+        padding: 5px !important;
+        color: #fff !important;
+        font-size: 18px !important;
+      }
+      
+      .site-header.scrolled .language-selector .lang-button {
+        color: #000 !important;
+      }
+      
+      .language-selector .lang-dropdown {
+        display: none !important;
+        position: absolute !important;
+        top: 100% !important;
+        right: 0 !important;
+        background: rgba(0, 0, 0, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 4px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+        z-index: 1000 !important;
+        min-width: 180px !important;
+        margin-top: -10px !important;
+        padding: 20px 0 10px 0 !important;
+      }
+      
+      .site-header.scrolled .language-selector .lang-dropdown {
+        background: rgba(255, 255, 255, 0.98) !important;
+        border: 1px solid rgba(0, 0, 0, 0.2) !important;
+      }
+      
+      .language-selector:hover .lang-dropdown {
+        display: block !important;
+      }
+      
+      .lang-dropdown a {
+        display: block !important;
+        padding: 12px 15px !important;
+        color: #fff !important;
+        text-decoration: none !important;
+        font-size: 16px !important;
+        transition: all 0.3s ease !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+      }
+      
+      .site-header.scrolled .lang-dropdown a {
+        color: #000 !important;
+      }
+      
+      .lang-dropdown a:hover {
+        background: rgba(248, 183, 57, 0.2) !important;
+        color: #f8b739 !important;
+      }
+      
+      .lang-dropdown img {
+        width: 24px !important;
+        height: 16px !important;
+        margin-right: 8px !important;
+        vertical-align: middle !important;
+      }
+      
+      .goog-te-banner-frame.skiptranslate { display: none !important; }
+      body { top: 0px !important; }
+      #google_translate_element { display: none !important; }
       
       /* FOOTER FIX - Force labels and values on separate lines */
       .footer-section .contact-info .contact-label {
@@ -156,6 +290,15 @@
                 <li><a href="{% url 'about' %}">About</a></li>
                 <li><a href="{% url 'contact' %}">Contact</a></li>
                 <li class="active"><a href="{% url 'reservation' %}">Reservation</a></li>
+                <li class="language-selector">
+                  <button class="lang-button">🌐 Language</button>
+                  <div class="lang-dropdown">
+                    <a href="#" data-lang="en">🇬🇧 English</a>
+                    <a href="#" data-lang="vi">🇻🇳 Tiếng Việt</a>
+                    <a href="#" data-lang="zh">🇨🇳 中文</a>
+                    <a href="#" data-lang="ko">🇰🇷 한국어</a>
+                  </div>
+                </li>
                 {% if user.is_authenticated %}
                   {% if user.role == 'admin' or user.role == 'staff' %}
                     <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
@@ -689,12 +832,6 @@
               }, 500);
             },
             error: function(xhr) {
-              // Check if redirect is needed (user not logged in)
-              if (xhr.status === 401 && xhr.responseJSON && xhr.responseJSON.redirect) {
-                window.location.href = xhr.responseJSON.redirect;
-                return;
-              }
-              
               // Show error message
               var errorMsg = 'An error occurred. Please try again.';
               if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -715,6 +852,52 @@
               submitButton.val('Reserve Now');
             }
           });
+        });
+      });
+    </script>
+
+    <!-- Hidden Google Translate Widget -->
+    <div id="google_translate_element" style="display: none;"></div>
+
+    <script>
+      $(document).ready(function() {
+        $('.language-selector').on('click', function(e) {
+          e.stopPropagation();
+          $(this).addClass('keep-open');
+        });
+        
+        $(document).on('click', function() {
+          $('.language-selector').removeClass('keep-open');
+        });
+        
+        $('<style>.language-selector.keep-open .lang-dropdown { display: block !important; }</style>').appendTo('head');
+        
+        $('.lang-dropdown a').on('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var lang = $(this).data('lang');
+          $('.language-selector').removeClass('keep-open');
+          var langCode = lang === 'zh' ? 'zh-CN' : lang;
+          
+          var maxAttempts = 20;
+          var attempt = 0;
+          var triggerInterval = setInterval(function() {
+            attempt++;
+            var combo = document.querySelector('.goog-te-combo');
+            if (combo && combo.options) {
+              for (var i = 0; i < combo.options.length; i++) {
+                if (combo.options[i].value === langCode) {
+                  combo.selectedIndex = i;
+                  var evt = document.createEvent('HTMLEvents');
+                  evt.initEvent('change', true, true);
+                  combo.dispatchEvent(evt);
+                  clearInterval(triggerInterval);
+                  return;
+                }
+              }
+            }
+            if (attempt >= maxAttempts) clearInterval(triggerInterval);
+          }, 200);
         });
       });
     </script>

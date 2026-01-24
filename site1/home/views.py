@@ -77,9 +77,8 @@ def get_reservation(request):
         if not request.user.is_authenticated:
             return JsonResponse({
                 'status': 'error',
-                'message': 'Please log in to make a reservation',
-                'redirect': '/accounts/login/?next=/reservation/'
-            }, status=401)
+                'message': 'You need to be logged into an account to book a room. Please log in or create an account to continue.'
+            }, status=400)
         
         try:
             # Prepare reservation data from form
