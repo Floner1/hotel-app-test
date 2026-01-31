@@ -452,62 +452,289 @@
       </div>
     </section>
     
-    <section class="section bg-light">
-
+    <section class="section slider-section" style="background-color: white;">
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade">Great Offers</h2>
-            <p data-aos="fade">Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics, a large language ocean.</p>
+            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;">Rooms &amp; Suites</h2>
+            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;">Our rooms offer a quiet place to rest. Simple layouts, comfortable beds, and a calm setting make it easy to relax. Each room is clean, well kept, and designed for a good night's sleep. Whether you stay one night or longer, you will have everything you need to feel comfortable.</p>
           </div>
         </div>
+      </div>
       
-        {% for room in room_types|slice:":2" %}
-        <div class="site-block-half d-block d-lg-flex bg-white" data-aos="fade" data-aos-delay="{{ forloop.counter }}00">
-          {% if '2 Bed No Window' in room.canonical %}
-            <a href="#" class="image d-block bg-image-2 {% if forloop.counter == 2 %}order-2{% endif %}" style="background-image: url('{% static 'images/double room.png' %}');"></a>
-          {% elif '1 Bed No Window' in room.canonical %}
-            <a href="#" class="image d-block bg-image-2 {% if forloop.counter == 2 %}order-2{% endif %}" style="background-image: url('{% static 'images/single bed.png' %}');"></a>
-          {% elif '1 Bed With Window' in room.canonical %}
-            <a href="#" class="image d-block bg-image-2 {% if forloop.counter == 2 %}order-2{% endif %}" style="background-image: url('{% static 'images/window room.png' %}');"></a>
-          {% elif '1 Bed With Balcony' in room.canonical %}
-            <a href="#" class="image d-block bg-image-2 {% if forloop.counter == 2 %}order-2{% endif %}" style="background-image: url('{% static 'images/balcony.png' %}');"></a>
-          {% elif '2 Bed & Balcony Condotel' in room.canonical or 'Condotel' in room.canonical %}
-            <a href="#" class="image d-block bg-image-2 {% if forloop.counter == 2 %}order-2{% endif %}" style="background-image: url('{% static 'images/condotel.png' %}');"></a>
-          {% else %}
-            <a href="#" class="image d-block bg-image-2 {% if forloop.counter == 2 %}order-2{% endif %}" style="background-image: url('{% static 'images/img_1.jpg' %}');"></a>
-          {% endif %}
-          <div class="text {% if forloop.counter == 2 %}order-1{% endif %}">
-            <span class="d-block mb-4"><span class="display-4 text-primary">₫{{ room.price|floatformat:0|intcomma }}</span> <span class="text-uppercase letter-spacing-2">/ PER NIGHT</span> </span>
-            <h2 class="mb-4">{{ room.display }}</h2>
-            <p>{{ room.description|default:"Experience comfort and luxury in this beautifully appointed room, designed to make your stay memorable." }}</p>
-            <p><a href="{% url 'reservation' %}" class="btn btn-primary text-white">Book Now</a></p>
+      <div class="logo-loop-container" data-aos="fade-up" data-aos-delay="200">
+        <div class="logo-loop-track">
+          <div class="logo-loop-item">
+            <img src="{% static 'images/single bed.png' %}" alt="1 Bed No Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/double room.png' %}" alt="2 Bed No Window Room" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/window room.png' %}" alt="1 Bed With Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/balcony.png' %}" alt="1 Bed With Balcony" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/condotel.png' %}" alt="2 Bed & Balcony Condotel" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/single bed.png' %}" alt="1 Bed No Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/double room.png' %}" alt="2 Bed No Window Room" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/window room.png' %}" alt="1 Bed With Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/balcony.png' %}" alt="1 Bed With Balcony" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/condotel.png' %}" alt="2 Bed & Balcony Condotel" />
           </div>
         </div>
-        {% endfor %}
+      </div>
+      
+      <style>
+        .logo-loop-container { width: 100%; overflow: hidden; position: relative; padding: 40px 0; background: linear-gradient(to right, rgba(248, 248, 248, 1) 0%, transparent 10%, transparent 90%, rgba(248, 248, 248, 1) 100%); }
+        .logo-loop-track { display: flex; gap: 60px; animation: scroll 22s linear infinite; will-change: transform; }
+        .logo-loop-item { flex-shrink: 0; transition: transform 0.3s ease; }
+        .logo-loop-item:hover { transform: scale(1.1); }
+        .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50%)); } }
+        @media (max-width: 768px) { .logo-loop-item img { height: 200px; } .logo-loop-track { gap: 30px; } }
+      </style>
+    </section>
+    
+    <section class="section bg-light">
+      <div class="container">
+        <div class="row justify-content-center text-center mb-5">
+          <div class="col-md-7">
+            <h2 class="heading" data-aos="fade" style="font-size: 3.5rem !important;">Great Offers</h2>
+            <p data-aos="fade" style="font-size: 1.25rem !important; color: #6c757d;">Discover our exclusive room selections designed for your perfect stay.</p>
+          </div>
+        </div>
 
+        <div class="flowing-menu-container" data-aos="fade-up">
+          <div class="flowing-menu">
+            {% for room in room_types %}
+            <div class="menu-item" data-room-id="{{ forloop.counter }}">
+              <div class="menu-tab">
+                <span class="room-name">{{ room.display }}</span>
+              </div>
+              <div class="menu-dropdown">
+                <div class="dropdown-content">
+                  <div class="row align-items-center">
+                    <div class="col-md-6">
+                      {% if '2 Bed No Window' in room.canonical %}
+                        <img src="{% static 'images/double room.png' %}" alt="{{ room.display }}" class="room-image">
+                      {% elif '1 Bed No Window' in room.canonical %}
+                        <img src="{% static 'images/single bed.png' %}" alt="{{ room.display }}" class="room-image">
+                      {% elif '1 Bed With Window' in room.canonical %}
+                        <img src="{% static 'images/window room.png' %}" alt="{{ room.display }}" class="room-image">
+                      {% elif '1 Bed With Balcony' in room.canonical %}
+                        <img src="{% static 'images/balcony.png' %}" alt="{{ room.display }}" class="room-image">
+                      {% elif '2 Bed & Balcony Condotel' in room.canonical or 'Condotel' in room.canonical %}
+                        <img src="{% static 'images/condotel.png' %}" alt="{{ room.display }}" class="room-image">
+                      {% else %}
+                        <img src="{% static 'images/img_1.jpg' %}" alt="{{ room.display }}" class="room-image">
+                      {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                      <div class="room-info">
+                        <h3 class="room-title">{{ room.display }}</h3>
+                        <p class="room-description">{{ room.description|default:"Experience comfort and luxury in this beautifully appointed room, designed to make your stay memorable." }}</p>
+                        <div class="room-price">
+                          <span class="price-amount">₫{{ room.price|floatformat:0|intcomma }}</span>
+                          <span class="price-label">/ PER NIGHT</span>
+                        </div>
+                        <a href="{% url 'reservation' %}" class="btn btn-primary text-white mt-3">Book Now</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <style>
+          .flowing-menu-container {
+            width: 100%;
+            overflow: hidden;
+            padding: 20px 0;
+          }
+
+          .flowing-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+          }
+
+          .menu-item {
+            position: relative;
+            border-bottom: 1px solid #e0e0e0;
+          }
+
+          .menu-item:last-child {
+            border-bottom: none;
+          }
+
+          .menu-tab {
+            padding: 25px 30px;
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+
+          .menu-tab:hover {
+            background: #f8f9fa;
+            padding-left: 40px;
+          }
+
+          .menu-tab::after {
+            content: '▼';
+            font-size: 14px;
+            color: #6c757d;
+            transition: transform 0.3s ease;
+          }
+
+          .menu-item:hover .menu-tab::after {
+            transform: rotate(180deg);
+          }
+
+          .room-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            transition: color 0.3s ease;
+          }
+
+          .menu-tab:hover .room-name {
+            color: #1a73e8;
+          }
+
+          .menu-dropdown {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, padding 0.5s ease;
+            background: #f8f9fa;
+          }
+
+          .menu-item:hover .menu-dropdown {
+            max-height: 600px;
+            padding: 30px;
+          }
+
+          .dropdown-content {
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+          }
+
+          .menu-item:hover .dropdown-content {
+            opacity: 1;
+            transform: translateY(0);
+          }
+
+          .room-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          }
+
+          .room-info {
+            padding: 0 20px;
+          }
+
+          .room-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+          }
+
+          .room-description {
+            color: #6c757d;
+            line-height: 1.8;
+            margin-bottom: 20px;
+          }
+
+          .room-price {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 10px;
+          }
+
+          .price-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a73e8;
+          }
+
+          .price-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+
+          @media (max-width: 768px) {
+            .menu-tab {
+              padding: 20px 20px;
+            }
+
+            .room-name {
+              font-size: 1.2rem;
+            }
+
+            .room-title {
+              font-size: 1.5rem;
+            }
+
+            .price-amount {
+              font-size: 2rem;
+            }
+
+            .menu-item:hover .menu-dropdown {
+              padding: 20px;
+            }
+
+            .room-info {
+              padding: 20px 0 0 0;
+            }
+          }
+        </style>
       </div>
     </section>
-
-        </section>
-
-    <section class="section services-section">
+    
+    <section class="section services-section bg-light">
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up">Our Premium Services</h2>
-            <p data-aos="fade-up" data-aos-delay="100">Making your stay comfortable and memorable with our range of exclusive services.
-
-</p>
+            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;">Our Premium Services</h2>
+            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important; color: #6c757d;">Making your stay comfortable and memorable with our range of exclusive services.</p>
           </div>
         </div>
 
         <div class="row justify-content-center">
           {% for service in hotel_services %}
           <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
-            <div class="service text-center">
-              <h3 class="mb-3">{{ service.name_of_service }}</h3>
-              <p>{{ service.service_description }}</p>
+            <div class="service text-center bg-white p-4 rounded shadow-sm" style="transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';"><h3 class="mb-3" style="font-weight: 600;">{{ service.name_of_service }}</h3>
+              <p style="color: #6c757d; line-height: 1.8;">{{ service.service_description }}</p>
             </div>
           </div>
           {% endfor %}

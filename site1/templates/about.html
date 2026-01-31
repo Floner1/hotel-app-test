@@ -402,166 +402,133 @@
       </div>
     </section>
 
-    <!-- Leadership Team Section -->
-    <!-- Displays key management personnel with interactive profile cards -->
-    <div class="container section">
-      <!-- Section Title -->
-      <div class="row justify-content-center text-center mb-5">
-        <div class="col-md-7 mb-5">
-          <h2 class="heading" data-aos="fade-up">Leadership</h2>
-        </div>
-      </div>
-
-      <!-- Team Member Cards -->
-      <div class="row">
-        <!-- Team Member - President -->
-        <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
-          <div class="block-2">
-            <!-- Flip Card Container -->
-            <div class="flipper">
-              <!-- Card Front - Profile Image and Title -->
-              <div class="front" style="background-image: url({% static 'images/person_3.jpg' %});">
-                <div class="box">
-                  <h2>Will Peters</h2>
-                  <p>President</p>
-                </div>
-              </div>
-              <div class="back">
-                <!-- back content -->
-                <blockquote>
-                  <p>&ldquo;Even the all-powerful Pointing has no control about the blind texts it is an almost unorthographic life One day however a small line of blind text by the name of Lorem Ipsum decided to leave for the far World of Grammar.&rdquo;</p>
-                </blockquote>
-                <div class="author d-flex">
-                  <div class="image mr-3 align-self-center">
-                    <img src="{% static 'images/person_3.jpg' %}" alt="">
-                  </div>
-                  <div class="name align-self-center">Will Peters <span class="position">President</span></div>
-                </div>
-              </div>
-            </div>
-          </div> <!-- .flip-container -->
-        </div>
-
-        <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
-          <div class="block-2"> <!-- .hover -->
-            <div class="flipper">
-              <div class="front" style="background-image: url({% static 'images/person_1.jpg' %});">
-                <div class="box">
-                  <h2>Jane Williams</h2>
-                  <p>Business Manager</p>
-                </div>
-              </div>
-              <div class="back">
-                <!-- back content -->
-                <blockquote>
-                  <p>&ldquo;Even the all-powerful Pointing has no control about the blind texts it is an almost unorthographic life One day however a small line of blind text by the name of Lorem Ipsum decided to leave for the far World of Grammar.&rdquo;</p>
-                </blockquote>
-                <div class="author d-flex">
-                  <div class="image mr-3 align-self-center">
-                    <img src="{% static 'images/person_1.jpg' %}" alt="">
-                  </div>
-                  <div class="name align-self-center">Jane Williams <span class="position">Business Manager</span></div>
-                </div>
-              </div>
-            </div>
-          </div> <!-- .flip-container -->
-        </div>
-
-        <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
-          <div class="block-2">
-            <div class="flipper">
-              <div class="front" style="background-image: url({% static 'images/person_2.jpg' %});">
-                <div class="box">
-                  <h2>Jeffrey Neddery</h2>
-                  <p>Marketing Director</p>
-                </div>
-              </div>
-              <div class="back">
-                <!-- back content -->
-                <blockquote>
-                  <p>&ldquo;Even the all-powerful Pointing has no control about the blind texts it is an almost unorthographic life One day however a small line of blind text by the name of Lorem Ipsum decided to leave for the far World of Grammar.&rdquo;</p>
-                </blockquote>
-                <div class="author d-flex">
-                  <div class="image mr-3 align-self-center">
-                    <img src="{% static 'images/person_2.jpg' %}" alt="">
-                  </div>
-                  <div class="name align-self-center">Jeffrey Neddery <span class="position">Marketing Director</span></div>
-                </div>
-              </div>
-            </div>
-          </div> <!-- .flip-container -->
-        </div>
-      </div>
-    </div>
-    <!-- END .block-2 -->
-
     <!-- Photo Gallery Section -->
-    <!-- Interactive slider showcasing hotel facilities and amenities -->
-    <section class="section slider-section bg-light">
+    <!-- Infinite scrolling room showcase -->
+    <section class="section slider-section" style="background-color: white;">
       <div class="container">
         <!-- Gallery Title and Description -->
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up">Photos</h2>
-            <p data-aos="fade-up" data-aos-delay="100">These photos give you a clear look at the hotel before you arrive. From the rooms to shared spaces, each image shows the atmosphere you can expect during your stay. Take a moment to look around and get a feel for the place, so you arrive knowing what awaits you.</p>
+            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;">Photos</h2>
+            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;">These photos give you a clear look at the hotel before you arrive. From the rooms to shared spaces, each image shows the atmosphere you can expect during your stay. Take a moment to look around and get a feel for the place, so you arrive knowing what awaits you.</p>
           </div>
-        </div>
-        <!-- Photo Carousel -->
-        <div class="row">
-          <div class="col-md-12">
-            <!-- Owl Carousel Slider with Lightbox Integration -->
-            <div class="home-slider major-caousel owl-carousel mb-5" data-aos="fade-up" data-aos-delay="200">
-              <div class="slider-item">
-                <a href="{% static 'images/slider-1.jpg' %}" data-fancybox="images" data-caption="Caption for this image"><img src="{% static 'images/slider-1.jpg' %}" alt="Image placeholder" class="img-fluid"></a>
-              </div>
-              <div class="slider-item">
-                <a href="{% static 'images/slider-2.jpg' %}" data-fancybox="images" data-caption="Caption for this image"><img src="{% static 'images/slider-2.jpg' %}" alt="Image placeholder" class="img-fluid"></a>
-              </div>
-              <div class="slider-item">
-                <a href="{% static 'images/slider-3.jpg' %}" data-fancybox="images" data-caption="Caption for this image"><img src="{% static 'images/slider-3.jpg' %}" alt="Image placeholder" class="img-fluid"></a>
-              </div>
-              <div class="slider-item">
-                <a href="{% static 'images/slider-4.jpg' %}" data-fancybox="images" data-caption="Caption for this image"><img src="{% static 'images/slider-4.jpg' %}" alt="Image placeholder" class="img-fluid"></a>
-              </div>
-              <div class="slider-item">
-                <a href="{% static 'images/slider-5.jpg' %}" data-fancybox="images" data-caption="Caption for this image"><img src="{% static 'images/slider-5.jpg' %}" alt="Image placeholder" class="img-fluid"></a>
-              </div>
-              <div class="slider-item">
-                <a href="{% static 'images/slider-6.jpg' %}" data-fancybox="images" data-caption="Caption for this image"><img src="{% static 'images/slider-6.jpg' %}" alt="Image placeholder" class="img-fluid"></a>
-              </div>
-              <div class="slider-item">
-                <a href="{% static 'images/slider-7.jpg' %}" data-fancybox="images" data-caption="Caption for this image"><img src="{% static 'images/slider-7.jpg' %}" alt="Image placeholder" class="img-fluid"></a>
-              </div>
-            </div>
-            <!-- END slider -->
-          </div>
-        
         </div>
       </div>
+      
+      <!-- Infinite Scrolling Room Gallery -->
+      <div class="logo-loop-container" data-aos="fade-up" data-aos-delay="200">
+        <div class="logo-loop-track">
+          <!-- First set of images -->
+          <div class="logo-loop-item">
+            <img src="{% static 'images/single bed.png' %}" alt="1 Bed No Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/double room.png' %}" alt="2 Bed No Window Room" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/window room.png' %}" alt="1 Bed With Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/balcony.png' %}" alt="1 Bed With Balcony" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/condotel.png' %}" alt="2 Bed & Balcony Condotel" />
+          </div>
+          
+          <!-- Duplicate set for seamless loop -->
+          <div class="logo-loop-item">
+            <img src="{% static 'images/single bed.png' %}" alt="1 Bed No Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/double room.png' %}" alt="2 Bed No Window Room" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/window room.png' %}" alt="1 Bed With Window" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/balcony.png' %}" alt="1 Bed With Balcony" />
+          </div>
+          <div class="logo-loop-item">
+            <img src="{% static 'images/condotel.png' %}" alt="2 Bed & Balcony Condotel" />
+          </div>
+        </div>
+      </div>
+      
+      <style>
+        .logo-loop-container {
+          width: 100%;
+          overflow: hidden;
+          position: relative;
+          padding: 40px 0;
+          background: linear-gradient(to right, rgba(248, 248, 248, 1) 0%, transparent 10%, transparent 90%, rgba(248, 248, 248, 1) 100%);
+        }
+        
+        .logo-loop-track {
+          display: flex;
+          gap: 60px;
+          animation: scroll 22s linear infinite;
+          will-change: transform;
+        }
+        
+        .logo-loop-item {
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
+        }
+        
+        .logo-loop-item:hover {
+          transform: scale(1.1);
+        }
+        
+        .logo-loop-item img {
+          height: 280px;
+          width: auto;
+          object-fit: cover;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(calc(-50%));
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .logo-loop-item img {
+            height: 200px;
+          }
+          
+          .logo-loop-track {
+            gap: 30px;
+          }
+        }
+      </style>
     </section>
     <!-- END section -->
 
-    <div class="section">
+    <section class="section services-section bg-light">
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
-          <div class="col-md-7 mb-5">
-            <h2 class="heading" data-aos="fade">Our Premium Services</h2>
-            <p data-aos="fade-up" data-aos-delay="100">Making your stay comfortable and memorable with our range of exclusive services.</p>
+          <div class="col-md-7">
+            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;">Our Premium Services</h2>
+            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important; color: #6c757d;">Making your stay comfortable and memorable with our range of exclusive services.</p>
           </div>
         </div>
 
         <div class="row justify-content-center">
           {% for service in hotel_services %}
           <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
-            <div class="service text-center">
-              <h3 class="mb-4">{{ service.name_of_service }}</h3>
-              <p>{{ service.service_description }}</p>
+            <div class="service text-center bg-white p-4 rounded shadow-sm" style="transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';"><h3 class="mb-3" style="font-weight: 600;">{{ service.name_of_service }}</h3>
+              <p style="color: #6c757d; line-height: 1.8;">{{ service.service_description }}</p>
             </div>
           </div>
           {% endfor %}
         </div>
       </div>
-    </div>
+    </section>
 
     
     
