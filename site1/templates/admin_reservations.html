@@ -695,6 +695,10 @@
             <p>{{ hotel.hotel_name }} - Employee Portal</p>
           </div>
           <div class="col-md-6 text-right">
+            <a href="{% url 'manage_accounts' %}" class="export-btn mr-3" style="text-decoration: none; display: inline-block;">
+              <i class="fa fa-users"></i>
+              Manage Accounts
+            </a>
             <button class="export-btn">
               <i class="fa fa-download"></i>
               Export CSV
@@ -1972,8 +1976,12 @@
       }
 
       // Export functionality
-      document.querySelector('.export-btn').addEventListener('click', function() {
-        alert('Exporting reservations to CSV...\n\nThis would generate and download a CSV file.');
+      document.querySelectorAll('.export-btn').forEach(function(btn) {
+        if (btn.tagName === 'BUTTON') {
+          btn.addEventListener('click', function() {
+            alert('Exporting reservations to CSV...\n\nThis would generate and download a CSV file.');
+          });
+        }
       });
     </script>
   </body>

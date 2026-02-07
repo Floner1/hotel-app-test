@@ -1,0 +1,697 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Accounts - {{ hotel.hotel_name }}</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #6c63ff;
+      --secondary-color: #4caf50;
+      --danger-color: #f44336;
+      --warning-color: #ff9800;
+      --text-dark: #2c3e50;
+      --text-light: #7f8c8d;
+      --bg-light: #f8f9fa;
+      --card-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-dark);
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary-color) 0%, #5548c8 100%);
+      color: white;
+      padding: 20px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .header p {
+      margin: 5px 0 0 0;
+      opacity: 0.9;
+      font-size: 0.95rem;
+    }
+
+    .btn-back {
+      background: white;
+      color: var(--primary-color);
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-back:hover {
+      background: rgba(255,255,255,0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn-add-account {
+      background: var(--secondary-color);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-add-account:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .tabs {
+      margin: 30px 0 20px 0;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .tabs button {
+      background: none;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tabs button.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+    }
+
+    .tabs button:hover {
+      color: var(--primary-color);
+    }
+
+    .accounts-table {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--card-shadow);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #f8f9fa;
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-dark);
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    td {
+      padding: 15px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge-staff {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .badge-customer {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .btn-action {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 5px;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .btn-edit {
+      background: #2196f3;
+      color: white;
+    }
+
+    .btn-edit:hover {
+      background: #1976d2;
+    }
+
+    .btn-delete {
+      background: var(--danger-color);
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #d32f2f;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+      color: var(--text-dark);
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .btn-submit {
+      flex: 1;
+      padding: 12px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-submit:hover {
+      background: #5548c8;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 12px;
+      background: #e0e0e0;
+      color: var(--text-dark);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-cancel:hover {
+      background: #d0d0d0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .search-box {
+      margin-bottom: 20px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 12px 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
+    /* Toast Notification Styles */
+    .toast-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      min-width: 350px;
+      max-width: 500px;
+      background-color: #28a745;
+      color: white;
+      padding: 18px 25px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      z-index: 9999;
+      display: none;
+      animation: slideInRight 0.4s ease-out;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .toast-notification.show {
+      display: block;
+    }
+    
+    /* Success - Green */
+    .toast-notification.success {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    
+    /* Warning - Yellow/Orange */
+    .toast-notification.warning {
+      background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    }
+    
+    /* Error - Red */
+    .toast-notification.error {
+      background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+    }
+    
+    .toast-notification .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .toast-notification .toast-icon {
+      font-size: 22px;
+      font-weight: bold;
+    }
+    
+    .toast-notification .toast-message {
+      flex: 1;
+      line-height: 1.4;
+    }
+    
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Notification -->
+  <div id="toast-notification" class="toast-notification">
+    <div class="toast-content">
+      <span class="toast-icon">✓</span>
+      <span class="toast-message"></span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <h1><i class="fa fa-users"></i> Manage Accounts</h1>
+          <p>{{ hotel.hotel_name }} - Employee Portal</p>
+        </div>
+        <div class="col-md-6 text-right">
+          <a href="{% url 'admin_reservations' %}" class="btn-back">
+            <i class="fa fa-arrow-left"></i> Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Action Bar -->
+    <div class="row mt-4 mb-3">
+      <div class="col-md-6">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search by username or email..." onkeyup="filterAccounts()">
+        </div>
+      </div>
+      <div class="col-md-6 text-right">
+        <button class="btn-add-account" onclick="openModal('create')">
+          <i class="fa fa-plus"></i> Add New Account
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="active" onclick="switchTab('all')">All Accounts</button>
+      <button onclick="switchTab('staff')">Staff</button>
+      <button onclick="switchTab('customers')">Customers</button>
+    </div>
+
+    <!-- Accounts Table -->
+    <div class="accounts-table">
+      <table id="accountsTable">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Type</th>
+            <th>Date Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="accountsTableBody">
+          {% if accounts %}
+            {% for account in accounts %}
+            <tr data-type="{% if account.is_staff %}staff{% else %}customer{% endif %}">
+              <td><strong>{{ account.username }}</strong></td>
+              <td>{{ account.email }}</td>
+              <td>
+                {% if account.is_staff %}
+                  <span class="badge badge-staff">Staff</span>
+                {% else %}
+                  <span class="badge badge-customer">Customer</span>
+                {% endif %}
+              </td>
+              <td>{{ account.created_at|date:"M d, Y" }}</td>
+              <td>
+                <button class="btn-action btn-edit" onclick="editAccount({{ account.user_id }}, '{{ account.username }}', '{{ account.email }}', '{{ account.is_staff|yesno:"true,false" }}')">
+                  <i class="fa fa-edit"></i> Edit
+                </button>
+                <button class="btn-action btn-delete" onclick="confirmDelete({{ account.user_id }}, '{{ account.username }}')">
+                  <i class="fa fa-trash"></i> Delete
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <i class="fa fa-users"></i>
+                  <p>No accounts found</p>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div id="accountModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add New Account</h2>
+        <button class="close-modal" onclick="closeModal()">&times;</button>
+      </div>
+      <form id="accountForm" method="POST" action="{% url 'manage_accounts' %}">
+        {% csrf_token %}
+        <input type="hidden" id="accountId" name="account_id">
+        <input type="hidden" id="formAction" name="action" value="create">
+        
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password <span id="passwordOptional" style="color: #999; font-weight: normal;">(leave blank to keep current)</span></label>
+          <input type="password" id="password" name="password">
+        </div>
+
+        <div class="form-group">
+          <label for="accountType">Account Type</label>
+          <select id="accountType" name="is_staff" required>
+            <option value="false">Customer</option>
+            <option value="true">Staff</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-submit">Save Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="close-modal" onclick="closeDeleteModal()">&times;</button>
+      </div>
+      <p>Are you sure you want to delete the account "<strong id="deleteUsername"></strong>"?</p>
+      <p style="color: var(--danger-color); margin-top: 10px;">This action cannot be undone.</p>
+      <form method="POST" action="{% url 'manage_accounts' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" id="deleteAccountId" name="account_id">
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+          <button type="submit" class="btn-submit" style="background: var(--danger-color);">Delete Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script>
+    // Toast notification function
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast-notification');
+      const messageEl = toast.querySelector('.toast-message');
+      const iconEl = toast.querySelector('.toast-icon');
+      
+      // Remove all type classes
+      toast.classList.remove('success', 'warning', 'error');
+      
+      // Determine icon and type
+      let icon = '✓';
+      let displayType = 'success';
+      
+      if (type === 'error') {
+        displayType = 'error';
+        icon = '✗';
+      } else if (type === 'warning') {
+        displayType = 'warning';
+        icon = '⚠';
+      }
+      
+      // Update toast content
+      toast.classList.add(displayType);
+      iconEl.textContent = icon;
+      messageEl.textContent = message;
+      
+      // Show toast
+      toast.classList.add('show');
+      
+      // Hide after 4 seconds
+      setTimeout(function() {
+        toast.classList.remove('show');
+      }, 4000);
+    }
+    
+    // Check for Django messages and display as toast
+    {% if messages %}
+      {% for message in messages %}
+        showToast('{{ message|escapejs }}', '{% if message.tags %}{% if "error" in message.tags %}error{% elif "warning" in message.tags %}warning{% else %}success{% endif %}{% else %}success{% endif %}');
+      {% endfor %}
+    {% endif %}
+
+    let currentTab = 'all';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const buttons = document.querySelectorAll('.tabs button');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      const rows = document.querySelectorAll('#accountsTableBody tr');
+      rows.forEach(row => {
+        const type = row.getAttribute('data-type');
+        if (tab === 'all' || type === tab || (tab === 'customers' && type === 'customer')) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function openModal(mode, id = '', username = '', email = '', isStaff = 'false') {
+      const modal = document.getElementById('accountModal');
+      const form = document.getElementById('accountForm');
+      const modalTitle = document.getElementById('modalTitle');
+      const passwordOptional = document.getElementById('passwordOptional');
+      
+      form.reset();
+      
+      if (mode === 'create') {
+        modalTitle.textContent = 'Add New Account';
+        document.getElementById('formAction').value = 'create';
+        document.getElementById('accountId').value = '';
+        passwordOptional.style.display = 'none';
+        document.getElementById('password').required = true;
+      } else {
+        modalTitle.textContent = 'Edit Account';
+        document.getElementById('formAction').value = 'edit';
+        document.getElementById('accountId').value = id;
+        document.getElementById('username').value = username;
+        document.getElementById('email').value = email;
+        document.getElementById('accountType').value = isStaff;
+        passwordOptional.style.display = 'inline';
+        document.getElementById('password').required = false;
+      }
+      
+      modal.classList.add('show');
+    }
+
+    function editAccount(id, username, email, isStaff) {
+      openModal('edit', id, username, email, isStaff);
+    }
+
+    function closeModal() {
+      document.getElementById('accountModal').classList.remove('show');
+    }
+
+    function confirmDelete(id, username) {
+      document.getElementById('deleteUsername').textContent = username;
+      document.getElementById('deleteAccountId').value = id;
+      document.getElementById('deleteModal').classList.add('show');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.remove('show');
+    }
+
+    function filterAccounts() {
+      const input = document.getElementById('searchInput');
+      const filter = input.value.toLowerCase();
+      const tbody = document.getElementById('accountsTableBody');
+      const rows = tbody.getElementsByTagName('tr');
+      
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const username = row.cells[0]?.textContent || '';
+        const email = row.cells[1]?.textContent || '';
+        
+        if (username.toLowerCase().includes(filter) || email.toLowerCase().includes(filter)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      }
+    }
+
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+      const accountModal = document.getElementById('accountModal');
+      const deleteModal = document.getElementById('deleteModal');
+      if (event.target === accountModal) {
+        closeModal();
+      }
+      if (event.target === deleteModal) {
+        closeDeleteModal();
+      }
+    }
+  </script>
+</body>
+</html>

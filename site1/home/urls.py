@@ -15,4 +15,6 @@ urlpatterns = [
     path('dashboard/reservations/view/<int:booking_id>/', views.view_reservation, name='view_reservation'),
     path('dashboard/reservations/edit/<int:booking_id>/', views.edit_reservation, name='edit_reservation'),
     path('dashboard/reservations/delete/<int:booking_id>/', views.delete_reservation, name='delete_reservation'),
+    path('dashboard/accounts/', views.manage_accounts, name='manage_accounts'),
+    path('admin/upload-image/', views.upload_image, name='upload_image'),
 ]

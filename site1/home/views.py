@@ -481,6 +481,181 @@ def delete_reservation(request, booking_id):
             'message': 'Only POST requests are allowed.'
         }, status=405)
 
+@user_passes_test(is_staff_or_admin, login_url='/login/')
+def manage_accounts(request):
+    """View to manage user accounts (CRUD operations)."""
+    hotel_info = HotelService.get_hotel_info()
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'create':
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+            is_staff = request.POST.get('is_staff') == 'true'
+            
+            try:
+                from django.utils import timezone
+                # Create new user
+                user = User(
+                    username=username,
+                    email=email,
+                    role='staff' if is_staff else 'customer',
+                    created_at=timezone.now(),
+                    is_active=True
+                )
+                user.set_password(password)
+                user.save()
+                messages.success(request, f'Account "{username}" created successfully!')
+            except Exception as e:
+                messages.error(request, f'Error creating account: {str(e)}')
+                
+        elif action == 'edit':
+            account_id = request.POST.get('account_id')
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+            is_staff = request.POST.get('is_staff') == 'true'
+            
+            try:
+                user = User.objects.get(user_id=account_id)
+                user.username = username
+                user.email = email
+                user.role = 'staff' if is_staff else 'customer'
+                
+                # Only update password if provided
+                if password:
+                    user.set_password(password)
+                    
+                user.save()
+                messages.success(request, f'Account "{username}" updated successfully!')
+            except User.DoesNotExist:
+                messages.error(request, 'Account not found.')
+            except Exception as e:
+                messages.error(request, f'Error updating account: {str(e)}')
+                
+        elif action == 'delete':
+            account_id = request.POST.get('account_id')
+            
+            try:
+                user = User.objects.get(user_id=account_id)
+                username = user.username
+                user.delete()
+                messages.success(request, f'Account "{username}" deleted successfully!')
+            except User.DoesNotExist:
+                messages.error(request, 'Account not found.')
+            except Exception as e:
+                messages.error(request, f'Error deleting account: {str(e)}')
+        
+        return redirect('manage_accounts')
+    
+    # GET request - display all active accounts
+    accounts = User.objects.filter(is_active=True).order_by('-created_at')
+    
+    return render(request, 'manage_accounts.html', {
+        'hotel': hotel_info,
+        'accounts': accounts
+    })
+
+@user_passes_test(is_staff_or_admin, login_url='/login/')
+def upload_image(request):
+    """Handle image upload for admin users."""
+    if request.method == 'POST':
+        try:
+            import os
+            from django.conf import settings
+            from PIL import Image
+            from io import BytesIO
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+            
+            image_file = request.FILES.get('image')
+            image_id = request.POST.get('image_id')
+            
+            if not image_file:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'No image file provided'
+                }, status=400)
+            
+            if not image_id:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'No image ID provided'
+                }, status=400)
+            
+            # Validate file size (5MB)
+            if image_file.size > 5 * 1024 * 1024:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'File size must be less than 5MB'
+                }, status=400)
+            
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+            if image_file.content_type not in allowed_types:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid file type. Only JPG, PNG, and GIF are allowed'
+                }, status=400)
+            
+            # Map image_id to actual filename
+            image_mapping = {
+                'food-1': 'food-1.jpg',
+                'img-1': 'img_1.jpg',
+                # Add more mappings as needed
+            }
+            
+            filename = image_mapping.get(image_id)
+            if not filename:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid image ID'
+                }, status=400)
+            
+            # Determine file paths
+            static_images_dir = os.path.join(settings.BASE_DIR, 'static', 'images')
+            staticfiles_images_dir = os.path.join(settings.BASE_DIR, 'staticfiles', 'images')
+            file_path = os.path.join(static_images_dir, filename)
+            
+            # Create directories if they don't exist
+            os.makedirs(static_images_dir, exist_ok=True)
+            os.makedirs(staticfiles_images_dir, exist_ok=True)
+            
+            # Open and optimize image
+            img = Image.open(image_file)
+            
+            # Convert RGBA to RGB if necessary
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+            
+            # Optimize and save
+            img.save(file_path, 'JPEG', quality=85, optimize=True)
+            
+            # Also save to staticfiles directory
+            staticfiles_path = os.path.join(staticfiles_images_dir, filename)
+            img.save(staticfiles_path, 'JPEG', quality=85, optimize=True)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Image "{filename}" uploaded successfully!',
+                'filename': filename
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Upload failed: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Only POST requests are allowed'
+    }, status=405)
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
