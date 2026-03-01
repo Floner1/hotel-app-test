@@ -46,7 +46,13 @@ _CONTENT_DEFAULTS = {
     'rooms_description':     'Our rooms offer a quiet place to rest. Simple layouts, comfortable beds, and a calm setting make it easy to relax. Each room is clean, well kept, and designed for a good night\'s sleep. Whether you stay one night or longer, you will have everything you need to feel comfortable.',
     'services_heading':      'Our Premium Services',
     'services_description':  'Making your stay comfortable and memorable with our range of exclusive services.',
-    'reserve_heading':       'A Best Place To Stay.\nReserve Now!',
+    'reserve_heading':          'A Best Place To Stay.\nReserve Now!',
+    'about_welcome_heading':    'Welcome!',
+    'about_welcome_body':       'Thiên Tài Hotel is a modern, centrally located hotel in Ho Chi Minh City offering comfortable, individually designed rooms with contemporary amenities. Featuring a rooftop terrace, on-site restaurant and café, and attentive 24-hour service, the hotel provides a convenient and relaxing stay close to major attractions, shopping areas, and local landmarks.',
+    'about_photos_heading':     'Photos',
+    'about_photos_description': 'These photos give you a clear look at the hotel before you arrive. From the rooms to shared spaces, each image shows the atmosphere you can expect during your stay. Take a moment to look around and get a feel for the place, so you arrive knowing what awaits you.',
+    'rooms_offers_heading':     'Great Offers',
+    'rooms_offers_description': 'Discover our exclusive room selections designed for your perfect stay.',
 }
 
 
@@ -107,10 +113,18 @@ def get_about(request):
     # Get hotel services from database
     hotel_services = HotelServices.objects.all()
     
+    # Resolve image sources: DB if uploaded, otherwise static
+    db_images = {
+        'food_1': _db_image_exists('food-1'),
+        'img_1':  _db_image_exists('img-1'),
+    }
+    
     return render(request, 'about.html', {
         'hotel_name': hotel_name,
         'hotel': hotel_info,
-        'hotel_services': hotel_services
+        'hotel_services': hotel_services,
+        'db_images': db_images,
+        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
     })
 
 def get_contact(request):
@@ -124,7 +138,8 @@ def get_contact(request):
     return render(request, 'contact.html', {
         'hotel_name': hotel_name,
         'hotel': hotel_info,
-        'hotel_services': hotel_services
+        'hotel_services': hotel_services,
+        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
     })
 
 def get_reservation(request):
@@ -227,6 +242,7 @@ def get_rooms(request):
         'hotel_services': hotel_services,
         'room_types': room_types,
         'room_images': _get_room_images(),
+        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
     })
 
 def newsletter_signup(request):
