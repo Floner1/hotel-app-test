@@ -423,36 +423,16 @@
       
       <div class="logo-loop-container" data-aos="fade-up" data-aos-delay="200">
         <div class="logo-loop-track">
-          <div class="logo-loop-item">
-            <img src="{% static 'images/single bed.png' %}" alt="1 Bed No Window" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/double room.png' %}" alt="2 Bed No Window Room" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/window room.png' %}" alt="1 Bed With Window" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/balcony.png' %}" alt="1 Bed With Balcony" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/condotel.png' %}" alt="2 Bed & Balcony Condotel" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/single bed.png' %}" alt="1 Bed No Window" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/double room.png' %}" alt="2 Bed No Window Room" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/window room.png' %}" alt="1 Bed With Window" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/balcony.png' %}" alt="1 Bed With Balcony" />
-          </div>
-          <div class="logo-loop-item">
-            <img src="{% static 'images/condotel.png' %}" alt="2 Bed & Balcony Condotel" />
-          </div>
+          <div class="logo-loop-item"><img src="{{ room_images.single_bed }}" alt="1 Bed No Window" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window Room" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.window }}" alt="1 Bed With Window" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.balcony }}" alt="1 Bed With Balcony" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed &amp; Balcony Condotel" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.single_bed }}" alt="1 Bed No Window" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window Room" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.window }}" alt="1 Bed With Window" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.balcony }}" alt="1 Bed With Balcony" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed &amp; Balcony Condotel" /></div>
         </div>
       </div>
       
@@ -488,15 +468,15 @@
                   <div class="row align-items-center">
                     <div class="col-md-6">
                       {% if '2 Bed No Window' in room.canonical %}
-                        <img src="{% static 'images/double room.png' %}" alt="{{ room.display }}" class="room-image">
+                        <img src="{{ room_images.double }}" alt="{{ room.display }}" class="room-image">
                       {% elif '1 Bed No Window' in room.canonical %}
-                        <img src="{% static 'images/single bed.png' %}" alt="{{ room.display }}" class="room-image">
+                        <img src="{{ room_images.single_bed }}" alt="{{ room.display }}" class="room-image">
                       {% elif '1 Bed With Window' in room.canonical %}
-                        <img src="{% static 'images/window room.png' %}" alt="{{ room.display }}" class="room-image">
+                        <img src="{{ room_images.window }}" alt="{{ room.display }}" class="room-image">
                       {% elif '1 Bed With Balcony' in room.canonical %}
-                        <img src="{% static 'images/balcony.png' %}" alt="{{ room.display }}" class="room-image">
+                        <img src="{{ room_images.balcony }}" alt="{{ room.display }}" class="room-image">
                       {% elif '2 Bed & Balcony Condotel' in room.canonical or 'Condotel' in room.canonical %}
-                        <img src="{% static 'images/condotel.png' %}" alt="{{ room.display }}" class="room-image">
+                        <img src="{{ room_images.condotel }}" alt="{{ room.display }}" class="room-image">
                       {% else %}
                         <img src="{% static 'images/img_1.jpg' %}" alt="{{ room.display }}" class="room-image">
                       {% endif %}

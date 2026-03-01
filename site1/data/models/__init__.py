@@ -10,6 +10,7 @@ from .hotel import (
     AuditLog
 )
 from .images import ImagesRef
+from .site_content import SiteContent
 
 __all__ = [
     'User',
@@ -22,5 +23,6 @@ __all__ = [
     'AuditLog',
     # 'CustomerRequest',
     # 'AuditLog',
-    'ImagesRef'
+    'ImagesRef',
+    'SiteContent',
 ]

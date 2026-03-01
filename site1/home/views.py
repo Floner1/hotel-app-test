@@ -19,23 +19,84 @@ def is_staff_or_admin(user):
     # Use the new role-based system
     return hasattr(user, 'role') and user.role in ['admin', 'staff']
 
+def _db_image_exists(name):
+    """Return True if an image with this name exists in the DB."""
+    try:
+        from data.models.images import ImagesRef
+        return ImagesRef.objects.filter(ImageName=name).exists()
+    except Exception:
+        return False
+
+
+def _get_content(key, default=''):
+    """Return site content from DB, falling back to default."""
+    try:
+        from data.models.site_content import SiteContent
+        obj = SiteContent.objects.filter(content_key=key).first()
+        return obj.content_value if obj else default
+    except Exception:
+        return default
+
+
+_CONTENT_DEFAULTS = {
+    'hero_subtitle':         'Relax Your Soul',
+    'welcome_heading':       'Welcome!',
+    'welcome_body':          'Thiên Tài Hotel is a modern, centrally located hotel in Ho Chi Minh City offering comfortable, individually designed rooms with contemporary amenities. Featuring a rooftop terrace, on-site restaurant and café, and attentive 24-hour service, the hotel provides a convenient and relaxing stay close to major attractions, shopping areas, and local landmarks.',
+    'rooms_heading':         'Rooms & Suites',
+    'rooms_description':     'Our rooms offer a quiet place to rest. Simple layouts, comfortable beds, and a calm setting make it easy to relax. Each room is clean, well kept, and designed for a good night\'s sleep. Whether you stay one night or longer, you will have everything you need to feel comfortable.',
+    'services_heading':      'Our Premium Services',
+    'services_description':  'Making your stay comfortable and memorable with our range of exclusive services.',
+    'reserve_heading':       'A Best Place To Stay.\nReserve Now!',
+}
+
+
+def _room_image_url(db_key, static_path):
+    """Return serve_image URL if uploaded to DB, otherwise the static file URL."""
+    from django.urls import reverse
+    from django.templatetags.static import static
+    if _db_image_exists(db_key):
+        return reverse('serve_image', args=[db_key])
+    return static(static_path)
+
+
+def _get_room_images():
+    """Return resolved URLs for all 5 room images."""
+    return {
+        'single_bed': _room_image_url('room-single-bed', 'images/single bed.png'),
+        'double':     _room_image_url('room-double',      'images/double room.png'),
+        'window':     _room_image_url('room-window',      'images/window room.png'),
+        'balcony':    _room_image_url('room-balcony',     'images/balcony.png'),
+        'condotel':   _room_image_url('room-condotel',    'images/condotel.png'),
+    }
+
+
 # Create your views here.
 def get_home(request):
     # Get hotel name and contact information
     hotel_name = HotelService.get_hotel_name()
     hotel_info = HotelService.get_hotel_info()
-    
+
     # Get hotel services from database
     hotel_services = HotelServices.objects.all()
-    
+
     # Get available room types with pricing from database
     room_types = HotelService.get_available_room_types()
-    
+
+    # Resolve image sources: DB if uploaded, otherwise mark as static fallback
+    db_images = {
+        'hero':   _db_image_exists('hero'),
+        'food_1': _db_image_exists('food-1'),
+        'img_1':  _db_image_exists('img-1'),
+    }
+
     return render(request, 'home.html', {
         'hotel_name': hotel_name,
-        'hotel': hotel_info,  # For contact info in footer
+        'hotel': hotel_info,
         'hotel_services': hotel_services,
-        'room_types': room_types
+        'room_types': room_types,
+        'db_images': db_images,
+        'room_images': _get_room_images(),
+        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
     })
 
 def get_about(request):
@@ -164,7 +225,8 @@ def get_rooms(request):
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
-        'room_types': room_types
+        'room_types': room_types,
+        'room_images': _get_room_images(),
     })
 
 def newsletter_signup(request):
@@ -560,102 +622,99 @@ def manage_accounts(request):
 
 @user_passes_test(is_staff_or_admin, login_url='/login/')
 def upload_image(request):
-    """Handle image upload for admin users."""
+    """Handle image upload for admin users — saves binary data to the ImagesRef DB table."""
     if request.method == 'POST':
         try:
-            import os
-            from django.conf import settings
             from PIL import Image
             from io import BytesIO
-            from django.core.files.uploadedfile import InMemoryUploadedFile
-            
+            from data.models.images import ImagesRef
+
             image_file = request.FILES.get('image')
             image_id = request.POST.get('image_id')
-            
+
             if not image_file:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'No image file provided'
-                }, status=400)
-            
+                return JsonResponse({'status': 'error', 'message': 'No image file provided'}, status=400)
+
             if not image_id:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'No image ID provided'
-                }, status=400)
-            
-            # Validate file size (5MB)
+                return JsonResponse({'status': 'error', 'message': 'No image ID provided'}, status=400)
+
+            # Validate file size (5 MB)
             if image_file.size > 5 * 1024 * 1024:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'File size must be less than 5MB'
-                }, status=400)
-            
+                return JsonResponse({'status': 'error', 'message': 'File size must be less than 5MB'}, status=400)
+
             # Validate file type
             allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
             if image_file.content_type not in allowed_types:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Invalid file type. Only JPG, PNG, and GIF are allowed'
-                }, status=400)
-            
-            # Map image_id to actual filename
-            image_mapping = {
-                'food-1': 'food-1.jpg',
-                'img-1': 'img_1.jpg',
-                # Add more mappings as needed
-            }
-            
-            filename = image_mapping.get(image_id)
-            if not filename:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Invalid image ID'
-                }, status=400)
-            
-            # Determine file paths
-            static_images_dir = os.path.join(settings.BASE_DIR, 'static', 'images')
-            staticfiles_images_dir = os.path.join(settings.BASE_DIR, 'staticfiles', 'images')
-            file_path = os.path.join(static_images_dir, filename)
-            
-            # Create directories if they don't exist
-            os.makedirs(static_images_dir, exist_ok=True)
-            os.makedirs(staticfiles_images_dir, exist_ok=True)
-            
-            # Open and optimize image
+                return JsonResponse({'status': 'error', 'message': 'Invalid file type. Only JPG, PNG, and GIF are allowed'}, status=400)
+
+            # Open, convert, and compress with Pillow
             img = Image.open(image_file)
-            
-            # Convert RGBA to RGB if necessary
             if img.mode in ('RGBA', 'LA', 'P'):
                 background = Image.new('RGB', img.size, (255, 255, 255))
                 if img.mode == 'P':
                     img = img.convert('RGBA')
                 background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
                 img = background
-            
-            # Optimize and save
-            img.save(file_path, 'JPEG', quality=85, optimize=True)
-            
-            # Also save to staticfiles directory
-            staticfiles_path = os.path.join(staticfiles_images_dir, filename)
-            img.save(staticfiles_path, 'JPEG', quality=85, optimize=True)
-            
+
+            buffer = BytesIO()
+            img.save(buffer, 'JPEG', quality=85, optimize=True)
+            image_bytes = buffer.getvalue()
+
+            # Upsert: update if name exists, otherwise insert
+            obj, created = ImagesRef.objects.update_or_create(
+                ImageName=image_id,
+                defaults={
+                    'ImageData': image_bytes,
+                    'ImageContentType': 'image/jpeg',
+                }
+            )
+
             return JsonResponse({
                 'status': 'success',
-                'message': f'Image "{filename}" uploaded successfully!',
-                'filename': filename
+                'message': f'Image "{image_id}" saved to database successfully!',
             })
-            
+
         except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': f'Upload failed: {str(e)}'
-            }, status=500)
-    
-    return JsonResponse({
-        'status': 'error',
-        'message': 'Only POST requests are allowed'
-    }, status=405)
+            return JsonResponse({'status': 'error', 'message': f'Upload failed: {str(e)}'}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
+
+
+def serve_image(request, image_name):
+    """Serve an image stored as binary in the ImagesRef table."""
+    from django.http import HttpResponse, Http404
+    from data.models.images import ImagesRef
+    try:
+        img = ImagesRef.objects.get(ImageName=image_name)
+        return HttpResponse(bytes(img.ImageData), content_type=img.ImageContentType)
+    except ImagesRef.DoesNotExist:
+        raise Http404
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+def save_content(request):
+    """Save a site content value to the DB."""
+    if request.method == 'POST':
+        try:
+            import json
+            data = json.loads(request.body)
+            key   = data.get('key', '').strip()
+            value = data.get('value', '').strip()
+            if not key:
+                return JsonResponse({'status': 'error', 'message': 'No key provided'}, status=400)
+            if key not in _CONTENT_DEFAULTS:
+                return JsonResponse({'status': 'error', 'message': 'Invalid content key'}, status=400)
+            from data.models.site_content import SiteContent
+            SiteContent.objects.update_or_create(
+                content_key=key,
+                defaults={'content_value': value}
+            )
+            return JsonResponse({'status': 'success', 'value': value})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'POST only'}, status=405)
+
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
