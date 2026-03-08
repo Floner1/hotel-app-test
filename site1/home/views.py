@@ -90,9 +90,10 @@ def get_home(request):
 
     # Resolve image sources: DB if uploaded, otherwise mark as static fallback
     db_images = {
-        'hero':   _db_image_exists('hero'),
-        'food_1': _db_image_exists('food-1'),
-        'img_1':  _db_image_exists('img-1'),
+        'hero':       _db_image_exists('hero'),
+        'food_1':     _db_image_exists('food-1'),
+        'img_1':      _db_image_exists('img-1'),
+        'reserve_bg': _db_image_exists('reserve-bg'),
     }
 
     return render(request, 'home.html', {
@@ -559,7 +560,8 @@ def delete_reservation(request, booking_id):
             'message': 'Only POST requests are allowed.'
         }, status=405)
 
-@user_passes_test(is_staff_or_admin, login_url='/login/')
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def manage_accounts(request):
     """View to manage user accounts (CRUD operations)."""
     hotel_info = HotelService.get_hotel_info()
@@ -636,7 +638,8 @@ def manage_accounts(request):
         'accounts': accounts
     })
 
-@user_passes_test(is_staff_or_admin, login_url='/login/')
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def upload_image(request):
     """Handle image upload for admin users — saves binary data to the ImagesRef DB table."""
     if request.method == 'POST':
@@ -710,22 +713,32 @@ def serve_image(request, image_name):
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def save_content(request):
-    """Save a site content value to the DB."""
+    """Save a site content value to the DB (any key allowed for inline editing).
+    If a 'db_key' is also provided, the value is saved under that key too
+    (for elements originally rendered from {{ ct.xxx }} template variables)."""
     if request.method == 'POST':
         try:
             import json
             data = json.loads(request.body)
             key   = data.get('key', '').strip()
             value = data.get('value', '').strip()
+            db_key = data.get('db_key', '').strip()   # optional original DB key
             if not key:
                 return JsonResponse({'status': 'error', 'message': 'No key provided'}, status=400)
-            if key not in _CONTENT_DEFAULTS:
-                return JsonResponse({'status': 'error', 'message': 'Invalid content key'}, status=400)
+            if len(key) > 100:
+                return JsonResponse({'status': 'error', 'message': 'Key too long'}, status=400)
             from data.models.site_content import SiteContent
+            # Save the page-level override key
             SiteContent.objects.update_or_create(
                 content_key=key,
                 defaults={'content_value': value}
             )
+            # Also save to the original DB key if provided
+            if db_key and len(db_key) <= 100:
+                SiteContent.objects.update_or_create(
+                    content_key=db_key,
+                    defaults={'content_value': value}
+                )
             return JsonResponse({'status': 'success', 'value': value})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

@@ -1,0 +1,173 @@
+/* ==========================================================================
+   Admin Inline Text Editor – Styles
+   ========================================================================== */
+
+/* ---- Edit-mode toggle button ---- */
+.admin-edit-toggle-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 29000;
+  background: #ffba5a;
+  color: #212529;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.20);
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  font-family: inherit;
+}
+.admin-edit-toggle-btn:hover {
+  background: #ffa527;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+.admin-edit-toggle-btn.ae-active {
+  background: #dc3545;
+  color: #fff;
+}
+.admin-edit-toggle-btn.ae-active:hover {
+  background: #c82333;
+}
+
+/* ---- Highlight on hover while editing ---- */
+body.ae-editing .ae-highlight {
+  outline: 2px dashed #ffba5a !important;
+  outline-offset: 3px;
+  cursor: pointer !important;
+  border-radius: 4px;
+  background: rgba(255,186,90,0.08) !important;
+}
+
+/* ---- Modal ---- */
+.ae-modal {
+  display: none;
+  position: fixed;
+  z-index: 31000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.55);
+  align-items: center;
+  justify-content: center;
+}
+.ae-modal.ae-show {
+  display: flex;
+}
+.ae-modal-box {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  padding: 24px;
+  width: 460px;
+  max-width: 95vw;
+  animation: aeSlideUp 0.25s ease;
+}
+@keyframes aeSlideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.ae-modal-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #212529;
+  margin-bottom: 14px;
+}
+.ae-modal-box textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.ae-modal-box textarea:focus {
+  border-color: #ffba5a;
+}
+.ae-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+.ae-modal-save {
+  background: #ffba5a;
+  color: #212529;
+  border: none;
+  padding: 8px 22px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+.ae-modal-save:hover { background: #ffa527; }
+.ae-modal-save:disabled { opacity: 0.6; cursor: not-allowed; }
+.ae-modal-cancel {
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+.ae-modal-cancel:hover { background: #e0e0e0; }
+
+/* ---- Database content confirmation modal ---- */
+.ae-db-confirm {
+  display: none;
+  position: fixed;
+  z-index: 32000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  align-items: center;
+  justify-content: center;
+}
+.ae-db-confirm.ae-show {
+  display: flex;
+}
+.ae-db-confirm-box {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  padding: 28px 28px 22px;
+  width: 420px;
+  max-width: 92vw;
+  text-align: center;
+  animation: aeSlideUp 0.25s ease;
+}
+.ae-db-confirm-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+.ae-db-confirm-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: #212529;
+  margin-bottom: 8px;
+}
+.ae-db-confirm-msg {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.ae-db-confirm-msg strong {
+  color: #d9534f;
+  font-family: 'Courier New', monospace;
+}
+.ae-db-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}

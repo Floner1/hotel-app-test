@@ -65,10 +65,9 @@
         list-style: none !important;
         margin: 0 !important;
         padding: 0 !important;
-        gap: 0 !important;
         width: 100% !important;
         justify-content: flex-end !important;
-        gap: 5px !important;
+        gap: 20px !important;
       }
       
       .inline-nav ul li {
@@ -79,12 +78,12 @@
       .inline-nav ul li a {
         color: #fff !important;
         transition: color 0.3s ease !important;
-        font-size: 18px !important;
+        font-size: 20px !important;
       }
       
       .site-header.scrolled .inline-nav ul li a {
         color: #000 !important;
-        font-size: 18px !important;
+        font-size: 20px !important;
       }
       
       .inline-nav ul li a:hover {
@@ -149,7 +148,7 @@
       }
       
       .site-header.scrolled .site-logo .logo-img {
-        height: 40px !important;
+        height: 55px !important;
       }
       
       /* On small screens: hide text, show only logo */
@@ -480,7 +479,7 @@
           <div class="col-md-10 text-center" data-aos="fade-up">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="hero-admin-wrapper">
-              <h1 class="heading">Welcome to {{ hotel_name }}<br><span style="font-size: 0.9em;"><span class="edit-wrap"><span id="ct-hero_subtitle">{{ ct.hero_subtitle }}</span><button class="text-edit-btn" onclick="openTextEdit('hero_subtitle')" title="Edit">&#9998;</button></span></span></h1>
+              <h1 class="heading">Welcome to {{ hotel_name }}<br><span style="font-size: 0.9em;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
               <div class="hero-admin-btn-area">
                 <button class="admin-upload-btn" onclick="openImageUpload('hero', '{% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}')">
                   <i class="fa fa-upload"></i> Change Hero Image
@@ -488,7 +487,7 @@
               </div>
             </div>
             {% else %}
-            <h1 class="heading">Welcome to {{ hotel_name }}<br><span style="font-size: 0.9em;">{{ ct.hero_subtitle }}</span></h1>
+            <h1 class="heading">Welcome to {{ hotel_name }}<br><span style="font-size: 0.9em;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
             {% endif %}
           </div>
         </div>
@@ -534,8 +533,8 @@
             {% endif %}
           </div>
           <div class="col-md-12 col-lg-5 order-lg-1" data-aos="fade-up">
-            <h2 class="heading"><span class="edit-wrap"><span id="ct-welcome_heading">{{ ct.welcome_heading }}</span>{% if request.user.is_authenticated and request.user.is_staff %}<button class="text-edit-btn" onclick="openTextEdit('welcome_heading')" title="Edit">&#9998;</button>{% endif %}</span></h2>
-            <p class="mb-4"><span class="edit-wrap"><span id="ct-welcome_body">{{ ct.welcome_body }}</span>{% if request.user.is_authenticated and request.user.is_staff %}<button class="text-edit-btn" onclick="openTextEdit('welcome_body')" title="Edit">&#9998;</button>{% endif %}</span></p>
+            <h2 class="heading" data-ct-key="welcome_heading">{{ ct.welcome_heading }}</h2>
+            <p class="mb-4" data-ct-key="welcome_body">{{ ct.welcome_body }}</p>
             <p><a href="{% url 'about' %}" class="btn btn-primary text-white py-2 mr-3">Learn More</a> <span class="mr-3 font-family-serif"><em>or</em></span> <a href="{% url 'contact' %}" class="btn btn-outline-primary py-2">Contact</a></p>
           </div>
           
@@ -549,8 +548,8 @@
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;"><span class="edit-wrap"><span id="ct-rooms_heading">{{ ct.rooms_heading }}</span>{% if request.user.is_authenticated and request.user.is_staff %}<button class="text-edit-btn" onclick="openTextEdit('rooms_heading')" title="Edit">&#9998;</button>{% endif %}</span></h2>
-            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;"><span class="edit-wrap"><span id="ct-rooms_description">{{ ct.rooms_description }}</span>{% if request.user.is_authenticated and request.user.is_staff %}<button class="text-edit-btn" onclick="openTextEdit('rooms_description')" title="Edit">&#9998;</button>{% endif %}</span></p>
+            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;" data-ct-key="rooms_heading">{{ ct.rooms_heading }}</h2>
+            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;" data-ct-key="rooms_description">{{ ct.rooms_description }}</p>
           </div>
         </div>
       </div>
@@ -632,8 +631,8 @@
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;"><span class="edit-wrap"><span id="ct-services_heading">{{ ct.services_heading }}</span>{% if request.user.is_authenticated and request.user.is_staff %}<button class="text-edit-btn" onclick="openTextEdit('services_heading')" title="Edit">&#9998;</button>{% endif %}</span></h2>
-            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important; color: #6c757d;"><span class="edit-wrap"><span id="ct-services_description">{{ ct.services_description }}</span>{% if request.user.is_authenticated and request.user.is_staff %}<button class="text-edit-btn" onclick="openTextEdit('services_description')" title="Edit">&#9998;</button>{% endif %}</span></p>
+            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;" data-ct-key="services_heading">{{ ct.services_heading }}</h2>
+            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important; color: #6c757d;" data-ct-key="services_description">{{ ct.services_description }}</p>
           </div>
         </div>
 
@@ -666,11 +665,18 @@
       </div>
     </section>
 
-    <section class="section bg-image overlay" style="background-image: url('{% static 'images/hero_4.jpg' %}');">
-      <div class="container">
+    <section class="section bg-image overlay" style="background-image: url('{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}');">
+      {% if request.user.is_authenticated and request.user.is_staff %}
+      <div class="admin-image-container" style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;">
+        <div class="admin-image-overlay" style="z-index:10;">
+          <button class="admin-upload-btn" onclick="openImageUpload('reserve-bg', '{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Change Background</button>
+        </div>
+      </div>
+      {% endif %}
+      <div class="container" style="position:relative;z-index:5;">
         <div class="row align-items-center">
           <div class="col-12 col-md-6 text-center mb-4 mb-md-0 text-md-left" data-aos="fade-up">
-            <h2 class="text-white font-weight-bold"><span class="edit-wrap"><span id="ct-reserve_heading">{{ ct.reserve_heading|linebreaksbr }}</span>{% if request.user.is_authenticated and request.user.is_staff %}<button class="text-edit-btn text-edit-btn--dark" onclick="openTextEdit('reserve_heading')" title="Edit">&#9998;</button>{% endif %}</span></h2>
+            <h2 class="text-white font-weight-bold" data-ct-key="reserve_heading">{{ ct.reserve_heading|linebreaksbr }}</h2>
           </div>
           <div class="col-12 col-md-6 text-center text-md-right" data-aos="fade-up" data-aos-delay="200">
             <a href="{% url 'reservation' %}" class="btn btn-outline-white-primary py-3 text-white px-5">Reserve Now</a>
@@ -900,18 +906,6 @@
     
     {% if request.user.is_authenticated and request.user.is_staff %}
 
-    <!-- Text Edit Modal -->
-    <div id="textEditModal" class="text-edit-modal">
-      <div class="text-edit-modal-box">
-        <div class="text-edit-modal-title" id="textEditTitle">Edit text</div>
-        <textarea id="textEditTextarea" rows="5"></textarea>
-        <div class="text-edit-modal-actions">
-          <button class="text-edit-modal-cancel" id="textEditCancelBtn">Cancel</button>
-          <button class="text-edit-modal-save"   id="textEditSaveBtn">Save</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Admin Image Upload Modal -->
     <div id="imageUploadModal" class="image-upload-modal">
       <div class="image-upload-content">
@@ -947,6 +941,21 @@
     </div>
 
     <style>
+      /* ---- Image upload UI: hidden until Edit Mode is active ---- */
+      .hero-admin-btn-area,
+      .admin-image-overlay {
+        display: none !important;
+      }
+
+      body.ae-editing .hero-admin-btn-area {
+        display: block !important;
+      }
+
+      body.ae-editing .admin-image-overlay {
+        display: flex !important;
+        opacity: 0;
+      }
+
       .hero-admin-wrapper {
         display: inline-block;
       }
@@ -978,7 +987,6 @@
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.7);
-        display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
@@ -1136,120 +1144,6 @@
         }
       }
 
-      /* ---- Text edit button ---- */
-      .edit-wrap {
-        display: inline;
-        white-space: normal;
-      }
-      .text-edit-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 26px;
-        height: 26px;
-        background: #ffba5a;
-        color: #212529;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 15px;
-        line-height: 1;
-        vertical-align: middle;
-        margin-left: 6px;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.15s, transform 0.15s;
-        position: relative;
-        z-index: 20;
-      }
-      .edit-wrap:hover .text-edit-btn {
-        opacity: 1;
-        pointer-events: auto;
-      }
-      .text-edit-btn:hover {
-        transform: scale(1.12);
-        background: #ffa527;
-      }
-      .text-edit-btn--dark {
-        background: rgba(255,255,255,0.3);
-        color: #fff;
-      }
-      .text-edit-btn--dark:hover {
-        background: rgba(255,255,255,0.5);
-      }
-      /* ---- Text-edit modal ---- */
-      .text-edit-modal {
-        display: none;
-        position: fixed;
-        z-index: 30000;
-        left: 0; top: 0;
-        width: 100%; height: 100%;
-        background: rgba(0,0,0,0.55);
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.2s ease;
-      }
-      .text-edit-modal.show {
-        display: flex;
-      }
-      .text-edit-modal-box {
-        background: #fff;
-        border-radius: 14px;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.25);
-        padding: 24px;
-        width: 420px;
-        max-width: 95vw;
-        animation: slideUp 0.25s ease;
-      }
-      .text-edit-modal-title {
-        font-weight: 700;
-        font-size: 15px;
-        color: #212529;
-        margin-bottom: 14px;
-      }
-      .text-edit-modal-box textarea {
-        width: 100%;
-        min-height: 110px;
-        border: 1.5px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font-size: 14px;
-        resize: vertical;
-        outline: none;
-        transition: border-color 0.2s;
-        font-family: inherit;
-        box-sizing: border-box;
-      }
-      .text-edit-modal-box textarea:focus {
-        border-color: #ffba5a;
-      }
-      .text-edit-modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 14px;
-      }
-      .text-edit-modal-save {
-        background: #ffba5a;
-        color: #212529;
-        border: none;
-        padding: 8px 22px;
-        border-radius: 8px;
-        font-weight: 700;
-        cursor: pointer;
-        font-size: 14px;
-      }
-      .text-edit-modal-save:hover { background: #ffa527; }
-      .text-edit-modal-cancel {
-        background: #f0f0f0;
-        color: #333;
-        border: none;
-        padding: 8px 18px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-      }
-      .text-edit-modal-cancel:hover { background: #e0e0e0; }
     </style>
 
     <script>
@@ -1383,60 +1277,20 @@
         }
       }
 
-      // ---- Text editor modal ---- plain globals, no IIFE ----
-      var _teCurrentKey = '';
-
-      function openTextEdit(key) {
-        _teCurrentKey = key;
-        var sp = document.getElementById('ct-' + key);
-        document.getElementById('textEditTextarea').value = sp ? sp.innerText : '';
-        document.getElementById('textEditSaveBtn').disabled = false;
-        document.getElementById('textEditSaveBtn').textContent = 'Save';
-        document.getElementById('textEditModal').classList.add('show');
-        document.getElementById('textEditTextarea').focus();
-        document.getElementById('textEditTextarea').select();
-      }
-
-      function closeTextEdit() {
-        document.getElementById('textEditModal').classList.remove('show');
-        _teCurrentKey = '';
-      }
-
-      document.getElementById('textEditModal').addEventListener('click', function(e) {
-        if (e.target === this) closeTextEdit();
-      });
-      document.getElementById('textEditCancelBtn').addEventListener('click', closeTextEdit);
-      document.getElementById('textEditSaveBtn').addEventListener('click', function() {
-        var newValue = document.getElementById('textEditTextarea').value.trim();
-        if (!newValue) return;
-        var saveBtn = document.getElementById('textEditSaveBtn');
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving…';
-        fetch("{% url 'save_content' %}", {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-          body:    JSON.stringify({ key: _teCurrentKey, value: newValue })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.status === 'success') {
-            var sp = document.getElementById('ct-' + _teCurrentKey);
-            if (sp) sp.innerText = data.value;
-            showToast('Text updated!', false);
-            closeTextEdit();
-          } else {
-            showToast(data.message || 'Save failed', true);
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Save';
-          }
-        })
-        .catch(function() {
-          showToast('Save failed', true);
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Save';
-        });
-      });
     </script>
     {% endif %}
+
+    <!-- Admin Inline Edit System -->
+    <link rel="stylesheet" href="{% static 'css/admin-edit.css' %}">
+    <script src="{% static 'js/admin-edit.js' %}"></script>
+    <script>
+      AdminEdit.init({
+        saveUrl:   "{% url 'save_content' %}",
+        csrf:      "{{ csrf_token }}",
+        pageId:    "home",
+        isAdmin:   {{ is_admin_user|yesno:"true,false" }},
+        overrides: JSON.parse('{{ text_overrides_json|escapejs }}' || '{}')
+      });
+    </script>
   </body>
 </html>
