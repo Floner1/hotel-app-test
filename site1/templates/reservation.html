@@ -50,6 +50,10 @@
     <!-- Toast Notification Styles -->
     <style>
       /* NAVBAR FIX - Force horizontal layout with color matching site logo */
+      .site-header .container-fluid > .row {
+        flex-wrap: nowrap !important;
+      }
+      
       .inline-nav {
         display: flex !important;
         flex: 1 !important;
@@ -63,7 +67,8 @@
         padding: 0 !important;
         gap: 0 !important;
         width: 100% !important;
-        justify-content: space-evenly !important;
+        justify-content: flex-end !important;
+        gap: 5px !important;
       }
       
       .inline-nav ul li {
@@ -97,9 +102,61 @@
         }
       }
       
-      /* LOGO FIX - Prevent hotel name from wrapping to multiple lines */
+      /* LOGO FIX */
       .site-logo {
         white-space: nowrap !important;
+        flex: 0 0 auto !important;
+        width: auto !important;
+        max-width: none !important;
+      }
+      
+      .site-logo a {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        text-decoration: none !important;
+      }
+      
+      .site-logo .logo-img {
+        height: 45px !important;
+        width: auto !important;
+        transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      }
+      
+      .site-logo .hotel-name-text {
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1), margin 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        opacity: 1 !important;
+        overflow: hidden !important;
+        max-width: 300px !important;
+        display: inline-block !important;
+        will-change: max-width, opacity !important;
+      }
+      
+      .nav-col {
+        flex: 1 1 auto !important;
+        width: auto !important;
+        max-width: none !important;
+      }
+      
+      .site-header.scrolled .site-logo .hotel-name-text {
+        opacity: 0 !important;
+        max-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+      
+      .site-header.scrolled .site-logo .logo-img {
+        height: 40px !important;
+      }
+      
+      @media (max-width: 991.98px) {
+        .site-logo .hotel-name-text {
+          display: none !important;
+        }
+        .site-logo .logo-img {
+          height: 40px !important;
+        }
       }
       
       /* PAGE HEADING AND BREADCRUMB FONT SIZES */
@@ -156,6 +213,10 @@
         padding: 5px !important;
         color: #fff !important;
         font-size: 18px !important;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
       }
       
       .site-header.scrolled .language-selector .lang-button {
@@ -214,6 +275,7 @@
       }
       
       .goog-te-banner-frame.skiptranslate { display: none !important; }
+      html, body { overflow-x: clip !important; }
       body { top: 0px !important; }
       #google_translate_element { display: none !important; }
       
@@ -279,8 +341,8 @@
     <header class="site-header js-site-header">
       <div class="container-fluid">
         <div class="row align-items-center">
-          <div class="col-6 col-lg-3 site-logo" data-aos="fade"><a href="{% url 'home' %}">{{ hotel.hotel_name }}</a></div>
-          <div class="col-6 col-lg-9">
+          <div class="col-auto site-logo" data-aos="fade"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel Logo" class="logo-img"><span class="hotel-name-text">{{ hotel.hotel_name }}</span></a></div>
+          <div class="col nav-col">
             
             <!-- Inline Navigation for Desktop -->
             <div class="d-none d-lg-block inline-nav" data-aos="fade">
