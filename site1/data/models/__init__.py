@@ -14,15 +14,13 @@ from .site_content import SiteContent
 
 __all__ = [
     'User',
-    'Hotel', 
-    'CustomerBookingInfo', 
+    'Hotel',
+    'CustomerBookingInfo',
     'RoomPrice',
     'HotelServices',
     'HotelKeysMain',
     'CustomerRequest',
     'AuditLog',
-    # 'CustomerRequest',
-    # 'AuditLog',
     'ImagesRef',
     'SiteContent',
 ]

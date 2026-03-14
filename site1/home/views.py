@@ -8,8 +8,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from backend.services.services import HotelService, ReservationService
 from data.models import User, CustomerBookingInfo, HotelServices
-from django.db.models import Sum, Q
-from datetime import date
+from django.db.models import Sum
+from datetime import date, datetime
 
 # Helper function to check if user is admin/staff
 def is_staff_or_admin(user):
@@ -28,6 +28,19 @@ def _db_image_exists(name):
         return False
 
 
+def _db_images_exist(names):
+    """Batch-check which image names exist in the DB. Returns a dict {name: bool}."""
+    try:
+        from data.models.images import ImagesRef
+        existing = set(
+            ImagesRef.objects.filter(ImageName__in=names)
+            .values_list('ImageName', flat=True)
+        )
+        return {name: name in existing for name in names}
+    except Exception:
+        return {name: False for name in names}
+
+
 def _get_content(key, default=''):
     """Return site content from DB, falling back to default."""
     try:
@@ -36,6 +49,19 @@ def _get_content(key, default=''):
         return obj.content_value if obj else default
     except Exception:
         return default
+
+
+def _get_all_content(defaults):
+    """Load all site content in a single query, falling back to defaults."""
+    try:
+        from data.models.site_content import SiteContent
+        rows = SiteContent.objects.filter(
+            content_key__in=defaults.keys()
+        ).values_list('content_key', 'content_value')
+        db_values = {key: val for key, val in rows}
+        return {k: db_values.get(k, v) for k, v in defaults.items()}
+    except Exception:
+        return dict(defaults)
 
 
 _CONTENT_DEFAULTS = {
@@ -89,11 +115,12 @@ def get_home(request):
     room_types = HotelService.get_available_room_types()
 
     # Resolve image sources: DB if uploaded, otherwise mark as static fallback
+    db_images = _db_images_exist(['hero', 'food-1', 'img-1', 'reserve-bg'])
     db_images = {
-        'hero':       _db_image_exists('hero'),
-        'food_1':     _db_image_exists('food-1'),
-        'img_1':      _db_image_exists('img-1'),
-        'reserve_bg': _db_image_exists('reserve-bg'),
+        'hero':       db_images.get('hero', False),
+        'food_1':     db_images.get('food-1', False),
+        'img_1':      db_images.get('img-1', False),
+        'reserve_bg': db_images.get('reserve-bg', False),
     }
 
     return render(request, 'home.html', {
@@ -103,7 +130,7 @@ def get_home(request):
         'room_types': room_types,
         'db_images': db_images,
         'room_images': _get_room_images(),
-        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
+        'ct': _get_all_content(_CONTENT_DEFAULTS),
     })
 
 def get_about(request):
@@ -115,17 +142,18 @@ def get_about(request):
     hotel_services = HotelServices.objects.all()
     
     # Resolve image sources: DB if uploaded, otherwise static
+    db_images = _db_images_exist(['food-1', 'img-1'])
     db_images = {
-        'food_1': _db_image_exists('food-1'),
-        'img_1':  _db_image_exists('img-1'),
+        'food_1': db_images.get('food-1', False),
+        'img_1':  db_images.get('img-1', False),
     }
-    
+
     return render(request, 'about.html', {
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
         'db_images': db_images,
-        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
+        'ct': _get_all_content(_CONTENT_DEFAULTS),
     })
 
 def get_contact(request):
@@ -140,7 +168,7 @@ def get_contact(request):
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
-        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
+        'ct': _get_all_content(_CONTENT_DEFAULTS),
     })
 
 def get_reservation(request):
@@ -171,12 +199,16 @@ def get_reservation(request):
                 'notes': request.POST.get('notes', ''),
                 'user': request.user,  # Link booking to logged-in user
             }
+
+            # Allow staff/admin to override the per-night rate
+            custom_price = request.POST.get('custom_price')
+            if custom_price and request.user.is_staff:
+                reservation_data['custom_rate'] = custom_price
             
             # Create reservation using the service
             booking = ReservationService.create_reservation(reservation_data)
             
             # Calculate total days
-            from datetime import datetime
             checkin = datetime.strptime(request.POST.get('checkin_date'), '%m/%d/%Y').date()
             checkout = datetime.strptime(request.POST.get('checkout_date'), '%m/%d/%Y').date()
             total_days = (checkout - checkin).days
@@ -243,15 +275,13 @@ def get_rooms(request):
         'hotel_services': hotel_services,
         'room_types': room_types,
         'room_images': _get_room_images(),
-        'ct': {k: _get_content(k, v) for k, v in _CONTENT_DEFAULTS.items()},
+        'ct': _get_all_content(_CONTENT_DEFAULTS),
     })
 
 def newsletter_signup(request):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        email = request.POST.get('email', None)
-        return JsonResponse({
-            'status': 'ok'
-        })
+        # TODO: implement actual newsletter subscription (save email, send confirmation)
+        return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'ok'})
 
 
@@ -275,8 +305,11 @@ def login_view(request):
                     cursor.execute("EXEC sp_set_session_context 'user_role', %s", [user.role])
                 
                 messages.success(request, 'You have been successfully logged in.')
-                # Redirect to next parameter or home
+                # Redirect to next parameter or home (validate to prevent open redirect)
+                from django.utils.http import url_has_allowed_host_and_scheme
                 next_url = request.POST.get('next') or request.GET.get('next') or 'home'
+                if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                    next_url = 'home'
                 return redirect(next_url)
         else:
             messages.error(request, 'Invalid username or password.')
@@ -340,10 +373,10 @@ def register_view(request):
             # Return form with errors
             context = {
                 'form': {
-                    'username': {'value': username, 'errors': [errors.get('username')]},
-                    'email': {'value': email, 'errors': [errors.get('email')]},
-                    'password1': {'errors': [errors.get('password1')]},
-                    'password2': {'errors': [errors.get('password2')]},
+                    'username': {'value': username, 'errors': [errors['username']] if 'username' in errors else []},
+                    'email': {'value': email, 'errors': [errors['email']] if 'email' in errors else []},
+                    'password1': {'errors': [errors['password1']] if 'password1' in errors else []},
+                    'password2': {'errors': [errors['password2']] if 'password2' in errors else []},
                 },
                 'hotel_name': HotelService.get_hotel_name(),
                 'hotel': HotelService.get_hotel_info(),
@@ -670,9 +703,9 @@ def upload_image(request):
             img = Image.open(image_file)
             if img.mode in ('RGBA', 'LA', 'P'):
                 background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'P':
+                if img.mode in ('P', 'LA'):
                     img = img.convert('RGBA')
-                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                background.paste(img, mask=img.split()[-1])
                 img = background
 
             buffer = BytesIO()
@@ -802,7 +835,7 @@ def edit_reservation(request, booking_id):
                 canonical_room_type = ReservationService._canonicalise_room_type(data['room_type'])
                 if not canonical_room_type:
                     raise ValidationError('Invalid room type selected.')
-                rate = ReservationService._resolve_rate(data['room_type'])
+                rate = ReservationService._resolve_rate(canonical_room_type)
                 total_cost = rate * total_days
             except ValidationError as e:
                 return JsonResponse({

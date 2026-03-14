@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Dict, Iterable, Optional
 
 from django.core.exceptions import ValidationError
@@ -9,6 +10,8 @@ from django.utils import timezone
 
 from data.models.hotel import Hotel as BookingHotel, RoomPrice
 from data.repos.repositories import HotelRepository, ReservationRepository
+
+logger = logging.getLogger(__name__)
 
 
 class HotelService:
@@ -22,15 +25,13 @@ class HotelService:
     @staticmethod
     def get_hotel_info() -> Optional[Dict[str, Any]]:
         return HotelRepository.get_hotel_info()
-    
+
     @staticmethod
     def get_available_room_types() -> list:
         """
         Get list of available room types from database.
         Returns list of dicts: {canonical, display, price, description}
         """
-        from data.models.hotel import RoomPrice
-        
         room_types = []
         try:
             # Get all room types from room_price table
@@ -38,30 +39,29 @@ class HotelService:
                 room_type__isnull=False,
                 price_per_night__isnull=False
             ).values_list('room_type', 'price_per_night', 'room_description')
-            
+
             for room_type, price, description in price_rows:
                 if room_type:
                     # Use the database room_type directly as canonical
                     canonical = room_type.strip()
-                    
+
                     # Create a nice display name from the room_type
                     display_name = canonical.replace('_', ' ').title()
-                    
+
                     # Convert price to Decimal if it's a string
-                    try:
-                        from decimal import Decimal
-                        if isinstance(price, str):
+                    if isinstance(price, str):
+                        try:
                             price = Decimal(price)
-                    except:
-                        pass
-                    
+                        except (ValueError, InvalidOperation):
+                            pass
+
                     room_types.append({
                         'canonical': canonical,
                         'display': display_name,
                         'price': price,
                         'description': description
                     })
-            
+
             # Remove duplicates based on canonical name (keep first occurrence)
             seen = set()
             unique_rooms = []
@@ -69,13 +69,10 @@ class HotelService:
                 if room['canonical'] not in seen:
                     seen.add(room['canonical'])
                     unique_rooms.append(room)
-            
+
             return unique_rooms
-        except Exception as e:
-            print(f"[HotelService] Error loading room types: {e}")
-            import traceback
-            traceback.print_exc()
-            # Return empty list if database fails
+        except Exception:
+            logger.exception("Error loading room types")
             return []
 
 
@@ -104,7 +101,6 @@ class ReservationService:
             '2 bed no window',
             'two bed no window',
             '2-bed no window room',
-            '2 bed balcony room',
             'two_bed_no_window_room',
         ),
         'one_bed_no_window_room': (
@@ -116,6 +112,7 @@ class ReservationService:
             'condotel 2 bed and balcony',
             'condotel 2 bed balcony',
             '2 bed condotel balcony',
+            '2 bed balcony room',
             'condotel 2 bed with balcony',
             'two_bed_condotel_balcony',
         ),
@@ -142,8 +139,17 @@ class ReservationService:
         if not canonical_room_type:
             raise ValidationError('Invalid room type selected.')
 
-        # Get the rate for this room type
-        rate = cls._resolve_rate(room_type_input)
+        # Get the rate for this room type (custom rate overrides preset)
+        custom_rate_raw = reservation_data.get('custom_rate')
+        if custom_rate_raw is not None:
+            try:
+                rate = Decimal(str(custom_rate_raw))
+                if rate <= 0:
+                    raise ValidationError('Custom price must be greater than zero.')
+            except (InvalidOperation, ValueError):
+                raise ValidationError('Invalid custom price value.')
+        else:
+            rate = cls._resolve_rate(room_type_input)
         total_days = (checkout_date - checkin_date).days
         # For same-day bookings, charge for at least 1 day
         if total_days == 0:
@@ -166,7 +172,7 @@ class ReservationService:
 
         # Get user from reservation_data if provided (for logged-in users)
         user = reservation_data.get('user', None)
-        
+
         booking_data = {
             'hotel': hotel_record,
             'user': user,  # Link to user if logged in
@@ -239,10 +245,9 @@ class ReservationService:
         if not canonical:
             raise ValidationError('Invalid room type selected.')
 
-        # Always try to load fresh rates from database
-        rates = cls.get_room_rates(force_refresh=True)
+        rates = cls.get_room_rates()
         rate = rates.get(canonical)
-        
+
         if rate is None or rate <= 0:
             raise ValidationError(
                 f'No nightly rate configured for room type: {canonical}. '
@@ -255,21 +260,19 @@ class ReservationService:
         if not room_type:
             return None
         normalised = room_type.strip().lower()
-        
+
         # First, check if it's already a valid database room type (direct match)
-        # This handles room types coming directly from the database like '1_bed_with_window'
-        from data.models.hotel import RoomPrice
         try:
             if RoomPrice.objects.filter(room_type__iexact=normalised).exists():
                 return normalised
-        except Exception as e:
-            print(f"[_canonicalise_room_type] Database check error: {e}")
-        
+        except Exception:
+            logger.exception("Database check error in _canonicalise_room_type")
+
         # Then check against aliases for backward compatibility
         for canonical, aliases in cls._ROOM_TYPE_ALIASES.items():
             if normalised in (alias.lower() for alias in aliases):
                 return canonical
-        
+
         # If no match found, return None
         return None
 
@@ -278,24 +281,19 @@ class ReservationService:
         """Load room rates from database room_price table."""
         rates: Dict[str, Decimal] = {}
 
-        # Load from room_price table
         try:
             price_rows = RoomPrice.objects.filter(price_per_night__isnull=False).values_list('room_type', 'price_per_night')
             for room_type, price_str in price_rows:
                 if room_type and price_str:
-                    # Use the database room_type directly as the key (already normalized)
                     canonical = room_type.strip().lower()
                     try:
-                        # Convert string price to Decimal
                         price = Decimal(str(price_str)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                         rates[canonical] = price
-                        print(f"[RATES] Loaded: {canonical} = {rates[canonical]}")
-                    except (ValueError, TypeError) as e:
-                        print(f"[RATES] Could not parse price for {room_type}: {e}")
-        except Exception as e:
-            print(f"[RATES] Could not load from room_price table: {e}")
+                    except (ValueError, TypeError, InvalidOperation) as e:
+                        logger.warning("Could not parse price for %s: %s", room_type, e)
+        except Exception:
+            logger.exception("Could not load from room_price table")
 
-        print(f"[RATES] Total rates loaded: {len(rates)}")
         return rates
 
     @classmethod

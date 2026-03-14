@@ -1,7 +1,9 @@
 """
 Permission checking utilities for role-based access control
 """
-from datetime import datetime, timedelta
+from datetime import datetime
+
+from django.utils import timezone as tz
 
 
 def is_admin(user):
@@ -189,7 +191,7 @@ def can_customer_request_edit(booking, user):
     # Check if more than 24 hours before check-in
     if hasattr(booking, 'check_in'):
         check_in_datetime = datetime.combine(booking.check_in, datetime.min.time())
-        hours_until_checkin = (check_in_datetime - datetime.now()).total_seconds() / 3600
+        hours_until_checkin = (check_in_datetime - tz.now().replace(tzinfo=None)).total_seconds() / 3600
         
         if hours_until_checkin > 24:
             return True

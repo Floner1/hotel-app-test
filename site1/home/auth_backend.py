@@ -2,7 +2,6 @@
 Custom authentication backend for the custom User model
 """
 from django.contrib.auth.backends import BaseBackend
-from django.contrib.auth.hashers import check_password
 from data.models import User
 
 

@@ -3,7 +3,7 @@ from django.conf import settings
 from data.models.hotel import Hotel
 from data.models import CustomerBookingInfo
 from django.db.models import Q
-from datetime import datetime, timedelta
+from django.utils import timezone
 
 _DEFAULT_PHONE = getattr(settings, 'HOTEL_DEFAULT_PHONE', '')
 _DEFAULT_EMAIL = getattr(settings, 'HOTEL_DEFAULT_EMAIL', '')
@@ -37,21 +37,11 @@ class HotelRepository:
                 'phone': _DEFAULT_PHONE,
                 'email': _DEFAULT_EMAIL,
             }
-        
+
         # Map the database field names to template-expected names
         return {
             'hotel_name': result['hotel_name'],
             'hotel_address': result['address'],  # Map 'address' to 'hotel_address'
-            'star_rating': result['star_rating'],
-            'established_date': result['established_date'],
-            'phone': result['phone'],
-            'email': result['email'],
-        }
-
-        # Return with consistent key names
-        return {
-            'hotel_name': result['hotel_name'],
-            'address': result['address'],
             'star_rating': result['star_rating'],
             'established_date': result['established_date'],
             'phone': result['phone'] or _DEFAULT_PHONE,
@@ -63,176 +53,117 @@ class ReservationRepository:
     """
     Repository class to handle all database operations for reservations
     """
-    
+
     @staticmethod
     def create(booking_data):
         """
         Create a new booking record in the database
-        
+
         Args:
             booking_data (dict): Dictionary containing booking information
-                - name: Guest name
-                - phone: Contact phone
-                - email: Contact email
-                - checkin_date: Check-in date (date object)
-                - checkout_date: Check-out date (date object)
-                - adults: Number of adults
-                - children: Number of children
-                - room_type: Selected room type
-                - booking_date: Date booking was created
-                - total_days: Total length of stay in nights
-                - total_cost_amount: Total booking cost in chosen currency units
-                - hotel: Related Hotel instance
-        
+
         Returns:
             CustomerBookingInfo: The created booking object
         """
-        from django.utils import timezone
-        
+        now = timezone.now()
+
         # Add timestamp fields
-        booking_data['created_at'] = timezone.now()
-        booking_data['updated_at'] = timezone.now()
-        
+        booking_data['created_at'] = now
+        booking_data['updated_at'] = now
+
         booking = CustomerBookingInfo(**booking_data)
         booking.save()
         return booking
-    
+
     @staticmethod
     def get_by_id(booking_id):
         """
         Retrieve a booking by its ID
-        
-        Args:
-            booking_id (int): The booking ID
-            
-        Returns:
-            CustomerBookingInfo: The booking object or None if not found
         """
         try:
             return CustomerBookingInfo.objects.get(booking_id=booking_id)
         except CustomerBookingInfo.DoesNotExist:
             return None
-    
+
     @staticmethod
     def get_all(order_by='-booking_date'):
         """
         Retrieve all bookings
-        
-        Args:
-            order_by (str): Field to order by (default: most recent first)
-            
-        Returns:
-            QuerySet: All bookings ordered as specified
         """
         return CustomerBookingInfo.objects.all().order_by(order_by)
-    
+
     @staticmethod
     def get_by_email(email):
         """
         Retrieve all bookings for a specific email address
-        
-        Args:
-            email (str): The email address to search for
-            
-        Returns:
-            QuerySet: Bookings matching the email
         """
         return CustomerBookingInfo.objects.filter(
             email__iexact=email
-        ).order_by('-booking_date', '-checkin_date')
+        ).order_by('-booking_date', '-check_in')
 
     @staticmethod
     def email_exists(email):
         """Check whether a reservation already exists for the email."""
         return CustomerBookingInfo.objects.filter(email__iexact=email).exists()
-    
+
     @staticmethod
     def get_upcoming_bookings():
         """
         Retrieve all upcoming bookings (check-in date is today or in the future)
-        
-        Returns:
-            QuerySet: Upcoming bookings
         """
-        today = datetime.now().date()
+        today = timezone.now().date()
         return (
             CustomerBookingInfo.objects
-            .filter(checkin_date__gte=today)
-            .order_by('checkin_date')
+            .filter(check_in__gte=today)
+            .order_by('check_in')
         )
-    
+
     @staticmethod
     def get_bookings_by_date_range(start_date, end_date):
         """
         Retrieve bookings within a specific date range
-        
-        Args:
-            start_date (date): Start date
-            end_date (date): End date
-            
-        Returns:
-            QuerySet: Bookings within the date range
         """
         return CustomerBookingInfo.objects.filter(
-            Q(checkin_date__gte=start_date, checkin_date__lte=end_date) |
-            Q(checkout_date__gte=start_date, checkout_date__lte=end_date)
-        ).order_by('checkin_date')
-    
+            Q(check_in__gte=start_date, check_in__lte=end_date) |
+            Q(check_out__gte=start_date, check_out__lte=end_date)
+        ).order_by('check_in')
+
     @staticmethod
     def search_bookings(search_term):
         """
         Search bookings by name, email, or phone
-        
-        Args:
-            search_term (str): The search term
-            
-        Returns:
-            QuerySet: Matching bookings
         """
         return (
             CustomerBookingInfo.objects
             .filter(
-                Q(name__icontains=search_term) |
+                Q(guest_name__icontains=search_term) |
                 Q(email__icontains=search_term) |
                 Q(phone__icontains=search_term)
             )
-            .order_by('-booking_date', '-checkin_date')
+            .order_by('-booking_date', '-check_in')
         )
-    
+
     @staticmethod
     def get_booking_count():
         """
         Get the total count of all bookings
-        
-        Returns:
-            int: Total number of bookings
         """
         return CustomerBookingInfo.objects.count()
-    
+
     @staticmethod
     def get_bookings_today():
         """
         Get bookings checking in today
-        
-        Returns:
-            QuerySet: Today's check-ins
         """
-        today = datetime.now().date()
+        today = timezone.now().date()
         return CustomerBookingInfo.objects.filter(
-            checkin_date=today
+            check_in=today
         ).order_by('booking_date', 'booking_id')
-    
+
     @staticmethod
     def update_booking(booking_id, update_data):
         """
         Update an existing booking
-        
-        Args:
-            booking_id (int): The booking ID to update
-            update_data (dict): Dictionary of fields to update
-            
-        Returns:
-            CustomerBookingInfo: Updated booking object or None if not found
         """
         try:
             booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
@@ -242,17 +173,11 @@ class ReservationRepository:
             return booking
         except CustomerBookingInfo.DoesNotExist:
             return None
-    
+
     @staticmethod
     def delete_booking(booking_id):
         """
         Delete a booking by ID
-        
-        Args:
-            booking_id (int): The booking ID to delete
-            
-        Returns:
-            bool: True if deleted, False if not found
         """
         try:
             booking = CustomerBookingInfo.objects.get(booking_id=booking_id)

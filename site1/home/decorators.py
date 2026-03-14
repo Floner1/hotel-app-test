@@ -26,7 +26,7 @@ def admin_required(view_func):
                 return redirect('admin_reservations')
             elif request.user.role == 'customer':
                 messages.error(request, 'Access denied. This page is for staff only.')
-                return redirect('customer_portal')
+                return redirect('home')
         
         messages.error(request, 'Access denied.')
         return redirect('home')

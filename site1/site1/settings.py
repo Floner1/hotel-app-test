@@ -10,21 +10,26 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-z##%vmn0p=qha1_+&!&fsu!%vyc#+m&jl8jxd_^!mzb%f!j_o_'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()
+]
 
 
 # Application definition
@@ -81,8 +86,8 @@ WSGI_APPLICATION = 'site1.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
-        'NAME': 'hotelbooking',
-        'HOST': 'DESKTOP-NS6H7CH\\MSSQLSERVER01',  # Using MSSQLSERVER01 instance
+        'NAME': os.getenv('DB_NAME', 'hotelbooking'),
+        'HOST': os.getenv('DB_HOST', 'DESKTOP-NS6H7CH\\MSSQLSERVER01'),
         'Trusted_Connection': 'yes',  # Use Windows Authentication
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
@@ -153,3 +158,13 @@ AUTHENTICATION_BACKENDS = [
     'home.auth_backend.CustomUserBackend',  # Custom backend for our User model
     'django.contrib.auth.backends.ModelBackend',  # Fallback for Django admin
 ]
+
+# ---------- Security settings (apply when DEBUG=False) ----------
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000          # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
