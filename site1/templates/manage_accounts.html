@@ -465,10 +465,10 @@
               </td>
               <td>{{ account.created_at|date:"M d, Y" }}</td>
               <td>
-                <button class="btn-action btn-edit" onclick="editAccount({{ account.user_id }}, '{{ account.username }}', '{{ account.email }}', '{{ account.is_staff|yesno:"true,false" }}')">
+                <button class="btn-action btn-edit" onclick="editAccount({{ account.user_id }}, '{{ account.username|escapejs }}', '{{ account.email|escapejs }}', '{{ account.is_staff|yesno:"true,false" }}')">
                   <i class="fa fa-edit"></i> Edit
                 </button>
-                <button class="btn-action btn-delete" onclick="confirmDelete({{ account.user_id }}, '{{ account.username }}')">
+                <button class="btn-action btn-delete" onclick="confirmDelete({{ account.user_id }}, '{{ account.username|escapejs }}')">
                   <i class="fa fa-trash"></i> Delete
                 </button>
               </td>

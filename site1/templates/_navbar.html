@@ -1,0 +1,77 @@
+{% load static %}
+<!-- Main Navigation Header -->
+<!-- The header contains the hotel logo and main navigation menu -->
+<header class="site-header js-site-header">
+  <div class="container-fluid">
+    <div class="row align-items-center">
+      <div class="col-auto site-logo" data-aos="fade"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel Logo" class="logo-img"><span class="hotel-name-text">{{ hotel_name }}</span></a></div>
+      <div class="col nav-col">
+
+        <!-- Inline Navigation for Desktop -->
+        <div class="d-none d-lg-block inline-nav" data-aos="fade">
+          <ul>
+            <li{% if active_page == 'home' %} class="active"{% endif %}><a href="{% url 'home' %}">Home</a></li>
+            <li{% if active_page == 'rooms' %} class="active"{% endif %}><a href="{% url 'rooms' %}">Rooms</a></li>
+            <li{% if active_page == 'about' %} class="active"{% endif %}><a href="{% url 'about' %}">About</a></li>
+            <li{% if active_page == 'contact' %} class="active"{% endif %}><a href="{% url 'contact' %}">Contact</a></li>
+            <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
+            <li class="language-selector">
+              <button class="lang-button">🌐 Language</button>
+              <div class="lang-dropdown">
+                <a href="#" data-lang="en">🇬🇧 English</a>
+                <a href="#" data-lang="vi">🇻🇳 Tiếng Việt</a>
+                <a href="#" data-lang="zh">🇨🇳 中文</a>
+                <a href="#" data-lang="ko">🇰🇷 한국어</a>
+              </div>
+            </li>
+            {% if user.is_authenticated %}
+              {% if user.role == 'admin' or user.role == 'staff' %}
+                <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+              {% endif %}
+              <li><a href="{% url 'logout' %}">Logout</a></li>
+            {% else %}
+              <li><a href="{% url 'login' %}">Login</a></li>
+              <li{% if active_page == 'register' %} class="active"{% endif %}><a href="{% url 'register' %}">Register</a></li>
+            {% endif %}
+          </ul>
+        </div>
+
+        <!-- Mobile Menu Toggle -->
+        <div class="site-menu-toggle js-site-menu-toggle d-lg-none" data-aos="fade">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <!-- END menu-toggle -->
+
+        <div class="site-navbar js-site-navbar">
+          <nav role="navigation">
+            <div class="container">
+              <div class="row full-height align-items-center">
+                <div class="col-md-6 mx-auto">
+                  <ul class="list-unstyled menu">
+                    <li{% if active_page == 'home' %} class="active"{% endif %}><a href="{% url 'home' %}">Home</a></li>
+                    <li{% if active_page == 'rooms' %} class="active"{% endif %}><a href="{% url 'rooms' %}">Rooms</a></li>
+                    <li{% if active_page == 'about' %} class="active"{% endif %}><a href="{% url 'about' %}">About</a></li>
+                    <li{% if active_page == 'contact' %} class="active"{% endif %}><a href="{% url 'contact' %}">Contact</a></li>
+                    <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
+                    {% if user.is_authenticated %}
+                      {% if user.role == 'admin' or user.role == 'staff' %}
+                        <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+                      {% endif %}
+                      <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
+                    {% else %}
+                      <li><a href="{% url 'login' %}">Login</a></li>
+                      <li{% if active_page == 'register' %} class="active"{% endif %}><a href="{% url 'register' %}">Create Account</a></li>
+                    {% endif %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<!-- END head -->

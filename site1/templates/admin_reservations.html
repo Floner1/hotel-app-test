@@ -954,6 +954,17 @@
     <script src="{% static 'js/bootstrap.min.js' %}"></script>
     
     <script>
+      // HTML escaping utility to prevent XSS when inserting user data into innerHTML
+      function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
       // Toast notification function with HTTP status code support
       function showToast(message, type = 'success', statusCode = null) {
         const toast = document.getElementById('toast-notification');
@@ -992,16 +1003,19 @@
           }
         }
         
-        // Add status code badge if provided
-        let displayMessage = message;
-        if (statusCode) {
-          displayMessage = `<span class="toast-status-code">${statusCode}</span>${message}`;
-        }
-        
         // Update toast content
         toast.classList.add(displayType);
         iconEl.textContent = icon;
-        messageEl.innerHTML = displayMessage;
+
+        // Clear previous content and use safe DOM methods
+        messageEl.textContent = '';
+        if (statusCode) {
+          const badge = document.createElement('span');
+          badge.className = 'toast-status-code';
+          badge.textContent = statusCode;
+          messageEl.appendChild(badge);
+        }
+        messageEl.appendChild(document.createTextNode(message));
         
         // Show toast
         toast.classList.add('show');
@@ -1015,7 +1029,7 @@
       // Check for Django messages and display as toast
       {% if messages %}
         {% for message in messages %}
-          showToast('{{ message }}', {% if 'error' in message.tags %}true{% else %}false{% endif %});
+          showToast('{{ message|escapejs }}', {% if 'error' in message.tags %}true{% else %}false{% endif %});
         {% endfor %}
       {% endif %}
       
@@ -1233,22 +1247,22 @@
                   
                   <div style="grid-column: 1 / -1;">
                     <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Customer Name</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${booking.name}</p>
+                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${escapeHtml(booking.name)}</p>
                   </div>
-                  
+
                   <div>
                     <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Email</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 0.95rem; margin: 0;">${booking.email}</p>
+                    <p style="color: #2c3e50; font-weight: 600; font-size: 0.95rem; margin: 0;">${escapeHtml(booking.email)}</p>
                   </div>
-                  
+
                   <div>
                     <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Phone</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 0.95rem; margin: 0;">${booking.phone}</p>
+                    <p style="color: #2c3e50; font-weight: 600; font-size: 0.95rem; margin: 0;">${escapeHtml(booking.phone)}</p>
                   </div>
                   
                   <div style="grid-column: 1 / -1;">
                     <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Room Type</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0; text-transform: capitalize;">${booking.room_type.replace(/_/g, ' ')}</p>
+                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0; text-transform: capitalize;">${escapeHtml(booking.room_type.replace(/_/g, ' '))}</p>
                   </div>
                   
                   <div>
@@ -1284,7 +1298,7 @@
                     <h4 style="color: #856404; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">
                       <i class="fa fa-comment"></i> Special Requests
                     </h4>
-                    <p style="color: #856404; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${booking.special_requests}</p>
+                    <p style="color: #856404; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${escapeHtml(booking.special_requests)}</p>
                   </div>
                   ` : ''}
                   
@@ -1293,7 +1307,7 @@
                     <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">
                       <i class="fa fa-sticky-note"></i> Admin Notes
                     </h4>
-                    <p style="color: #2c3e50; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${booking.notes}</p>
+                    <p style="color: #2c3e50; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${escapeHtml(booking.notes)}</p>
                   </div>
                   ` : ''}
                 </div>
@@ -1369,7 +1383,7 @@
                     <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
                       <i class="fa fa-user"></i> Customer Name *
                     </label>
-                    <input type="text" id="edit_name" value="${booking.name}" required
+                    <input type="text" id="edit_name" value="${escapeHtml(booking.name)}" required
                       style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
                   </div>
                   
@@ -1377,7 +1391,7 @@
                     <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
                       <i class="fa fa-envelope"></i> Email *
                     </label>
-                    <input type="email" id="edit_email" value="${booking.email}" required
+                    <input type="email" id="edit_email" value="${escapeHtml(booking.email)}" required
                       style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
                   </div>
                   
@@ -1385,7 +1399,7 @@
                     <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
                       <i class="fa fa-phone"></i> Phone *
                     </label>
-                    <input type="tel" id="edit_phone" value="${booking.phone}" required
+                    <input type="tel" id="edit_phone" value="${escapeHtml(booking.phone)}" required
                       style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
                   </div>
                   
@@ -1441,7 +1455,7 @@
                     </label>
                     <textarea id="edit_special_requests" rows="2"
                       style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
-                      placeholder="e.g., Non-smoking room, high floor, early check-in...">${booking.special_requests || ''}</textarea>
+                      placeholder="e.g., Non-smoking room, high floor, early check-in...">${escapeHtml(booking.special_requests || '')}</textarea>
                   </div>
                   
                   <div style="grid-column: 1 / -1;">
@@ -1450,7 +1464,7 @@
                     </label>
                     <textarea id="edit_notes" rows="2"
                       style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
-                      placeholder="Internal notes for staff...">${booking.notes || ''}</textarea>
+                      placeholder="Internal notes for staff...">${escapeHtml(booking.notes || '')}</textarea>
                   </div>
                   
                   <div style="grid-column: 1 / -1; margin-top: 1rem; display: flex; gap: 1rem; justify-content: flex-end;">

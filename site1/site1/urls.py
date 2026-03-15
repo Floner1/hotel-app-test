@@ -16,8 +16,28 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+from django.shortcuts import render
+from django_ratelimit.exceptions import Ratelimited
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('home.urls')),
 ]
+
+def handler403(request, exception=None):
+    """Return a friendly response when rate limit is exceeded."""
+    if isinstance(exception, Ratelimited):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Too many requests. Please wait a moment and try again.'
+            }, status=429)
+        return render(request, '403_ratelimited.html', status=429)
+    return render(request, '403.html', status=403)
+
+def handler404(request, exception=None):
+    return render(request, '404.html', status=404)
+
+def handler500(request):
+    return render(request, '500.html', status=500)

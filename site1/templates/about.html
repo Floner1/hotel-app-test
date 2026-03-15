@@ -1,418 +1,66 @@
-<!DOCTYPE HTML>
-<html>
-  <head>
-    <!-- Meta Tags Section -->
-    <!-- Basic meta tags for character encoding and browser compatibility -->
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>About Us | Thien Tai Hotel</title>
-    <!-- Responsive viewport settings -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- SEO meta tags -->
-    <meta name="description" content="" />
-    <meta name="keywords" content="" />
-    <meta name="author" content="" />
-    
-    <!-- Google Fonts -->
-    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=|Roboto+Sans:400,700|Playfair+Display:400,700">
+{% extends "base.html" %}
+{% load static %}
 
-    <!-- Static Files Section -->
-    {% load static %}
-    <!-- Core CSS Dependencies -->
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/animate.css' %}">
-    <link rel="stylesheet" href="{% static 'css/owl.carousel.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/aos.css' %}">
-    <link rel="stylesheet" href="{% static 'css/bootstrap-datepicker.css' %}">
-    <link rel="stylesheet" href="{% static 'css/jquery.timepicker.css' %}">
-    <link rel="stylesheet" href="{% static 'css/fancybox.min.css' %}">
-    
-    <!-- Icon Fonts -->
-    <link rel="stylesheet" href="{% static 'fonts/ionicons/css/ionicons.min.css' %}">
-    <link rel="stylesheet" href="{% static 'fonts/fontawesome/css/font-awesome.min.css' %}">
+{% block title %}About Us | Thien Tai Hotel{% endblock %}
 
-    <!-- Google Translate -->
-    <script type="text/javascript">
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en',
-          includedLanguages: 'en,vi,zh-CN,ko',
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-          autoDisplay: false
-        }, 'google_translate_element');
-      }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+{% block page_id %}about{% endblock %}
 
-    <!-- Main Theme Styling -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    
-    <!-- Toast Notification Styles -->
-    <style>
-      /* NAVBAR FIX - Force horizontal layout with color matching site logo */
-      .site-header .container-fluid > .row {
-        flex-wrap: nowrap !important;
-      }
-      
-      .inline-nav {
-        display: flex !important;
-        flex: 1 !important;
-      }
-      
-      .inline-nav ul {
-        display: flex !important;
-        flex-direction: row !important;
-        list-style: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        justify-content: flex-end !important;
-        gap: 20px !important;
-      }
-      
-      .inline-nav ul li {
-        display: inline-block !important;
-      }
-      
-      /* Match nav link colors to site logo - white by default, black on scroll */
-      .inline-nav ul li a {
-        color: #fff !important;
-        transition: color 0.3s ease !important;
-        font-size: 20px !important;
-      }
-      
-      .site-header.scrolled .inline-nav ul li a {
-        color: #000 !important;
-        font-size: 20px !important;
-      }
-      
-      .inline-nav ul li a:hover {
-        color: #f8b739 !important;
-      }
-      
-      .site-header.scrolled .inline-nav ul li a:hover {
-        color: #f8b739 !important;
-      }
-      
-      /* Responsive: Hide inline nav on small/medium screens, show hamburger only */
-      @media (max-width: 991.98px) {
-        .inline-nav {
-          display: none !important;
-        }
-      }
-      
-      /* LOGO FIX */
-      .site-logo {
-        white-space: nowrap !important;
-        flex: 0 0 auto !important;
-        width: auto !important;
-        max-width: none !important;
-      }
-      
-      .site-logo a {
-        display: flex !important;
-        align-items: center !important;
-        gap: 10px !important;
-        text-decoration: none !important;
-      }
-      
-      .site-logo .logo-img {
-        height: 45px !important;
-        width: auto !important;
-        transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      }
-      
-      .site-logo .hotel-name-text {
-        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1), margin 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        opacity: 1 !important;
-        overflow: hidden !important;
-        max-width: 300px !important;
-        display: inline-block !important;
-        will-change: max-width, opacity !important;
-      }
-      
-      .nav-col {
-        flex: 1 1 auto !important;
-        width: auto !important;
-        max-width: none !important;
-      }
-      
-      .site-header.scrolled .site-logo .hotel-name-text {
-        opacity: 0 !important;
-        max-width: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-      }
-      
-      .site-header.scrolled .site-logo .logo-img {
-        height: 55px !important;
-      }
-      
-      @media (max-width: 991.98px) {
-        .site-logo .hotel-name-text {
-          display: none !important;
-        }
-        .site-logo .logo-img {
-          height: 40px !important;
-        }
-      }
-      
-      /* PAGE HEADING AND BREADCRUMB FONT SIZES */
-      .site-hero-inner h1.heading {
-        font-size: 72px !important;
-      }
-      
-      .custom-breadcrumbs {
-        font-size: 20px !important;
-      }
-      
-      .custom-breadcrumbs li {
-        font-size: 20px !important;
-      }
-      
-      /* ROOM IMAGE CONSISTENCY */
-      .room .img-wrap img {
-        width: 100% !important;
-        height: 240px !important;
-        object-fit: cover !important;
-        display: block !important;
-      }
-      
-      .room-info {
-        text-align: center !important;
-      }
-      
-      .room-info h2 {
-        font-size: 1.75rem !important;
-        font-weight: 600 !important;
-        margin-bottom: 0.75rem !important;
-        color: #333 !important;
-        white-space: nowrap !important;
-      }
-      
-      .room-info span {
-        color: #f8b739 !important;
-        font-size: 1.125rem !important;
-        font-weight: 600 !important;
-        letter-spacing: 2px !important;
-        display: block !important;
-      }
-      
-      /* LANGUAGE SELECTOR */
-      .language-selector {
-        display: inline-block !important;
-        position: relative !important;
-      }
-      
-      .language-selector .lang-button {
-        background: none !important;
-        border: none !important;
-        cursor: pointer !important;
-        padding: 5px !important;
-        color: #fff !important;
-        font-size: 18px !important;
-        white-space: nowrap !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 4px !important;
-      }
-      
-      .site-header.scrolled .language-selector .lang-button {
-        color: #000 !important;
-      }
-      
-      .language-selector .lang-dropdown {
-        display: none !important;
-        position: absolute !important;
-        top: 100% !important;
-        right: 0 !important;
-        background: rgba(0, 0, 0, 0.85) !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        border-radius: 4px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
-        z-index: 1000 !important;
-        min-width: 180px !important;
-        margin-top: -10px !important;
-        padding: 20px 0 10px 0 !important;
-      }
-      
-      .site-header.scrolled .language-selector .lang-dropdown {
-        background: rgba(255, 255, 255, 0.98) !important;
-        border: 1px solid rgba(0, 0, 0, 0.2) !important;
-      }
-      
-      .language-selector:hover .lang-dropdown {
-        display: block !important;
-      }
-      
-      .lang-dropdown a {
-        display: block !important;
-        padding: 12px 15px !important;
-        color: #fff !important;
-        text-decoration: none !important;
-        font-size: 16px !important;
-        transition: all 0.3s ease !important;
-        cursor: pointer !important;
-        white-space: nowrap !important;
-      }
-      
-      .site-header.scrolled .lang-dropdown a {
-        color: #000 !important;
-      }
-      
-      .lang-dropdown a:hover {
-        background: rgba(248, 183, 57, 0.2) !important;
-        color: #f8b739 !important;
-      }
-      
-      .lang-dropdown img {
-        width: 24px !important;
-        height: 16px !important;
-        margin-right: 8px !important;
-        vertical-align: middle !important;
-      }
-      
-      .goog-te-banner-frame.skiptranslate { display: none !important; }
-      html, body { overflow-x: clip !important; }
-      body { top: 0px !important; }
-      #google_translate_element { display: none !important; }
-      
-      /* FOOTER FIX - Force labels and values on separate lines */
-      .footer-section .contact-info .contact-label {
-        display: block !important;
-        font-weight: normal !important;
-        margin-bottom: 5px !important;
-      }
-      
-      .footer-section .contact-info .contact-value {
-        display: block !important;
-        font-weight: normal !important;
-      }
-      
-      .toast-notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background-color: #28a745;
-        color: white;
-        padding: 15px 25px;
-        border-radius: 5px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 9999;
-        display: none;
-        animation: slideInRight 0.4s ease-out;
-      }
-      
-      .toast-notification.show {
-        display: block;
-      }
-      
-      .toast-notification.error {
-        background-color: #dc3545;
-      }
-      
-      .toast-notification .toast-icon {
-        margin-right: 10px;
-        font-size: 18px;
-      }
-      
-      @keyframes slideInRight {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Toast Notification -->
-    <div id="toast-notification" class="toast-notification">
-      <span class="toast-icon">✓</span>
-      <span class="toast-message"></span>
-    </div>
-    
-    <!-- Main Navigation Header -->
-    <!-- The header contains the hotel logo and main navigation menu -->
-    <header class="site-header js-site-header">
-      <div class="container-fluid">
-        <div class="row align-items-center">
-          <div class="col-auto site-logo" data-aos="fade"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel Logo" class="logo-img"><span class="hotel-name-text">{{ hotel_name }}</span></a></div>
-          <div class="col nav-col">
-            
-            <!-- Inline Navigation for Desktop -->
-            <div class="d-none d-lg-block inline-nav" data-aos="fade">
-              <ul>
-                <li><a href="{% url 'home' %}">Home</a></li>
-                <li><a href="{% url 'rooms' %}">Rooms</a></li>
-                <li class="active"><a href="{% url 'about' %}">About</a></li>
-                <li><a href="{% url 'contact' %}">Contact</a></li>
-                <li><a href="{% url 'reservation' %}">Reservation</a></li>
-                <li class="language-selector">
-                  <button class="lang-button">🌐 Language</button>
-                  <div class="lang-dropdown">
-                    <a href="#" data-lang="en">🇬🇧 English</a>
-                    <a href="#" data-lang="vi">🇻🇳 Tiếng Việt</a>
-                    <a href="#" data-lang="zh">🇨🇳 中文</a>
-                    <a href="#" data-lang="ko">🇰🇷 한국어</a>
-                  </div>
-                </li>
-                {% if user.is_authenticated %}
-                  {% if user.role == 'admin' or user.role == 'staff' %}
-                    <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
-                  {% endif %}
-                  <li><a href="{% url 'logout' %}">Logout</a></li>
-                {% else %}
-                  <li><a href="{% url 'login' %}">Login</a></li>
-                  <li><a href="{% url 'register' %}">Register</a></li>
-                {% endif %}
-              </ul>
-            </div>
+{% block extra_css %}
+<style>
+  .logo-loop-container {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    padding: 40px 0;
+    background: linear-gradient(to right, rgba(248, 248, 248, 1) 0%, transparent 10%, transparent 90%, rgba(248, 248, 248, 1) 100%);
+  }
 
-            <!-- Mobile Menu Toggle -->
-            <div class="site-menu-toggle js-site-menu-toggle d-lg-none" data-aos="fade">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <!-- END menu-toggle -->
+  .logo-loop-track {
+    display: flex;
+    gap: 60px;
+    animation: scroll 22s linear infinite;
+    will-change: transform;
+  }
 
-            <div class="site-navbar js-site-navbar">
-              <nav role="navigation">
-                <div class="container">
-                  <div class="row full-height align-items-center">
-                    <div class="col-md-6 mx-auto">
-                      <ul class="list-unstyled menu">
-                        <li><a href="{% url 'home' %}">Home</a></li>
-                        <li><a href="{% url 'rooms' %}">Rooms</a></li>
-                        <li class="active"><a href="{% url 'about' %}">About</a></li>
-                        <li><a href="{% url 'contact' %}">Contact</a></li>
-                        <li><a href="{% url 'reservation' %}">Reservation</a></li>
-                        {% if user.is_authenticated %}
-                          {% if user.role == 'admin' or user.role == 'staff' %}
-                            <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
-                          {% endif %}
-                          <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
-                        {% else %}
-                          <li><a href="{% url 'login' %}">Login</a></li>
-                          <li><a href="{% url 'register' %}">Create Account</a></li>
-                        {% endif %}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
-    <!-- END head -->
+  .logo-loop-item {
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+  }
 
+  .logo-loop-item:hover {
+    transform: scale(1.1);
+  }
+
+  .logo-loop-item img {
+    height: 280px;
+    width: auto;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-50%));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .logo-loop-item img {
+      height: 200px;
+    }
+
+    .logo-loop-track {
+      gap: 30px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
     <!-- Hero Section -->
     <!-- Full-width banner with page title and breadcrumb navigation -->
     <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/hero_4.jpg' %})" data-stellar-background-ratio="0.5">
@@ -448,17 +96,17 @@
           <!-- Featured Images -->
           <div class="col-md-12 col-lg-7 ml-auto order-lg-2 position-relative mb-5" data-aos="fade-up">
             <figure class="img-absolute">
-              <img src="{% static 'images/food-1.jpg' %}" alt="Hotel Food Service" class="img-fluid">
+              <img src="{% if db_images.food_1 %}{% url 'serve_image' 'food-1' %}{% else %}{% static 'images/food-1.jpg' %}{% endif %}" alt="Hotel Food Service" class="img-fluid">
             </figure>
-            <img src="{% static 'images/img_1.jpg' %}" alt="Hotel Ambiance" class="img-fluid rounded">
+            <img src="{% if db_images.img_1 %}{% url 'serve_image' 'img-1' %}{% else %}{% static 'images/img_1.jpg' %}{% endif %}" alt="Hotel Ambiance" class="img-fluid rounded">
           </div>
           <!-- Welcome Text Content -->
           <div class="col-md-12 col-lg-5 order-lg-1" data-aos="fade-up">
-            <h2 class="heading">Welcome!</h2>
-            <p class="mb-4">Thiên Tài Hotel is a modern, centrally located hotel in Ho Chi Minh City offering comfortable, individually designed rooms with contemporary amenities. Featuring a rooftop terrace, on-site restaurant and café, and attentive 24-hour service, the hotel provides a convenient and relaxing stay close to major attractions, shopping areas, and local landmarks.</p>
+            <h2 class="heading" data-ct-key="about_welcome_heading">{{ ct.about_welcome_heading }}</h2>
+            <p class="mb-4" data-ct-key="about_welcome_body">{{ ct.about_welcome_body }}</p>
             <p><a href="{% url 'about' %}" class="btn btn-primary text-white py-2 mr-3">Learn More</a> <span class="mr-3 font-family-serif"><em>or</em></span> <a href="{% url 'contact' %}" class="btn btn-outline-primary py-2">Contact</a></p>
           </div>
-          
+
         </div>
       </div>
     </section>
@@ -470,12 +118,12 @@
         <!-- Gallery Title and Description -->
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;">Photos</h2>
-            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;">These photos give you a clear look at the hotel before you arrive. From the rooms to shared spaces, each image shows the atmosphere you can expect during your stay. Take a moment to look around and get a feel for the place, so you arrive knowing what awaits you.</p>
+            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;" data-ct-key="about_photos_heading">{{ ct.about_photos_heading }}</h2>
+            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;" data-ct-key="about_photos_description">{{ ct.about_photos_description }}</p>
           </div>
         </div>
       </div>
-      
+
       <!-- Infinite Scrolling Room Gallery -->
       <div class="logo-loop-container" data-aos="fade-up" data-aos-delay="200">
         <div class="logo-loop-track">
@@ -495,7 +143,7 @@
           <div class="logo-loop-item">
             <img src="{% static 'images/condotel.png' %}" alt="2 Bed & Balcony Condotel" />
           </div>
-          
+
           <!-- Duplicate set for seamless loop -->
           <div class="logo-loop-item">
             <img src="{% static 'images/single bed.png' %}" alt="1 Bed No Window" />
@@ -514,59 +162,6 @@
           </div>
         </div>
       </div>
-      
-      <style>
-        .logo-loop-container {
-          width: 100%;
-          overflow: hidden;
-          position: relative;
-          padding: 40px 0;
-          background: linear-gradient(to right, rgba(248, 248, 248, 1) 0%, transparent 10%, transparent 90%, rgba(248, 248, 248, 1) 100%);
-        }
-        
-        .logo-loop-track {
-          display: flex;
-          gap: 60px;
-          animation: scroll 22s linear infinite;
-          will-change: transform;
-        }
-        
-        .logo-loop-item {
-          flex-shrink: 0;
-          transition: transform 0.3s ease;
-        }
-        
-        .logo-loop-item:hover {
-          transform: scale(1.1);
-        }
-        
-        .logo-loop-item img {
-          height: 280px;
-          width: auto;
-          object-fit: cover;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        @keyframes scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(calc(-50%));
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .logo-loop-item img {
-            height: 200px;
-          }
-          
-          .logo-loop-track {
-            gap: 30px;
-          }
-        }
-      </style>
     </section>
     <!-- END section -->
 
@@ -608,8 +203,8 @@
       </div>
     </section>
 
-    
-    
+
+
     <section class="section bg-image overlay" style="background-image: url('{% static 'images/hero_4.jpg' %}');">
         <div class="container" >
           <div class="row align-items-center">
@@ -622,193 +217,4 @@
           </div>
         </div>
       </section>
-
-    <footer class="section footer-section">
-      <div class="container">
-        <div class="row mb-4">
-          <div class="col-md-3 mb-5">
-            <ul class="list-unstyled link">
-              <li><a href="{% url 'about' %}">About Us</a></li>
-              <li><a href="{% url 'home' %}">Terms &amp; Conditions</a></li>
-              <li><a href="{% url 'home' %}">Privacy Policy</a></li>
-            </ul>
-          </div>
-          <div class="col-md-3 mb-5">
-            <ul class="list-unstyled link">
-              <li><a href="{% url 'about' %}">About Us</a></li>
-              <li><a href="{% url 'contact' %}">Contact Us</a></li>
-              <li><a href="{% url 'reservation' %}">Reservation</a></li>
-            </ul>
-          </div>
-          <div class="col-md-3 mb-5 contact-info">
-            <div class="contact-item">
-              <span class="contact-label">Address:</span>
-              <span class="contact-value">{{ hotel.hotel_address }}</span>
-            </div>
-            <div class="contact-item">
-              <span class="contact-label">Phone:</span>
-              <span class="contact-value">{{ hotel.phone }}</span>
-            </div>
-            <div class="contact-item">
-              <span class="contact-label">Email:</span>
-              <span class="contact-value">{{ hotel.email }}</span>
-            </div>
-          </div>
-          <div class="col-md-3 mb-5">
-            <p>Sign up for our newsletter</p>
-            <form id="newsletter-form" class="footer-newsletter">
-              <div class="form-group">
-                <input type="email" class="form-control" name="email" placeholder="Email..." required>
-                <button type="Submit" class="btn"><span class="fa fa-paper-plane"></span></button>
-              </div>
-            </form>
-          </div>
-        </div>
-        <div class="row pt-5">
-          <p class="col-md-6 text-left">
-          </p>
-            
-          <p class="col-md-6 text-right social">
-            <a href="#"><span class="fa fa-tripadvisor"></span></a>
-            <a href="#"><span class="fa fa-facebook"></span></a>
-            <a href="#"><span class="fa fa-twitter"></span></a>
-            <a href="#"><span class="fa fa-linkedin"></span></a>
-            <a href="#"><span class="fa fa-vimeo"></span></a>
-          </p>
-        </div>
-      </div>
-    </footer>
-    
-    <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-    <script src="{% static 'js/jquery-migrate-3.0.1.min.js' %}"></script>
-    <script src="{% static 'js/popper.min.js' %}"></script>
-    <script src="{% static 'js/bootstrap.min.js' %}"></script>
-    <script src="{% static 'js/owl.carousel.min.js' %}"></script>
-    <script src="{% static 'js/jquery.stellar.min.js' %}"></script>
-    <script src="{% static 'js/jquery.fancybox.min.js' %}"></script>
-    
-    <script src="{% static 'js/aos.js' %}"></script>
-    
-    <script src="{% static 'js/bootstrap-datepicker.js' %}"></script> 
-    <script src="{% static 'js/jquery.timepicker.min.js' %}"></script> 
-
-    <script src="{% static 'js/main.js' %}"></script>
-
-    <!-- Hidden Google Translate Widget -->
-    <div id="google_translate_element" style="display: none;"></div>
-
-    <script>
-      $(document).ready(function() {
-        $('.language-selector').on('click', function(e) {
-          e.stopPropagation();
-          $(this).addClass('keep-open');
-        });
-        
-        $(document).on('click', function() {
-          $('.language-selector').removeClass('keep-open');
-        });
-        
-        $('<style>.language-selector.keep-open .lang-dropdown { display: block !important; }</style>').appendTo('head');
-        
-        $('.lang-dropdown a').on('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          var lang = $(this).data('lang');
-          $('.language-selector').removeClass('keep-open');
-          var langCode = lang === 'zh' ? 'zh-CN' : lang;
-          
-          var maxAttempts = 20;
-          var attempt = 0;
-          var triggerInterval = setInterval(function() {
-            attempt++;
-            var combo = document.querySelector('.goog-te-combo');
-            if (combo && combo.options) {
-              for (var i = 0; i < combo.options.length; i++) {
-                if (combo.options[i].value === langCode) {
-                  combo.selectedIndex = i;
-                  var evt = document.createEvent('HTMLEvents');
-                  evt.initEvent('change', true, true);
-                  combo.dispatchEvent(evt);
-                  clearInterval(triggerInterval);
-                  return;
-                }
-              }
-            }
-            if (attempt >= maxAttempts) clearInterval(triggerInterval);
-          }, 200);
-        });
-      });
-    </script>
-
-    <script>
-      // Toast notification function
-      function showToast(message, isError = false) {
-        var toast = $('#toast-notification');
-        toast.find('.toast-message').text(message);
-        
-        if (isError) {
-          toast.addClass('error');
-          toast.find('.toast-icon').text('✗');
-        } else {
-          toast.removeClass('error');
-          toast.find('.toast-icon').text('✓');
-        }
-        
-        toast.addClass('show');
-        
-        setTimeout(function() {
-          toast.removeClass('show');
-        }, 3000);
-      }
-      
-      // Check for Django messages and display as toast
-      {% if messages %}
-        {% for message in messages %}
-          showToast('{{ message }}', {% if 'error' in message.tags %}true{% else %}false{% endif %});
-        {% endfor %}
-      {% endif %}
-    </script>
-
-    <script>
-      $(document).ready(function() {
-        $('#newsletter-form').on('submit', function(e) {
-          e.preventDefault();
-          
-          var form = $(this);
-          var submitButton = form.find('button[type="submit"]');
-          var email = form.find('input[name="email"]').val();
-          
-          // Disable the submit button
-          submitButton.prop('disabled', true);
-          
-          $.ajax({
-            url: '{% url "newsletter_signup" %}',
-            type: 'POST',
-            data: {
-              'email': email,
-              'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
-            complete: function() {
-              // Clear the form and re-enable the submit button
-              form.find('input[name="email"]').val('');
-              submitButton.prop('disabled', false);
-            }
-          });
-        });
-      });
-    </script>
-
-    <!-- Admin Inline Edit System -->
-    <link rel="stylesheet" href="{% static 'css/admin-edit.css' %}">
-    <script src="{% static 'js/admin-edit.js' %}"></script>
-    <script>
-      AdminEdit.init({
-        saveUrl:   "{% url 'save_content' %}",
-        csrf:      "{{ csrf_token }}",
-        pageId:    "about",
-        isAdmin:   {{ is_admin_user|yesno:"true,false" }},
-        overrides: JSON.parse('{{ text_overrides_json|escapejs }}' || '{}')
-      });
-    </script>
-  </body>
-</html>
+{% endblock %}

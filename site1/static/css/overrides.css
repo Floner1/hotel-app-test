@@ -1,0 +1,278 @@
+/* NAVBAR FIX - Force horizontal layout with color matching site logo */
+.site-header .container-fluid > .row {
+  flex-wrap: nowrap !important;
+}
+
+.inline-nav {
+  display: flex !important;
+  flex: 1 !important;
+}
+
+.inline-nav ul {
+  display: flex !important;
+  flex-direction: row !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  justify-content: flex-end !important;
+  gap: 20px !important;
+}
+
+.inline-nav ul li {
+  display: inline-block !important;
+}
+
+/* Match nav link colors to site logo - white by default, black on scroll */
+.inline-nav ul li a {
+  color: #fff !important;
+  transition: color 0.3s ease !important;
+  font-size: 20px !important;
+}
+
+.site-header.scrolled .inline-nav ul li a {
+  color: #000 !important;
+  font-size: 20px !important;
+}
+
+.inline-nav ul li a:hover {
+  color: #f8b739 !important;
+}
+
+.site-header.scrolled .inline-nav ul li a:hover {
+  color: #f8b739 !important;
+}
+
+/* Responsive: Hide inline nav on small/medium screens, show hamburger only */
+@media (max-width: 991.98px) {
+  .inline-nav {
+    display: none !important;
+  }
+}
+
+/* LOGO FIX */
+.site-logo {
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+.site-logo a {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  text-decoration: none !important;
+}
+
+.site-logo .logo-img {
+  height: 45px !important;
+  width: auto !important;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.site-logo .hotel-name-text {
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1), margin 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  opacity: 1 !important;
+  overflow: hidden !important;
+  max-width: 300px !important;
+  display: inline-block !important;
+  will-change: max-width, opacity !important;
+}
+
+.nav-col {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+.site-header.scrolled .site-logo .hotel-name-text {
+  opacity: 0 !important;
+  max-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.site-header.scrolled .site-logo .logo-img {
+  height: 55px !important;
+}
+
+@media (max-width: 991.98px) {
+  .site-logo .hotel-name-text {
+    display: none !important;
+  }
+  .site-logo .logo-img {
+    height: 40px !important;
+  }
+}
+
+/* PAGE HEADING AND BREADCRUMB FONT SIZES */
+.site-hero-inner h1.heading {
+  font-size: 72px !important;
+}
+
+.custom-breadcrumbs {
+  font-size: 20px !important;
+}
+
+.custom-breadcrumbs li {
+  font-size: 20px !important;
+}
+
+/* ROOM IMAGE CONSISTENCY */
+.room .img-wrap img {
+  width: 100% !important;
+  height: 240px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.room-info {
+  text-align: center !important;
+}
+
+.room-info h2 {
+  font-size: 1.75rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.75rem !important;
+  color: #333 !important;
+  white-space: nowrap !important;
+}
+
+.room-info span {
+  color: #f8b739 !important;
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 2px !important;
+  display: block !important;
+}
+
+/* LANGUAGE SELECTOR */
+.language-selector {
+  display: inline-block !important;
+  position: relative !important;
+}
+
+.language-selector .lang-button {
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 5px !important;
+  color: #fff !important;
+  font-size: 18px !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.site-header.scrolled .language-selector .lang-button {
+  color: #000 !important;
+}
+
+.language-selector .lang-dropdown {
+  display: none !important;
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+  z-index: 1000 !important;
+  min-width: 180px !important;
+  margin-top: -10px !important;
+  padding: 20px 0 10px 0 !important;
+}
+
+.site-header.scrolled .language-selector .lang-dropdown {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
+.language-selector:hover .lang-dropdown {
+  display: block !important;
+}
+
+.lang-dropdown a {
+  display: block !important;
+  padding: 12px 15px !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  font-size: 16px !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+.site-header.scrolled .lang-dropdown a {
+  color: #000 !important;
+}
+
+.lang-dropdown a:hover {
+  background: rgba(248, 183, 57, 0.2) !important;
+  color: #f8b739 !important;
+}
+
+.lang-dropdown img {
+  width: 24px !important;
+  height: 16px !important;
+  margin-right: 8px !important;
+  vertical-align: middle !important;
+}
+
+.goog-te-banner-frame.skiptranslate { display: none !important; }
+html, body { overflow-x: clip !important; }
+body { top: 0px !important; }
+#google_translate_element { display: none !important; }
+
+/* FOOTER FIX - Force labels and values on separate lines */
+.footer-section .contact-info .contact-label {
+  display: block !important;
+  font-weight: normal !important;
+  margin-bottom: 5px !important;
+}
+
+.footer-section .contact-info .contact-value {
+  display: block !important;
+  font-weight: normal !important;
+}
+
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #28a745;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 9999;
+  display: none;
+  animation: slideInRight 0.4s ease-out;
+}
+
+.toast-notification.show {
+  display: block;
+}
+
+.toast-notification.error {
+  background-color: #dc3545;
+}
+
+.toast-notification .toast-icon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

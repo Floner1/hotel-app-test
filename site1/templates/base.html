@@ -1,0 +1,199 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <!-- Meta Tags Section -->
+    <!-- Basic meta tags for character encoding and browser compatibility -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}Thien Tai Hotel{% endblock %}</title>
+    <!-- Responsive viewport settings -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    {% block meta %}{% endblock %}
+
+    <!-- Google Fonts -->
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=|Roboto+Sans:400,700|Playfair+Display:400,700">
+
+    <!-- Core CSS Dependencies -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/animate.css' %}">
+    <link rel="stylesheet" href="{% static 'css/owl.carousel.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/aos.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-datepicker.css' %}">
+    <link rel="stylesheet" href="{% static 'css/jquery.timepicker.css' %}">
+    <link rel="stylesheet" href="{% static 'css/fancybox.min.css' %}">
+
+    <!-- Icon Fonts -->
+    <link rel="stylesheet" href="{% static 'fonts/ionicons/css/ionicons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'fonts/fontawesome/css/font-awesome.min.css' %}">
+
+    <!-- Google Translate -->
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          includedLanguages: 'en,vi,zh-CN,ko',
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        }, 'google_translate_element');
+      }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <!-- Main Theme Styling -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <!-- Shared Override Styles -->
+    <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
+
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="toast-notification">
+      <span class="toast-icon">✓</span>
+      <span class="toast-message"></span>
+    </div>
+
+    {% include "_navbar.html" %}
+
+    {% block content %}{% endblock %}
+
+    {% include "_footer.html" %}
+
+    <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+    <script src="{% static 'js/jquery-migrate-3.0.1.min.js' %}"></script>
+    <script src="{% static 'js/popper.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'js/owl.carousel.min.js' %}"></script>
+    <script src="{% static 'js/jquery.stellar.min.js' %}"></script>
+    <script src="{% static 'js/jquery.fancybox.min.js' %}"></script>
+
+    <script src="{% static 'js/aos.js' %}"></script>
+
+    <script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
+    <script src="{% static 'js/jquery.timepicker.min.js' %}"></script>
+
+    <script src="{% static 'js/main.js' %}"></script>
+
+    <!-- Hidden Google Translate Widget -->
+    <div id="google_translate_element" style="display: none;"></div>
+
+    <script>
+      $(document).ready(function() {
+        $('.language-selector').on('click', function(e) {
+          e.stopPropagation();
+          $(this).addClass('keep-open');
+        });
+
+        $(document).on('click', function() {
+          $('.language-selector').removeClass('keep-open');
+        });
+
+        $('<style>.language-selector.keep-open .lang-dropdown { display: block !important; }</style>').appendTo('head');
+
+        $('.lang-dropdown a').on('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var lang = $(this).data('lang');
+          $('.language-selector').removeClass('keep-open');
+          var langCode = lang === 'zh' ? 'zh-CN' : lang;
+
+          var maxAttempts = 20;
+          var attempt = 0;
+          var triggerInterval = setInterval(function() {
+            attempt++;
+            var combo = document.querySelector('.goog-te-combo');
+            if (combo && combo.options) {
+              for (var i = 0; i < combo.options.length; i++) {
+                if (combo.options[i].value === langCode) {
+                  combo.selectedIndex = i;
+                  var evt = document.createEvent('HTMLEvents');
+                  evt.initEvent('change', true, true);
+                  combo.dispatchEvent(evt);
+                  clearInterval(triggerInterval);
+                  return;
+                }
+              }
+            }
+            if (attempt >= maxAttempts) clearInterval(triggerInterval);
+          }, 200);
+        });
+      });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+      // Toast notification function
+      function showToast(message, isError = false) {
+        var toast = $('#toast-notification');
+        toast.find('.toast-message').text(message);
+
+        if (isError) {
+          toast.addClass('error');
+          toast.find('.toast-icon').text('✗');
+        } else {
+          toast.removeClass('error');
+          toast.find('.toast-icon').text('✓');
+        }
+
+        toast.addClass('show');
+
+        setTimeout(function() {
+          toast.removeClass('show');
+        }, 3000);
+      }
+
+      // Check for Django messages and display as toast
+      {% if messages %}
+        {% for message in messages %}
+          showToast('{{ message|escapejs }}', {% if 'error' in message.tags %}true{% else %}false{% endif %});
+        {% endfor %}
+      {% endif %}
+    </script>
+
+    <script>
+      $(document).ready(function() {
+        $('#newsletter-form').on('submit', function(e) {
+          e.preventDefault();
+
+          var form = $(this);
+          var submitButton = form.find('button[type="submit"]');
+          var email = form.find('input[name="email"]').val();
+
+          // Disable the submit button
+          submitButton.prop('disabled', true);
+
+          $.ajax({
+            url: '{% url "newsletter_signup" %}',
+            type: 'POST',
+            data: {
+              'email': email,
+              'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            complete: function() {
+              // Clear the form and re-enable the submit button
+              form.find('input[name="email"]').val('');
+              submitButton.prop('disabled', false);
+            }
+          });
+        });
+      });
+    </script>
+
+    <!-- Admin Inline Edit System -->
+    <link rel="stylesheet" href="{% static 'css/admin-edit.css' %}">
+    <script src="{% static 'js/admin-edit.js' %}"></script>
+    <script>
+      AdminEdit.init({
+        saveUrl:   "{% url 'save_content' %}",
+        csrf:      "{{ csrf_token }}",
+        pageId:    "{% block page_id %}default{% endblock %}",
+        isAdmin:   {{ is_admin_user|yesno:"true,false" }},
+        overrides: JSON.parse('{{ text_overrides_json|escapejs }}' || '{}')
+      });
+    </script>
+  </body>
+</html>

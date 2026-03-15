@@ -1,0 +1,55 @@
+<footer class="section footer-section">
+  <div class="container">
+    <div class="row mb-4">
+      <div class="col-md-3 mb-5">
+        <ul class="list-unstyled link">
+          <li><a href="{% url 'about' %}">About Us</a></li>
+          <li><a href="{% url 'home' %}">Terms &amp; Conditions</a></li>
+          <li><a href="{% url 'home' %}">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div class="col-md-3 mb-5">
+        <ul class="list-unstyled link">
+          <li><a href="{% url 'about' %}">About Us</a></li>
+          <li><a href="{% url 'contact' %}">Contact Us</a></li>
+          <li><a href="{% url 'reservation' %}">Reservation</a></li>
+        </ul>
+      </div>
+      <div class="col-md-3 mb-5 contact-info">
+        <div class="contact-item">
+          <span class="contact-label">Address:</span>
+          <span class="contact-value">{{ hotel.hotel_address }}</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-label">Phone:</span>
+          <span class="contact-value">{{ hotel.phone }}</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-label">Email:</span>
+          <span class="contact-value">{{ hotel.email }}</span>
+        </div>
+      </div>
+      <div class="col-md-3 mb-5">
+        <p>Sign up for our newsletter</p>
+        <form id="newsletter-form" class="footer-newsletter">
+          <div class="form-group">
+            <input type="email" class="form-control" name="email" placeholder="Email..." required>
+            <button type="submit" class="btn"><span class="fa fa-paper-plane"></span></button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="row pt-5">
+      <p class="col-md-6 text-left">
+      </p>
+
+      <p class="col-md-6 text-right social">
+        <a href="#"><span class="fa fa-tripadvisor"></span></a>
+        <a href="#"><span class="fa fa-facebook"></span></a>
+        <a href="#"><span class="fa fa-twitter"></span></a>
+        <a href="#"><span class="fa fa-linkedin"></span></a>
+        <a href="#"><span class="fa fa-vimeo"></span></a>
+      </p>
+    </div>
+  </div>
+</footer>

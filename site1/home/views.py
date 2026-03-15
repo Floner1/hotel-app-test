@@ -6,10 +6,15 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService
 from data.models import User, CustomerBookingInfo, HotelServices
 from django.db.models import Sum
 from datetime import date, datetime
+import logging
+from home.audit import log_booking_create, log_booking_update, log_booking_delete, log_user_login
+
+logger = logging.getLogger(__name__)
 
 # Helper function to check if user is admin/staff
 def is_staff_or_admin(user):
@@ -18,6 +23,15 @@ def is_staff_or_admin(user):
         return False
     # Use the new role-based system
     return hasattr(user, 'role') and user.role in ['admin', 'staff']
+
+def _can_manage_target(request_user, target_user=None, target_role=None):
+    """Enforce role hierarchy: admin manages all, staff manages only customers."""
+    effective_role = target_role or (target_user.role if target_user else 'customer')
+    if request_user.role == 'admin':
+        return True, None
+    if effective_role in ('staff', 'admin'):
+        return False, 'You do not have permission to manage staff or admin accounts.'
+    return True, None
 
 def _db_image_exists(name):
     """Return True if an image with this name exists in the DB."""
@@ -124,6 +138,7 @@ def get_home(request):
     }
 
     return render(request, 'home.html', {
+        'active_page': 'home',
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
@@ -149,6 +164,7 @@ def get_about(request):
     }
 
     return render(request, 'about.html', {
+        'active_page': 'about',
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
@@ -156,21 +172,34 @@ def get_about(request):
         'ct': _get_all_content(_CONTENT_DEFAULTS),
     })
 
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def get_contact(request):
-    # Get hotel name and contact information
     hotel_name = HotelService.get_hotel_name()
     hotel_info = HotelService.get_hotel_info()
-    
-    # Get hotel services from database
     hotel_services = HotelServices.objects.all()
-    
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        email = request.POST.get('email', '').strip()
+        message = request.POST.get('message', '').strip()
+
+        if not name or not email or not message:
+            messages.error(request, 'Please fill in Name, Email and Message fields.')
+        else:
+            logger.info('Contact form submission from %s <%s>', name, email)
+            messages.success(request, 'Your message has been sent. We will get back to you soon!')
+            return redirect('contact')
+
     return render(request, 'contact.html', {
+        'active_page': 'contact',
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
         'ct': _get_all_content(_CONTENT_DEFAULTS),
     })
 
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def get_reservation(request):
     # Get hotel name and contact information
     hotel_name = HotelService.get_hotel_name()
@@ -208,6 +237,9 @@ def get_reservation(request):
             # Create reservation using the service
             booking = ReservationService.create_reservation(reservation_data)
             
+            # Audit log
+            log_booking_create(request.user, booking, request)
+
             # Calculate total days
             checkin = datetime.strptime(request.POST.get('checkin_date'), '%m/%d/%Y').date()
             checkout = datetime.strptime(request.POST.get('checkout_date'), '%m/%d/%Y').date()
@@ -215,7 +247,7 @@ def get_reservation(request):
             # For same-day bookings, display as 1 day
             if total_days == 0:
                 total_days = 1
-            
+
             # Return success response
             return JsonResponse({
                 'status': 'success',
@@ -239,9 +271,10 @@ def get_reservation(request):
             
         except Exception as e:
             # Return generic error response
+            logger.exception('Reservation creation failed')
             return JsonResponse({
                 'status': 'error',
-                'message': f'An unexpected error occurred: {str(e)}'
+                'message': 'An unexpected error occurred. Please try again later.'
             }, status=500)
     
     # Get hotel services from database
@@ -252,6 +285,7 @@ def get_reservation(request):
     
     # Handle GET request (display form)
     return render(request, 'reservation.html', {
+        'active_page': 'reservation',
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
@@ -270,6 +304,7 @@ def get_rooms(request):
     room_types = HotelService.get_available_room_types()
     
     return render(request, 'rooms.html', {
+        'active_page': 'rooms',
         'hotel_name': hotel_name,
         'hotel': hotel_info,
         'hotel_services': hotel_services,
@@ -278,13 +313,18 @@ def get_rooms(request):
         'ct': _get_all_content(_CONTENT_DEFAULTS),
     })
 
+@ratelimit(key='ip', rate='3/m', method='POST', block=True)
 def newsletter_signup(request):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        # TODO: implement actual newsletter subscription (save email, send confirmation)
-        return JsonResponse({'status': 'ok'})
-    return JsonResponse({'status': 'ok'})
+        email = request.POST.get('email', '').strip()
+        if not email or '@' not in email:
+            return JsonResponse({'status': 'error', 'message': 'Please provide a valid email address.'}, status=400)
+        logger.info('Newsletter signup: %s', email)
+        return JsonResponse({'status': 'ok', 'message': 'Thank you for subscribing!'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
 
 
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def login_view(request):
     """
     Custom login view that logs in the user and shows a success message.
@@ -297,6 +337,7 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
+                log_user_login(user, request)
                 
                 # Set SQL Server session context for RBAC triggers
                 from django.db import connection
@@ -328,6 +369,7 @@ def logout_view(request):
     return redirect('home')
 
 
+@ratelimit(key='ip', rate='3/m', method='POST', block=True)
 def register_view(request):
     """
     Registration view for creating new customer accounts.
@@ -372,6 +414,7 @@ def register_view(request):
         if errors:
             # Return form with errors
             context = {
+                'active_page': 'register',
                 'form': {
                     'username': {'value': username, 'errors': [errors['username']] if 'username' in errors else []},
                     'email': {'value': email, 'errors': [errors['email']] if 'email' in errors else []},
@@ -403,8 +446,10 @@ def register_view(request):
             return redirect('reservation')
             
         except Exception as e:
-            messages.error(request, f'An error occurred: {str(e)}')
+            logger.exception('User registration failed')
+            messages.error(request, 'An error occurred during registration. Please try again.')
             context = {
+                'active_page': 'register',
                 'form': {
                     'username': {'value': username},
                     'email': {'value': email},
@@ -540,12 +585,8 @@ def view_reservation(request, booking_id):
                 'booking': booking_data
             })
         
-        # Otherwise, return as context for template rendering (optional detail page)
-        context = {
-            'booking': booking,
-            'hotel': HotelService.get_hotel_info(),
-        }
-        return render(request, 'reservation_detail.html', context)
+        # Non-AJAX: redirect to the reservations dashboard
+        return redirect('admin_reservations')
         
     except CustomerBookingInfo.DoesNotExist:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -569,9 +610,17 @@ def delete_reservation(request, booking_id):
             # Find the booking
             booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
             booking_name = booking.guest_name
-            
+            booking_data = {
+                'guest_name': booking.guest_name,
+                'room_type': booking.room_type,
+                'check_in': str(booking.check_in),
+                'check_out': str(booking.check_out),
+                'total_price': str(booking.total_price),
+            }
+
             # Delete the booking
             booking.delete()
+            log_booking_delete(request.user, booking_id, booking_data, request)
             
             return JsonResponse({
                 'status': 'success',
@@ -583,9 +632,10 @@ def delete_reservation(request, booking_id):
                 'message': f'Booking #{booking_id} not found.'
             }, status=404)
         except Exception as e:
+            logger.exception('Reservation deletion failed for #%s', booking_id)
             return JsonResponse({
                 'status': 'error',
-                'message': f'An error occurred: {str(e)}'
+                'message': 'An unexpected error occurred while deleting the reservation.'
             }, status=500)
     else:
         return JsonResponse({
@@ -607,14 +657,21 @@ def manage_accounts(request):
             email = request.POST.get('email')
             password = request.POST.get('password')
             is_staff = request.POST.get('is_staff') == 'true'
-            
+
+            # Role hierarchy check: staff cannot create staff/admin accounts
+            new_role = 'staff' if is_staff else 'customer'
+            allowed, err_msg = _can_manage_target(request.user, target_role=new_role)
+            if not allowed:
+                messages.error(request, err_msg)
+                return redirect('manage_accounts')
+
             try:
                 from django.utils import timezone
                 # Create new user
                 user = User(
                     username=username,
                     email=email,
-                    role='staff' if is_staff else 'customer',
+                    role=new_role,
                     created_at=timezone.now(),
                     is_active=True
                 )
@@ -622,49 +679,81 @@ def manage_accounts(request):
                 user.save()
                 messages.success(request, f'Account "{username}" created successfully!')
             except Exception as e:
-                messages.error(request, f'Error creating account: {str(e)}')
-                
+                logger.exception('Account creation failed')
+                messages.error(request, 'An error occurred while creating the account.')
+
         elif action == 'edit':
             account_id = request.POST.get('account_id')
             username = request.POST.get('username')
             email = request.POST.get('email')
             password = request.POST.get('password')
             is_staff = request.POST.get('is_staff') == 'true'
-            
+
             try:
                 user = User.objects.get(user_id=account_id)
+
+                # Prevent staff from editing staff/admin accounts
+                allowed, err_msg = _can_manage_target(request.user, target_user=user)
+                if not allowed:
+                    messages.error(request, err_msg)
+                    return redirect('manage_accounts')
+
+                # Prevent role escalation: staff cannot set role to staff/admin
+                new_role = 'staff' if is_staff else 'customer'
+                allowed, err_msg = _can_manage_target(request.user, target_role=new_role)
+                if not allowed:
+                    messages.error(request, err_msg)
+                    return redirect('manage_accounts')
+
                 user.username = username
                 user.email = email
-                user.role = 'staff' if is_staff else 'customer'
-                
+                user.role = new_role
+
                 # Only update password if provided
                 if password:
                     user.set_password(password)
-                    
+
                 user.save()
                 messages.success(request, f'Account "{username}" updated successfully!')
             except User.DoesNotExist:
                 messages.error(request, 'Account not found.')
             except Exception as e:
-                messages.error(request, f'Error updating account: {str(e)}')
-                
+                logger.exception('Account update failed for #%s', account_id)
+                messages.error(request, 'An error occurred while updating the account.')
+
         elif action == 'delete':
             account_id = request.POST.get('account_id')
-            
+
             try:
                 user = User.objects.get(user_id=account_id)
+
+                # Prevent self-deletion
+                if user.user_id == request.user.user_id:
+                    messages.error(request, 'You cannot delete your own account.')
+                    return redirect('manage_accounts')
+
+                # Prevent staff from deleting staff/admin accounts
+                allowed, err_msg = _can_manage_target(request.user, target_user=user)
+                if not allowed:
+                    messages.error(request, err_msg)
+                    return redirect('manage_accounts')
+
                 username = user.username
                 user.delete()
                 messages.success(request, f'Account "{username}" deleted successfully!')
             except User.DoesNotExist:
                 messages.error(request, 'Account not found.')
             except Exception as e:
-                messages.error(request, f'Error deleting account: {str(e)}')
+                logger.exception('Account deletion failed for #%s', account_id)
+                messages.error(request, 'An error occurred while deleting the account.')
         
         return redirect('manage_accounts')
     
-    # GET request - display all active accounts
-    accounts = User.objects.filter(is_active=True).order_by('-created_at')
+    # GET request - display accounts based on role hierarchy
+    if request.user.role == 'admin':
+        accounts = User.objects.filter(is_active=True).order_by('-created_at')
+    else:
+        accounts = User.objects.filter(is_active=True, role='customer').order_by('-created_at')
     
     return render(request, 'manage_accounts.html', {
         'hotel': hotel_info,
@@ -727,7 +816,8 @@ def upload_image(request):
             })
 
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': f'Upload failed: {str(e)}'}, status=500)
+            logger.exception('Image upload failed')
+            return JsonResponse({'status': 'error', 'message': 'Image upload failed. Please try again.'}, status=500)
 
     return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
 
@@ -774,7 +864,8 @@ def save_content(request):
                 )
             return JsonResponse({'status': 'success', 'value': value})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            logger.exception('Content save failed')
+            return JsonResponse({'status': 'error', 'message': 'An error occurred while saving content.'}, status=500)
     return JsonResponse({'status': 'error', 'message': 'POST only'}, status=405)
 
 
@@ -794,7 +885,16 @@ def edit_reservation(request, booking_id):
             
             # Find the booking
             booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
-            
+
+            # Capture old data for audit
+            old_data = {
+                'guest_name': booking.guest_name,
+                'room_type': booking.room_type,
+                'check_in': str(booking.check_in),
+                'check_out': str(booking.check_out),
+                'total_price': str(booking.total_price),
+            }
+
             # Parse JSON data
             data = json.loads(request.body)
             
@@ -874,6 +974,7 @@ def edit_reservation(request, booking_id):
             
             # Save changes
             booking.save()
+            log_booking_update(request.user, booking, old_data, request)
             
             return JsonResponse({
                 'status': 'success',
@@ -897,9 +998,10 @@ def edit_reservation(request, booking_id):
                 'message': 'Invalid JSON data.'
             }, status=400)
         except Exception as e:
+            logger.exception('Reservation edit failed for #%s', booking_id)
             return JsonResponse({
                 'status': 'error',
-                'message': f'An error occurred: {str(e)}'
+                'message': 'An unexpected error occurred while updating the reservation.'
             }, status=500)
     else:
         return JsonResponse({

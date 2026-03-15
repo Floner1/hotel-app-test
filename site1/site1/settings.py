@@ -159,6 +159,13 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Fallback for Django admin
 ]
 
+# ---------- Session & cookie security ----------
+SESSION_COOKIE_HTTPONLY = True          # Prevent JS access to session cookie
+SESSION_COOKIE_AGE = 3600              # 1-hour session lifetime
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True # Session dies when browser closes
+SESSION_SAVE_EVERY_REQUEST = True      # Sliding expiry: resets on each request
+CSRF_COOKIE_HTTPONLY = False           # Must be False so JS can read CSRF token for AJAX
+
 # ---------- Security settings (apply when DEBUG=False) ----------
 if not DEBUG:
     SECURE_SSL_REDIRECT = True

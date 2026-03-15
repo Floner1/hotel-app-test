@@ -9,6 +9,10 @@ venv/
 env/
 .env/
 
+# Environment files (secrets)
+.env
+*.env
+
 # IDE
 .vscode/
 .idea/

@@ -1,12 +1,10 @@
 # Import all models to make them discoverable by Django
 from .hotel import (
     User,
-    Hotel, 
-    CustomerBookingInfo, 
+    Hotel,
+    CustomerBookingInfo,
     RoomPrice,
     HotelServices,
-    HotelKeysMain,
-    CustomerRequest,
     AuditLog
 )
 from .images import ImagesRef
@@ -18,8 +16,6 @@ __all__ = [
     'CustomerBookingInfo',
     'RoomPrice',
     'HotelServices',
-    'HotelKeysMain',
-    'CustomerRequest',
     'AuditLog',
     'ImagesRef',
     'SiteContent',
