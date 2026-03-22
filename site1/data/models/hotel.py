@@ -92,8 +92,8 @@ class User(AbstractBaseUser):
         return self.role == 'admin'
     
     def has_perm(self, perm, obj=None):
-        """Does user have a specific permission? Admins have all permissions."""
-        return self.role == 'admin'
+        """Does user have a specific permission? Admins and staff have permissions."""
+        return self.role in ['admin', 'staff']
     
     def has_module_perms(self, app_label):
         """Does user have permissions to view the app? Admins and staff yes."""
