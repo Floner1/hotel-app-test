@@ -16,7 +16,12 @@ from home.audit import log_booking_create, log_booking_update, log_booking_delet
 
 logger = logging.getLogger(__name__)
 
-# Helper function to check if user is admin/staff
+def is_admin(user):
+    """Check if user has admin role."""
+    if not user.is_authenticated:
+        return False
+    return hasattr(user, 'role') and user.role == 'admin'
+
 def is_staff_or_admin(user):
     """Check if user has staff or admin role."""
     if not user.is_authenticated:
@@ -834,7 +839,7 @@ def serve_image(request, image_name):
 
 
 @login_required
-@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+@user_passes_test(is_admin, login_url='/accounts/login/')
 def save_content(request):
     """Save a site content value to the DB (any key allowed for inline editing).
     If a 'db_key' is also provided, the value is saved under that key too

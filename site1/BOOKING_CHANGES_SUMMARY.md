@@ -143,7 +143,7 @@ Admin can:
    - Sort by status
    - Highlight pending bookings
 
-4. **Auto-fill Booking Form:**
+✅ 4. **Auto-fill Booking Form:**
    - Pre-fill name/email from logged-in user
    - Reduce data entry
 

@@ -16,7 +16,7 @@ def text_overrides(request):
             'is_admin_user': (
                 request.user.is_authenticated
                 and hasattr(request.user, 'role')
-                and request.user.role in ('admin', 'staff')
+                and request.user.role == 'admin'
             ),
         }
     except Exception:
