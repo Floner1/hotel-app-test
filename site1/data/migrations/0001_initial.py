@@ -12,6 +12,24 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
+            name='User',
+            fields=[
+                ('user_id', models.AutoField(primary_key=True, serialize=False)),
+                ('username', models.CharField(max_length=150, unique=True)),
+                ('email', models.EmailField(max_length=255, unique=True)),
+                ('password_hash', models.CharField(db_column='password_hash', max_length=255)),
+                ('role', models.CharField(choices=[('customer', 'Customer'), ('staff', 'Staff'), ('admin', 'Administrator')], default='customer', max_length=50)),
+                ('is_active', models.BooleanField(blank=True, default=True, null=True)),
+                ('created_at', models.DateTimeField(blank=True, null=True)),
+                ('last_login', models.DateTimeField(blank=True, null=True)),
+                ('created_by', models.IntegerField(blank=True, db_column='created_by', null=True)),
+            ],
+            options={
+                'db_table': 'users',
+                'managed': False,
+            },
+        ),
+        migrations.CreateModel(
             name='Hotel',
             fields=[
                 ('hotel_id', models.AutoField(primary_key=True, serialize=False)),

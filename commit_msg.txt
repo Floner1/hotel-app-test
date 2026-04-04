@@ -1,0 +1,7 @@
+﻿Fix migration crash caused by lazy reference to custom User model
+
+When trying to run migrations, Django was completely crashing with a ValueError about admin.LogEntry.user looking for 'data.user'. Because I set AUTH_USER_MODEL to 'data.User', Django's admin app expects the User model to be available right at the start of the migration graph.
+
+Since the User model was only being added in migration 0003, it broke the dependency chain entirely. I fixed this by manually moving the User model creation statement into data's 0001_initial.py migration and ripping it out of 0003. Since it's an unmanaged model (managed=False), this doesn't actually screw up the real database tables; it just makes Django's internal state tracker happy so manage.py migrate works.
+
+I also fixed a bad import in the tests file where it was trying to grab User from home.models instead of data.models. Tests are passing and the dev server starts up cleanly now.

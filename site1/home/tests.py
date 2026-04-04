@@ -1,6 +1,6 @@
 import pytest
 from django.urls import reverse
-from home.models import User
+from data.models import User
 
 @pytest.mark.django_db
 def test_newsletter_signup_invalid_email(client):
