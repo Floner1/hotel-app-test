@@ -1,0 +1,15 @@
+﻿asgiref==3.9.1
+Django==5.2.4
+django-ratelimit==4.1.0
+djangorestframework==3.16.0
+git-filter-repo==2.47.0
+mssql-django==1.6
+pillow==12.1.0
+pyodbc==5.2.0
+python-dotenv==1.1.1
+pytz==2025.2
+sqlparse==0.5.3
+tzdata==2025.2
+whitenoise>=6.5.0
+pytest>=7.4.0
+pytest-django>=4.5.2

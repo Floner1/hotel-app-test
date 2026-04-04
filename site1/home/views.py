@@ -321,8 +321,12 @@ def get_rooms(request):
 @ratelimit(key='ip', rate='3/m', method='POST', block=True)
 def newsletter_signup(request):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
         email = request.POST.get('email', '').strip()
-        if not email or '@' not in email:
+        try:
+            validate_email(email)
+        except ValidationError:
             return JsonResponse({'status': 'error', 'message': 'Please provide a valid email address.'}, status=400)
         logger.info('Newsletter signup: %s', email)
         return JsonResponse({'status': 'ok', 'message': 'Thank you for subscribing!'})
@@ -347,8 +351,8 @@ def login_view(request):
                 # Set SQL Server session context for RBAC triggers
                 from django.db import connection
                 with connection.cursor() as cursor:
-                    cursor.execute("EXEC sp_set_session_context 'user_id', %s", [user.id])
-                    cursor.execute("EXEC sp_set_session_context 'user_role', %s", [user.role])
+                    cursor.execute("EXEC sp_set_session_context @key=N'user_id', @value=%s", [str(user.id)])
+                    cursor.execute("EXEC sp_set_session_context @key=N'user_role', @value=%s", [user.role])
                 
                 messages.success(request, 'You have been successfully logged in.')
                 # Redirect to next parameter or home (validate to prevent open redirect)

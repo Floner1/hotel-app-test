@@ -139,62 +139,80 @@ class ReservationService:
         if not canonical_room_type:
             raise ValidationError('Invalid room type selected.')
 
-        # Get the rate for this room type (custom rate overrides preset)
-        custom_rate_raw = reservation_data.get('custom_rate')
-        if custom_rate_raw is not None:
-            try:
-                rate = Decimal(str(custom_rate_raw))
-                if rate <= 0:
-                    raise ValidationError('Custom price must be greater than zero.')
-            except (InvalidOperation, ValueError):
-                raise ValidationError('Invalid custom price value.')
-        else:
-            rate = cls._resolve_rate(room_type_input)
-        total_days = (checkout_date - checkin_date).days
-        # For same-day bookings, charge for at least 1 day
-        if total_days == 0:
-            total_days = 1
+        from django.db import transaction
+        from data.models.hotel import CustomerBookingInfo
 
-        total_cost = (rate * total_days).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        with transaction.atomic():
+            # 1. Lock the room rate row for serializing bookings to prevent race conditions
+            #    This ensures no two users can book simultaneously using the same room type.
+            RoomPrice.objects.select_for_update().filter(room_type=canonical_room_type).first()
 
-        hotel_record = BookingHotel.objects.order_by('hotel_id').first()
-        if hotel_record is None:
-            raise ValidationError('Hotel information is not configured. Please contact the administrator.')
+            # 2. Check for overlapping bookings (assuming 1 room capacity per type as there is no inventory table)
+            overlapping_count = CustomerBookingInfo.objects.filter(
+                room_type=canonical_room_type,
+                check_in__lt=checkout_date,
+                check_out__gt=checkin_date
+            ).exclude(status__in=['cancelled', 'rejected']).count()
 
-        guest_name = (reservation_data.get('name') or '').strip()
-        if not guest_name:
-            raise ValidationError('Guest name is required.')
+            if overlapping_count >= 1:
+                raise ValidationError(f'The {canonical_room_type.replace("_", " ")} room is completely booked for the selected dates.')
 
-        email = (reservation_data.get('email') or '').strip()
-        phone = (reservation_data.get('phone') or '').strip()
-        notes = (reservation_data.get('notes') or '').strip()
-        special_requests = (reservation_data.get('special_requests') or '').strip()
+            # Get the rate for this room type (custom rate overrides preset)        
+            custom_rate_raw = reservation_data.get('custom_rate')
+            if custom_rate_raw is not None:
+                try:
+                    rate = Decimal(str(custom_rate_raw))
+                    if rate <= 0:
+                        raise ValidationError('Custom price must be greater than zero.')
+                except (InvalidOperation, ValueError):
+                    raise ValidationError('Invalid custom price value.')
+            else:
+                rate = cls._resolve_rate(room_type_input)
+            total_days = (checkout_date - checkin_date).days
+            # For same-day bookings, charge for at least 1 day
+            if total_days == 0:
+                total_days = 1
 
-        # Get user from reservation_data if provided (for logged-in users)
-        user = reservation_data.get('user', None)
+            total_cost = (rate * total_days).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-        booking_data = {
-            'hotel': hotel_record,
-            'user': user,  # Link to user if logged in
-            'guest_name': guest_name,
-            'email': email if email else None,
-            'phone': phone if phone else None,
-            'room_type': canonical_room_type,
-            'booking_date': timezone.now(),
-            'check_in': checkin_date,
-            'check_out': checkout_date,
-            'adults': adults,
-            'children': children,
-            'booked_rate': rate,
-            'total_price': total_cost,
-            'status': 'pending',  # Changed to pending - admin must confirm
-            'payment_status': reservation_data.get('payment_status', 'unpaid'),
-            'amount_paid': Decimal('0.00'),
-            'special_requests': special_requests if special_requests else None,
-            'notes': notes if notes else None,
-        }
+            hotel_record = BookingHotel.objects.order_by('hotel_id').first()
+            if hotel_record is None:
+                raise ValidationError('Hotel information is not configured. Please contact the administrator.')
 
-        return ReservationRepository.create(booking_data)
+            guest_name = (reservation_data.get('name') or '').strip()
+            if not guest_name:
+                raise ValidationError('Guest name is required.')
+
+            email = (reservation_data.get('email') or '').strip()
+            phone = (reservation_data.get('phone') or '').strip()
+            notes = (reservation_data.get('notes') or '').strip()
+            special_requests = (reservation_data.get('special_requests') or '').strip()
+
+            # Get user from reservation_data if provided (for logged-in users)
+            user = reservation_data.get('user', None)
+
+            booking_data = {
+                'hotel': hotel_record,
+                'user': user,  # Link to user if logged in
+                'guest_name': guest_name,
+                'email': email if email else None,
+                'phone': phone if phone else None,
+                'room_type': canonical_room_type,
+                'booking_date': timezone.now(),
+                'check_in': checkin_date,
+                'check_out': checkout_date,
+                'adults': adults,
+                'children': children,
+                'booked_rate': rate,
+                'total_price': total_cost,
+                'status': 'pending',  # Changed to pending - admin must confirm
+                'payment_status': reservation_data.get('payment_status', 'unpaid'),
+                'amount_paid': Decimal('0.00'),
+                'special_requests': special_requests if special_requests else None,
+                'notes': notes if notes else None,
+            }
+
+            return ReservationRepository.create(booking_data)
 
     @classmethod
     def get_room_rates(cls, force_refresh: bool = False) -> Dict[str, Decimal]:
