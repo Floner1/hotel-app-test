@@ -15,18 +15,23 @@
             <li{% if active_page == 'about' %} class="active"{% endif %}><a href="{% url 'about' %}">About</a></li>
             <li{% if active_page == 'contact' %} class="active"{% endif %}><a href="{% url 'contact' %}">Contact</a></li>
             <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
-            <li class="language-selector">
-              <button class="lang-button">🌐 Language</button>
-              <div class="lang-dropdown">
-                <a href="#" data-lang="en">🇬🇧 English</a>
-                <a href="#" data-lang="vi">🇻🇳 Tiếng Việt</a>
-                <a href="#" data-lang="zh">🇨🇳 中文</a>
-                <a href="#" data-lang="ko">🇰🇷 한국어</a>
-              </div>
-            </li>
             {% if user.is_authenticated %}
               {% if user.role == 'admin' or user.role == 'staff' %}
-                <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+                <li class="staff-tools-dropdown" id="staffToolsDropdown" style="position:relative;display:inline-block;"
+                    onmouseenter="this.querySelector('.staff-tools-menu').style.display='block'"
+                    onmouseleave="this.querySelector('.staff-tools-menu').style.display='none'">
+                  <a href="#" class="staff-tools-trigger" onclick="return false;" style="display:inline-flex;align-items:center;gap:7px;white-space:nowrap;"><i class="fa fa-cogs"></i> Staff &amp; Admin Tools <i class="fa fa-chevron-down staff-tools-chevron"></i></a>
+                  <div class="staff-tools-menu" style="display:none;position:absolute;top:100%;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.14);z-index:9999;min-width:220px;padding:6px 0;">
+                    <a href="{% url 'admin_reservations' %}" style="display:flex !important;align-items:center;gap:10px;padding:11px 18px;color:#333 !important;font-size:14px !important;font-weight:500;text-decoration:none;white-space:nowrap;"
+                       onmouseenter="this.style.setProperty('background','#eef2ff','important');this.style.setProperty('color','#3b5bdb','important')" onmouseleave="this.style.setProperty('background','','important');this.style.setProperty('color','#333','important')"><i class="fa fa-list-alt" style="width:18px;text-align:center;color:#6b7baa;"></i> Dashboard</a>
+                    <a href="{% url 'room_dashboard' %}" style="display:flex !important;align-items:center;gap:10px;padding:11px 18px;color:#333 !important;font-size:14px !important;font-weight:500;text-decoration:none;white-space:nowrap;"
+                       onmouseenter="this.style.setProperty('background','#eef2ff','important');this.style.setProperty('color','#3b5bdb','important')" onmouseleave="this.style.setProperty('background','','important');this.style.setProperty('color','#333','important')"><i class="fa fa-building" style="width:18px;text-align:center;color:#6b7baa;"></i> Room Dashboard</a>
+                    {% if user.role == 'admin' %}
+                      <a href="#" id="navEditModeToggle" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;" style="display:flex !important;align-items:center;gap:10px;padding:11px 18px;color:#333 !important;font-size:14px !important;font-weight:500;text-decoration:none;white-space:nowrap;"
+                         onmouseenter="this.style.setProperty('background','#eef2ff','important');this.style.setProperty('color','#3b5bdb','important')" onmouseleave="this.style.setProperty('background','','important');this.style.setProperty('color','#333','important')"><i class="fa fa-pencil" style="width:18px;text-align:center;color:#6b7baa;"></i> Edit Mode</a>
+                    {% endif %}
+                  </div>
+                </li>
               {% endif %}
               <li><a href="{% url 'logout' %}">Logout</a></li>
             {% else %}
@@ -57,7 +62,12 @@
                     <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
                     {% if user.is_authenticated %}
                       {% if user.role == 'admin' or user.role == 'staff' %}
-                        <li><a href="{% url 'admin_reservations' %}">Dashboard</a></li>
+                        <li><span style="display:block;color:rgba(255,255,255,0.5);font-size:0.8em;margin-top:10px;margin-bottom:5px;">STAFF &amp; ADMIN TOOLS</span></li>
+                        <li><a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a></li>
+                        <li><a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a></li>
+                        {% if user.role == 'admin' %}
+                          <li><a href="#" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;"><i class="fa fa-pencil"></i> Edit Mode</a></li>
+                        {% endif %}
                       {% endif %}
                       <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
                     {% else %}

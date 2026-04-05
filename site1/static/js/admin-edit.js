@@ -249,13 +249,11 @@
 
   /* ---- build the UI (toggle button + modal) ---- */
   function buildUI() {
-    // Toggle button
-    var btn = document.createElement('button');
-    btn.id = 'adminEditToggle';
-    btn.className = 'admin-edit-toggle-btn';
-    btn.textContent = '✎ Edit Mode';
-    btn.addEventListener('click', toggleEditMode);
-    document.body.appendChild(btn);
+    // We rely solely on the navbar Edit Mode toggle.
+    var btn = document.getElementById('navEditModeToggle');
+    if (btn) {
+      btn.id = 'adminEditToggle';
+    }
 
     // Modal
     var modal = document.createElement('div');
@@ -318,7 +316,10 @@
   }
 
   /* ---- public init (called from template) ---- */
+  window.toggleEditMode = toggleEditMode;
+
   window.AdminEdit = {
+    toggle: toggleEditMode,
     init: function (opts) {
       SAVE_URL  = opts.saveUrl  || '';
       CSRF      = opts.csrf     || '';

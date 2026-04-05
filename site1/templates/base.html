@@ -28,19 +28,6 @@
     <link rel="stylesheet" href="{% static 'fonts/ionicons/css/ionicons.min.css' %}">
     <link rel="stylesheet" href="{% static 'fonts/fontawesome/css/font-awesome.min.css' %}">
 
-    <!-- Google Translate -->
-    <script type="text/javascript">
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en',
-          includedLanguages: 'en,vi,zh-CN,ko',
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-          autoDisplay: false
-        }, 'google_translate_element');
-      }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
     <!-- Main Theme Styling -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
@@ -76,52 +63,6 @@
     <script src="{% static 'js/jquery.timepicker.min.js' %}"></script>
 
     <script src="{% static 'js/main.js' %}"></script>
-
-    <!-- Hidden Google Translate Widget -->
-    <div id="google_translate_element" style="display: none;"></div>
-
-    <script>
-      $(document).ready(function() {
-        $('.language-selector').on('click', function(e) {
-          e.stopPropagation();
-          $(this).addClass('keep-open');
-        });
-
-        $(document).on('click', function() {
-          $('.language-selector').removeClass('keep-open');
-        });
-
-        $('<style>.language-selector.keep-open .lang-dropdown { display: block !important; }</style>').appendTo('head');
-
-        $('.lang-dropdown a').on('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          var lang = $(this).data('lang');
-          $('.language-selector').removeClass('keep-open');
-          var langCode = lang === 'zh' ? 'zh-CN' : lang;
-
-          var maxAttempts = 20;
-          var attempt = 0;
-          var triggerInterval = setInterval(function() {
-            attempt++;
-            var combo = document.querySelector('.goog-te-combo');
-            if (combo && combo.options) {
-              for (var i = 0; i < combo.options.length; i++) {
-                if (combo.options[i].value === langCode) {
-                  combo.selectedIndex = i;
-                  var evt = document.createEvent('HTMLEvents');
-                  evt.initEvent('change', true, true);
-                  combo.dispatchEvent(evt);
-                  clearInterval(triggerInterval);
-                  return;
-                }
-              }
-            }
-            if (attempt >= maxAttempts) clearInterval(triggerInterval);
-          }, 200);
-        });
-      });
-    </script>
 
     {% block extra_js %}{% endblock %}
 

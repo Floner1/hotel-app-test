@@ -12,6 +12,7 @@ urlpatterns = [
     path('accounts/register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/reservations/', views.admin_reservations, name='admin_reservations'),
+    path('dashboard/rooms/', views.room_dashboard, name='room_dashboard'),
     path('dashboard/reservations/view/<int:booking_id>/', views.view_reservation, name='view_reservation'),
     path('dashboard/reservations/edit/<int:booking_id>/', views.edit_reservation, name='edit_reservation'),
     path('dashboard/reservations/delete/<int:booking_id>/', views.delete_reservation, name='delete_reservation'),

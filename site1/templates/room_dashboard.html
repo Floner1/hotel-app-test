@@ -1,0 +1,379 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{ hotel.hotel_name }} - Room Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    {% load static %}
+
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+      body {
+        background-color: #f5f7fa;
+        font-family: 'Roboto', sans-serif;
+      }
+
+      /* ── Dashboard header (matches existing dashboard) ── */
+      .dashboard-header {
+        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+      .dashboard-header h1 { margin: 0; font-size: 2rem; font-weight: 600; }
+      .dashboard-header p  { margin: 0.5rem 0 0 0; opacity: 0.9; }
+
+      /* ── Back link ── */
+      .back-link {
+        color: rgba(255,255,255,0.85);
+        text-decoration: none;
+        font-size: 0.95rem;
+      }
+      .back-link:hover { color: #fff; text-decoration: underline; }
+
+      /* ── Status summary cards ── */
+      .status-summary {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+      }
+      .summary-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #fff;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+        text-decoration: none;
+      }
+      .summary-pill:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        color: #fff;
+        text-decoration: none;
+      }
+      .summary-pill.active {
+        box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0,0,0,0.15);
+      }
+      .summary-pill .count { font-size: 1.1rem; }
+
+      .pill-all          { background: #6c757d; }
+      .pill-empty_clean  { background: #28a745; }
+      .pill-empty_dirty  { background: #ffc107; color: #333; }
+      .pill-empty_dirty:hover { color: #333; }
+      .pill-occupied     { background: #007bff; }
+      .pill-out_of_order { background: #dc3545; }
+      .pill-reserved     { background: #6f42c1; }
+
+      /* ── Floor sections ── */
+      .floor-section { margin-bottom: 2rem; }
+      .floor-label {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      /* ── Room cards ── */
+      .room-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+        gap: 14px;
+      }
+      .room-card {
+        border-radius: 12px;
+        padding: 1rem;
+        color: #fff;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        transition: transform 0.15s, box-shadow 0.15s;
+        position: relative;
+      }
+      .room-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+      }
+      .room-card .room-code {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .room-card .room-status {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.9;
+      }
+      .room-card .room-type-label {
+        font-size: 0.78rem;
+        opacity: 0.92;
+        margin-top: 3px;
+        font-weight: 500;
+      }
+      .room-card .stay-info {
+        font-size: 0.78rem;
+        margin-top: 6px;
+        opacity: 0.95;
+      }
+      .room-card .stay-info i { margin-right: 3px; }
+
+      /* Status colours */
+      .room-card.status-empty_clean  { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+      .room-card.status-empty_dirty  { background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: #333; }
+      .room-card.status-occupied     { background: linear-gradient(135deg, #007bff 0%, #6610f2 100%); }
+      .room-card.status-out_of_order { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+      .room-card.status-reserved     { background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%); }
+
+      /* Hide cards that don't match the filter */
+      .room-card.filtered-out { display: none; }
+
+      /* ── Status change dropdown ── */
+      .status-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255,255,255,0.25);
+        border: none;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: inherit;
+        font-size: 12px;
+        transition: background 0.2s;
+      }
+      .status-btn:hover { background: rgba(255,255,255,0.45); }
+
+      .status-dropdown {
+        display: none;
+        position: absolute;
+        top: 36px;
+        right: 4px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        z-index: 100;
+        min-width: 170px;
+        overflow: hidden;
+      }
+      .status-dropdown.open { display: block; }
+      .status-dropdown a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 500;
+        transition: background 0.15s;
+      }
+      .status-dropdown a:hover { background: #f0f0f0; }
+      .status-dropdown .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .dot-empty_clean  { background: #28a745; }
+      .dot-empty_dirty  { background: #ffc107; }
+      .dot-occupied     { background: #007bff; }
+      .dot-out_of_order { background: #dc3545; }
+      .dot-reserved     { background: #6f42c1; }
+
+      /* ── Legend ── */
+      .legend {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+        font-size: 0.85rem;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+      <div class="container">
+        <div style="display:flex;align-items:center;gap:20px;margin-bottom:0.5rem;">
+          <a href="{% url 'home' %}" title="Go to Home" style="display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0;">
+            <img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel" style="height:52px;width:auto;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.18);transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+          </a>
+          <div>
+            <a href="{% url 'admin_reservations' %}" class="back-link"><i class="fa fa-arrow-left"></i> Back to Reservations</a>
+            <h1 style="margin-top:4px;"><i class="fa fa-building"></i> Room Dashboard</h1>
+            <p>{{ total_rooms }} rooms across {{ floors|length }} floors</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <!-- Status Filter Pills -->
+      <div class="status-summary">
+        <a href="?status=all" class="summary-pill pill-all{% if status_filter == 'all' %} active{% endif %}" data-filter="all">
+          All <span class="count">{{ total_rooms }}</span>
+        </a>
+        <a href="?status=empty_clean" class="summary-pill pill-empty_clean{% if status_filter == 'empty_clean' %} active{% endif %}" data-filter="empty_clean">
+          <i class="fa fa-check-circle"></i> Clean <span class="count">{{ status_counts.empty_clean }}</span>
+        </a>
+        <a href="?status=empty_dirty" class="summary-pill pill-empty_dirty{% if status_filter == 'empty_dirty' %} active{% endif %}" data-filter="empty_dirty">
+          <i class="fa fa-exclamation-circle"></i> Dirty <span class="count">{{ status_counts.empty_dirty }}</span>
+        </a>
+        <a href="?status=occupied" class="summary-pill pill-occupied{% if status_filter == 'occupied' %} active{% endif %}" data-filter="occupied">
+          <i class="fa fa-user"></i> Occupied <span class="count">{{ status_counts.occupied }}</span>
+        </a>
+        <a href="?status=out_of_order" class="summary-pill pill-out_of_order{% if status_filter == 'out_of_order' %} active{% endif %}" data-filter="out_of_order">
+          <i class="fa fa-wrench"></i> Out of Order <span class="count">{{ status_counts.out_of_order }}</span>
+        </a>
+        <a href="?status=reserved" class="summary-pill pill-reserved{% if status_filter == 'reserved' %} active{% endif %}" data-filter="reserved">
+          <i class="fa fa-bookmark"></i> Reserved <span class="count">{{ status_counts.reserved }}</span>
+        </a>
+      </div>
+
+      <!-- Colour Legend -->
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot dot-empty_clean"></span> Empty Clean</div>
+        <div class="legend-item"><span class="legend-dot dot-empty_dirty"></span> Empty Dirty</div>
+        <div class="legend-item"><span class="legend-dot dot-occupied"></span> Occupied</div>
+        <div class="legend-item"><span class="legend-dot dot-out_of_order"></span> Out of Order</div>
+        <div class="legend-item"><span class="legend-dot dot-reserved"></span> Reserved</div>
+      </div>
+
+      <!-- Room Cards Grouped by Floor -->
+      {% for floor_num, room_list in floors.items %}
+      <div class="floor-section">
+        <div class="floor-label"><i class="fa fa-th-large"></i> Floor {{ floor_num }} <small style="color:#888;">({{ room_list|length }} rooms)</small></div>
+        <div class="room-grid">
+          {% for item in room_list %}
+          <div class="room-card status-{{ item.room.current_status }}" data-status="{{ item.room.current_status }}" data-room-id="{{ item.room.room_id }}">
+
+            <!-- Status change button -->
+            <button class="status-btn" title="Change status" onclick="toggleDropdown(event, this)"><i class="fa fa-ellipsis-v"></i></button>
+            <div class="status-dropdown">
+              <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'empty_clean')"><span class="dot dot-empty_clean"></span> Empty Clean</a>
+              <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'empty_dirty')"><span class="dot dot-empty_dirty"></span> Empty Dirty</a>
+              <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'occupied')"><span class="dot dot-occupied"></span> Occupied</a>
+              <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'out_of_order')"><span class="dot dot-out_of_order"></span> Out of Order</a>
+              <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'reserved')"><span class="dot dot-reserved"></span> Reserved</a>
+            </div>
+
+            <div>
+              <div class="room-code">{{ item.room.room_code }}</div>
+              <div class="room-status">{{ item.room.get_current_status_display }}</div>
+              <div class="room-type-label">{{ item.room.room_type }}</div>
+            </div>
+
+            {% if item.assignment and item.room.current_status == 'occupied' or item.assignment and item.room.current_status == 'reserved' %}
+            <div class="stay-info">
+              <div><i class="fa fa-user"></i> {{ item.assignment.booking.guest_name }}</div>
+              <div><i class="fa fa-calendar"></i> {{ item.assignment.check_in|date:"M d" }} &mdash; {{ item.duration }} night{{ item.duration|pluralize }}</div>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+
+    <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+    <script>
+      var csrfToken = '{{ csrf_token }}';
+      var statusFilter = '{{ status_filter }}';
+
+      /* ── Client-side filter (instant, no reload) ── */
+      function applyFilter(filter) {
+        document.querySelectorAll('.room-card').forEach(function(card) {
+          if (filter === 'all' || card.dataset.status === filter) {
+            card.classList.remove('filtered-out');
+          } else {
+            card.classList.add('filtered-out');
+          }
+        });
+        document.querySelectorAll('.summary-pill').forEach(function(pill) {
+          pill.classList.toggle('active', pill.dataset.filter === filter);
+        });
+      }
+
+      /* Intercept filter clicks for instant filtering */
+      document.querySelectorAll('.summary-pill').forEach(function(pill) {
+        pill.addEventListener('click', function(e) {
+          e.preventDefault();
+          var f = this.dataset.filter;
+          statusFilter = f;
+          applyFilter(f);
+          history.replaceState(null, '', '?status=' + f);
+        });
+      });
+
+      /* Apply on load */
+      if (statusFilter && statusFilter !== 'all') applyFilter(statusFilter);
+
+      /* ── Status dropdown ── */
+      function toggleDropdown(e, btn) {
+        e.stopPropagation();
+        // Close all others
+        document.querySelectorAll('.status-dropdown.open').forEach(function(d) {
+          if (d !== btn.nextElementSibling) d.classList.remove('open');
+        });
+        btn.nextElementSibling.classList.toggle('open');
+      }
+
+      // Close dropdowns on outside click
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.status-dropdown.open').forEach(function(d) {
+          d.classList.remove('open');
+        });
+      });
+
+      /* ── AJAX status change ── */
+      function changeStatus(e, roomId, newStatus) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        $.ajax({
+          url: '',
+          method: 'POST',
+          data: { room_id: roomId, new_status: newStatus, csrfmiddlewaretoken: csrfToken },
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          success: function() { location.reload(); },
+          error: function() { alert('Failed to update room status.'); }
+        });
+      }
+    </script>
+  </body>
+</html>

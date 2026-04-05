@@ -551,6 +551,76 @@ def admin_reservations(request):
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+def room_dashboard(request):
+    """Room status dashboard showing all physical rooms grouped by floor."""
+    from data.models import Room, RoomAssignment
+
+    # Handle status update via POST (staff/admin changes a room's status)
+    if request.method == 'POST':
+        room_id = request.POST.get('room_id')
+        new_status = request.POST.get('new_status')
+        valid_statuses = ['empty_clean', 'empty_dirty', 'occupied', 'out_of_order', 'reserved']
+        if room_id and new_status in valid_statuses:
+            try:
+                room = Room.objects.get(room_id=room_id)
+                room.current_status = new_status
+                room.save()
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'ok'})
+                messages.success(request, f'Room {room.room_code} updated to {room.get_current_status_display()}.')
+            except Room.DoesNotExist:
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'error', 'message': 'Room not found.'}, status=404)
+                messages.error(request, 'Room not found.')
+        return redirect('room_dashboard')
+
+    # Build room data with active assignments
+    rooms = Room.objects.select_related('hotel').order_by('floor_number', 'room_number')
+
+    # Pre-fetch active assignments with their bookings
+    active_assignments = RoomAssignment.objects.filter(
+        status='active'
+    ).select_related('booking', 'room')
+
+    assignment_map = {}
+    for a in active_assignments:
+        assignment_map[a.room_id] = a
+
+    # Group rooms by floor
+    floors = {}
+    status_counts = {
+        'empty_clean': 0, 'empty_dirty': 0,
+        'occupied': 0, 'out_of_order': 0, 'reserved': 0,
+    }
+    for room in rooms:
+        assignment = assignment_map.get(room.room_id)
+        duration = None
+        if assignment:
+            duration = (assignment.check_out - assignment.check_in).days
+
+        room_data = {
+            'room': room,
+            'assignment': assignment,
+            'duration': duration,
+        }
+        floors.setdefault(room.floor_number, []).append(room_data)
+        status_counts[room.current_status] = status_counts.get(room.current_status, 0) + 1
+
+    # Active filter from query string
+    status_filter = request.GET.get('status', 'all')
+
+    context = {
+        'floors': dict(sorted(floors.items())),
+        'status_counts': status_counts,
+        'total_rooms': sum(status_counts.values()),
+        'status_filter': status_filter,
+        'hotel': HotelService.get_hotel_info(),
+    }
+    return render(request, 'room_dashboard.html', context)
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def view_reservation(request, booking_id):
     """
     View detailed information about a specific reservation.

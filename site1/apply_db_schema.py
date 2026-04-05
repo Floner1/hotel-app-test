@@ -24,9 +24,11 @@ def run_schema():
             print("Dropping dependencies...")
             cursor.execute('''
                 IF OBJECT_ID('dbo.trg_booking_ownership', 'TR') IS NOT NULL DROP TRIGGER dbo.trg_booking_ownership;
+                IF OBJECT_ID('dbo.room_assignments', 'U') IS NOT NULL DROP TABLE dbo.room_assignments;
                 IF OBJECT_ID('dbo.customer_requests', 'U') IS NOT NULL DROP TABLE dbo.customer_requests;
                 IF OBJECT_ID('dbo.audit_log', 'U') IS NOT NULL DROP TABLE dbo.audit_log;
                 IF OBJECT_ID('dbo.booking_info', 'U') IS NOT NULL DROP TABLE dbo.booking_info;
+                IF OBJECT_ID('dbo.rooms', 'U') IS NOT NULL DROP TABLE dbo.rooms;
                 
                 -- Also drop the foreign key inside the users table that references itself
                 BEGIN TRY

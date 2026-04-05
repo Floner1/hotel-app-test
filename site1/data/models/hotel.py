@@ -205,6 +205,68 @@ class RoomPrice(models.Model):
         return f"RoomPrice #{self.room_price_id} - {self.room_type}"
 
 
+class Room(models.Model):
+    """Physical room inventory mapped to the rooms table."""
+
+    room_id = models.AutoField(primary_key=True)
+    hotel = models.ForeignKey('Hotel', models.DO_NOTHING)
+    room_code = models.CharField(max_length=10, unique=True)
+    floor_number = models.IntegerField()
+    room_number = models.IntegerField()
+    room_type = models.CharField(max_length=225, null=True, blank=True)
+    current_status = models.CharField(
+        max_length=50,
+        default='empty_clean',
+        choices=[
+            ('empty_clean', 'Empty Clean'),
+            ('empty_dirty', 'Empty Dirty'),
+            ('occupied', 'Occupied'),
+            ('out_of_order', 'Out of Order'),
+            ('reserved', 'Reserved'),
+        ]
+    )
+    notes = models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'rooms'
+        managed = False
+        ordering = ['floor_number', 'room_number']
+
+    def __str__(self) -> str:
+        return f"Room {self.room_code} ({self.get_current_status_display()})"
+
+
+class RoomAssignment(models.Model):
+    """Links a booking to a physical room. Separate join table."""
+
+    assignment_id = models.AutoField(primary_key=True)
+    booking = models.ForeignKey('CustomerBookingInfo', models.DO_NOTHING, related_name='room_assignments')
+    room = models.ForeignKey('Room', models.DO_NOTHING, related_name='assignments')
+    check_in = models.DateField()
+    check_out = models.DateField()
+    assigned_at = models.DateTimeField(null=True, blank=True)
+    assigned_by = models.ForeignKey('User', models.DO_NOTHING, null=True, blank=True, db_column='assigned_by')
+    status = models.CharField(
+        max_length=50,
+        default='active',
+        choices=[
+            ('active', 'Active'),
+            ('completed', 'Completed'),
+            ('cancelled', 'Cancelled'),
+            ('transferred', 'Transferred'),
+        ]
+    )
+    notes = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'room_assignments'
+        managed = False
+
+    def __str__(self) -> str:
+        return f"Assignment #{self.assignment_id} — Room {self.room.room_code} for Booking #{self.booking_id}"
+
+
 class HotelServices(models.Model):
     """Model mapped to the SQL Server `hotel_services` table."""
 

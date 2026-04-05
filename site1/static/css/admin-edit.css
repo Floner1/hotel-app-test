@@ -3,6 +3,9 @@
    ========================================================================== */
 
 /* ---- Edit-mode toggle button ---- */
+/* Hidden by default — Edit Mode is now triggered from the Staff & Admin Tools
+   dropdown in the navbar. The floating button only appears once edit mode is
+   active so the user has a visible "exit" control. */
 .admin-edit-toggle-btn {
   position: fixed;
   bottom: 24px;
@@ -19,6 +22,7 @@
   box-shadow: 0 4px 16px rgba(0,0,0,0.20);
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
   font-family: inherit;
+  display: none;
 }
 .admin-edit-toggle-btn:hover {
   background: #ffa527;
@@ -26,6 +30,7 @@
   box-shadow: 0 6px 20px rgba(0,0,0,0.25);
 }
 .admin-edit-toggle-btn.ae-active {
+  display: block;
   background: #dc3545;
   color: #fff;
 }

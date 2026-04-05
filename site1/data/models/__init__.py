@@ -4,6 +4,8 @@ from .hotel import (
     Hotel,
     CustomerBookingInfo,
     RoomPrice,
+    Room,
+    RoomAssignment,
     HotelServices,
     AuditLog
 )
@@ -15,6 +17,8 @@ __all__ = [
     'Hotel',
     'CustomerBookingInfo',
     'RoomPrice',
+    'Room',
+    'RoomAssignment',
     'HotelServices',
     'AuditLog',
     'ImagesRef',

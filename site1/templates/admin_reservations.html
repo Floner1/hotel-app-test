@@ -690,9 +690,14 @@
     <div class="dashboard-header">
       <div class="container">
         <div class="row align-items-center">
-          <div class="col-md-6">
-            <h1><i class="fa fa-dashboard"></i> Reservations Dashboard</h1>
-            <p>{{ hotel.hotel_name }} - Employee Portal</p>
+          <div class="col-md-6" style="display:flex;align-items:center;gap:20px;">
+            <a href="{% url 'home' %}" title="Go to Home" style="display:inline-flex;align-items:center;text-decoration:none;flex-shrink:0;">
+              <img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel" style="height:52px;width:auto;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.18);transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+            </a>
+            <div>
+              <h1><i class="fa fa-dashboard"></i> Reservations Dashboard</h1>
+              <p>{{ hotel.hotel_name }} - Employee Portal</p>
+            </div>
           </div>
           <div class="col-md-6 text-right">
             <a href="{% url 'manage_accounts' %}" class="export-btn mr-3" style="text-decoration: none; display: inline-block;">

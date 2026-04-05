@@ -325,82 +325,79 @@ GO
 
 /* =====================================================
    SEED ROOMS — 53 physical rooms
-   Floors 4-8: 8 rooms each (40)
-   Floor 9:    4 rooms         (4)
-   Floor 10:   8 rooms         (8)
-   Floor 11:   1 room          (1)
-   Total:                      53
+   Floors 4-8, 10: 8 rooms each (48)
+   Floor 9:        4 rooms       (4)
+   Floor 11:       1 room        (1)
+   Total:                        53
 
-   Room type assignment (approximate distribution):
-     Floor 4:  1 Bed No Window (budget floor)
-     Floor 5:  1 Bed No Window (4) + 2 Bed No Window Room (4)
-     Floor 6:  2 Bed No Window Room (4) + 1 Bed With Window (4)
-     Floor 7:  1 Bed With Window (4) + 1 Bed With Balcony (4)
-     Floor 8:  1 Bed With Balcony (8)
-     Floor 9:  1 Bed With Balcony (4)
-     Floor 10: 2 Bed & Balcony Condotel (8)
-     Floor 11: 2 Bed & Balcony Condotel (1) — penthouse
+   Room type layout per floor (floors 4-8 and 10):
+     Rooms 1-2: 1 Bed With Balcony
+     Rooms 3-4: 1 Bed No Window
+     Rooms 5-6: 2 Bed No Window Room
+     Rooms 7-8: 1 Bed With Window
+   Floor 9 (all 4 rooms): 2 Bed & Balcony Condotel
+   Floor 11 (1 room):     1 Bed No Window
 ===================================================== */
 INSERT INTO rooms (hotel_id, room_code, floor_number, room_number, room_type) VALUES
--- Floor 4 (8 rooms) — 1 Bed No Window
-(1, '401', 4, 1, '1 Bed No Window'),
-(1, '402', 4, 2, '1 Bed No Window'),
+-- Floor 4 (8 rooms)
+(1, '401', 4, 1, '1 Bed With Balcony'),
+(1, '402', 4, 2, '1 Bed With Balcony'),
 (1, '403', 4, 3, '1 Bed No Window'),
 (1, '404', 4, 4, '1 Bed No Window'),
-(1, '405', 4, 5, '1 Bed No Window'),
-(1, '406', 4, 6, '1 Bed No Window'),
-(1, '407', 4, 7, '1 Bed No Window'),
-(1, '408', 4, 8, '1 Bed No Window'),
--- Floor 5 (8 rooms) — mixed
-(1, '501', 5, 1, '1 Bed No Window'),
-(1, '502', 5, 2, '1 Bed No Window'),
+(1, '405', 4, 5, '2 Bed No Window Room'),
+(1, '406', 4, 6, '2 Bed No Window Room'),
+(1, '407', 4, 7, '1 Bed With Window'),
+(1, '408', 4, 8, '1 Bed With Window'),
+-- Floor 5 (8 rooms)
+(1, '501', 5, 1, '1 Bed With Balcony'),
+(1, '502', 5, 2, '1 Bed With Balcony'),
 (1, '503', 5, 3, '1 Bed No Window'),
 (1, '504', 5, 4, '1 Bed No Window'),
 (1, '505', 5, 5, '2 Bed No Window Room'),
 (1, '506', 5, 6, '2 Bed No Window Room'),
-(1, '507', 5, 7, '2 Bed No Window Room'),
-(1, '508', 5, 8, '2 Bed No Window Room'),
--- Floor 6 (8 rooms) — mixed
-(1, '601', 6, 1, '2 Bed No Window Room'),
-(1, '602', 6, 2, '2 Bed No Window Room'),
-(1, '603', 6, 3, '2 Bed No Window Room'),
-(1, '604', 6, 4, '2 Bed No Window Room'),
-(1, '605', 6, 5, '1 Bed With Window'),
-(1, '606', 6, 6, '1 Bed With Window'),
+(1, '507', 5, 7, '1 Bed With Window'),
+(1, '508', 5, 8, '1 Bed With Window'),
+-- Floor 6 (8 rooms)
+(1, '601', 6, 1, '1 Bed With Balcony'),
+(1, '602', 6, 2, '1 Bed With Balcony'),
+(1, '603', 6, 3, '1 Bed No Window'),
+(1, '604', 6, 4, '1 Bed No Window'),
+(1, '605', 6, 5, '2 Bed No Window Room'),
+(1, '606', 6, 6, '2 Bed No Window Room'),
 (1, '607', 6, 7, '1 Bed With Window'),
 (1, '608', 6, 8, '1 Bed With Window'),
--- Floor 7 (8 rooms) — mixed
-(1, '701', 7, 1, '1 Bed With Window'),
-(1, '702', 7, 2, '1 Bed With Window'),
-(1, '703', 7, 3, '1 Bed With Window'),
-(1, '704', 7, 4, '1 Bed With Window'),
-(1, '705', 7, 5, '1 Bed With Balcony'),
-(1, '706', 7, 6, '1 Bed With Balcony'),
-(1, '707', 7, 7, '1 Bed With Balcony'),
-(1, '708', 7, 8, '1 Bed With Balcony'),
--- Floor 8 (8 rooms) — 1 Bed With Balcony
+-- Floor 7 (8 rooms)
+(1, '701', 7, 1, '1 Bed With Balcony'),
+(1, '702', 7, 2, '1 Bed With Balcony'),
+(1, '703', 7, 3, '1 Bed No Window'),
+(1, '704', 7, 4, '1 Bed No Window'),
+(1, '705', 7, 5, '2 Bed No Window Room'),
+(1, '706', 7, 6, '2 Bed No Window Room'),
+(1, '707', 7, 7, '1 Bed With Window'),
+(1, '708', 7, 8, '1 Bed With Window'),
+-- Floor 8 (8 rooms)
 (1, '801', 8, 1, '1 Bed With Balcony'),
 (1, '802', 8, 2, '1 Bed With Balcony'),
-(1, '803', 8, 3, '1 Bed With Balcony'),
-(1, '804', 8, 4, '1 Bed With Balcony'),
-(1, '805', 8, 5, '1 Bed With Balcony'),
-(1, '806', 8, 6, '1 Bed With Balcony'),
-(1, '807', 8, 7, '1 Bed With Balcony'),
-(1, '808', 8, 8, '1 Bed With Balcony'),
--- Floor 9 (4 rooms) — 1 Bed With Balcony
-(1, '901', 9, 1, '1 Bed With Balcony'),
-(1, '902', 9, 2, '1 Bed With Balcony'),
-(1, '903', 9, 3, '1 Bed With Balcony'),
-(1, '904', 9, 4, '1 Bed With Balcony'),
--- Floor 10 (8 rooms) — 2 Bed & Balcony Condotel
-(1, '1001', 10, 1, '2 Bed & Balcony Condotel'),
-(1, '1002', 10, 2, '2 Bed & Balcony Condotel'),
-(1, '1003', 10, 3, '2 Bed & Balcony Condotel'),
-(1, '1004', 10, 4, '2 Bed & Balcony Condotel'),
-(1, '1005', 10, 5, '2 Bed & Balcony Condotel'),
-(1, '1006', 10, 6, '2 Bed & Balcony Condotel'),
-(1, '1007', 10, 7, '2 Bed & Balcony Condotel'),
-(1, '1008', 10, 8, '2 Bed & Balcony Condotel'),
--- Floor 11 (1 room) — Penthouse Condotel
-(1, '1101', 11, 1, '2 Bed & Balcony Condotel');
+(1, '803', 8, 3, '1 Bed No Window'),
+(1, '804', 8, 4, '1 Bed No Window'),
+(1, '805', 8, 5, '2 Bed No Window Room'),
+(1, '806', 8, 6, '2 Bed No Window Room'),
+(1, '807', 8, 7, '1 Bed With Window'),
+(1, '808', 8, 8, '1 Bed With Window'),
+-- Floor 9 (4 rooms) — all 2 Bed & Balcony Condotel
+(1, '901', 9, 1, '2 Bed & Balcony Condotel'),
+(1, '902', 9, 2, '2 Bed & Balcony Condotel'),
+(1, '903', 9, 3, '2 Bed & Balcony Condotel'),
+(1, '904', 9, 4, '2 Bed & Balcony Condotel'),
+-- Floor 10 (8 rooms)
+(1, '1001', 10, 1, '1 Bed With Balcony'),
+(1, '1002', 10, 2, '1 Bed With Balcony'),
+(1, '1003', 10, 3, '1 Bed No Window'),
+(1, '1004', 10, 4, '1 Bed No Window'),
+(1, '1005', 10, 5, '2 Bed No Window Room'),
+(1, '1006', 10, 6, '2 Bed No Window Room'),
+(1, '1007', 10, 7, '1 Bed With Window'),
+(1, '1008', 10, 8, '1 Bed With Window'),
+-- Floor 11 (1 room) — 1 Bed No Window
+(1, '1101', 11, 1, '1 Bed No Window');
 GO
