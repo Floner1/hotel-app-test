@@ -214,16 +214,28 @@ class Room(models.Model):
     floor_number = models.IntegerField()
     room_number = models.IntegerField()
     room_type = models.CharField(max_length=225, null=True, blank=True)
-    current_status = models.CharField(
+    reservation_status = models.CharField(
         max_length=50,
-        default='empty_clean',
+        default='vacant',
         choices=[
-            ('empty_clean', 'Empty Clean'),
-            ('empty_dirty', 'Empty Dirty'),
+            ('vacant', 'Vacant'),
             ('occupied', 'Occupied'),
-            ('out_of_order', 'Out of Order'),
             ('reserved', 'Reserved'),
         ]
+    )
+    housekeeping_status = models.CharField(
+        max_length=50,
+        default='clean',
+        choices=[
+            ('clean', 'Clean'),
+            ('dirty', 'Dirty'),
+            ('cleaning_in_progress', 'Cleaning in Progress'),
+            ('out_of_order', 'Out of Order'),
+        ]
+    )
+    last_cleaned_at = models.DateTimeField(null=True, blank=True)
+    assigned_housekeeper = models.ForeignKey(
+        'User', models.DO_NOTHING, db_column='assigned_housekeeper_id', null=True, blank=True
     )
     notes = models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
@@ -234,7 +246,7 @@ class Room(models.Model):
         ordering = ['floor_number', 'room_number']
 
     def __str__(self) -> str:
-        return f"Room {self.room_code} ({self.get_current_status_display()})"
+        return f"Room {self.room_code} ({self.get_reservation_status_display()} / {self.get_housekeeping_status_display()})"
 
 
 class RoomAssignment(models.Model):

@@ -1,14 +1,12 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Accounts - {{ hotel.hotel_name }}</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <style>
-    :root {
+{% load humanize %}
+
+{% block title %}Manage Accounts | {{ hotel.hotel_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
       --primary-color: #ffba5a;
       --secondary-color: #4caf50;
       --danger-color: #f44336;
@@ -388,10 +386,11 @@
         opacity: 1;
       }
     }
-  </style>
-</head>
-<body>
-  <!-- Toast Notification -->
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Toast Notification -->
   <div id="toast-notification" class="toast-notification">
     <div class="toast-content">
       <span class="toast-icon">✓</span>
@@ -552,8 +551,10 @@
       </form>
     </div>
   </div>
+{% endblock %}
 
-  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script>
     // Toast notification function
     function showToast(message, type = 'success') {
@@ -693,5 +694,4 @@
       }
     }
   </script>
-</body>
-</html>
+{% endblock %}

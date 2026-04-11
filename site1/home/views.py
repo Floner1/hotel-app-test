@@ -8,7 +8,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService
-from data.models import User, CustomerBookingInfo, HotelServices
+from data.models import User, CustomerBookingInfo
 from django.db.models import Sum
 from datetime import date, datetime
 import logging
@@ -60,45 +60,13 @@ def _db_images_exist(names):
         return {name: False for name in names}
 
 
-def _get_content(key, default=''):
-    """Return site content from DB, falling back to default."""
-    try:
-        from data.models.site_content import SiteContent
-        obj = SiteContent.objects.filter(content_key=key).first()
-        return obj.content_value if obj else default
-    except Exception:
-        return default
 
 
-def _get_all_content(defaults):
-    """Load all site content in a single query, falling back to defaults."""
-    try:
-        from data.models.site_content import SiteContent
-        rows = SiteContent.objects.filter(
-            content_key__in=defaults.keys()
-        ).values_list('content_key', 'content_value')
-        db_values = {key: val for key, val in rows}
-        return {k: db_values.get(k, v) for k, v in defaults.items()}
-    except Exception:
-        return dict(defaults)
 
 
-_CONTENT_DEFAULTS = {
-    'hero_subtitle':         'Relax Your Soul',
-    'welcome_heading':       'Welcome!',
-    'welcome_body':          'Thiên Tài Hotel is a modern, centrally located hotel in Ho Chi Minh City offering comfortable, individually designed rooms with contemporary amenities. Featuring a rooftop terrace, on-site restaurant and café, and attentive 24-hour service, the hotel provides a convenient and relaxing stay close to major attractions, shopping areas, and local landmarks.',
-    'rooms_heading':         'Rooms & Suites',
-    'rooms_description':     'Our rooms offer a quiet place to rest. Simple layouts, comfortable beds, and a calm setting make it easy to relax. Each room is clean, well kept, and designed for a good night\'s sleep. Whether you stay one night or longer, you will have everything you need to feel comfortable.',
-    'services_heading':      'Our Premium Services',
-    'services_description':  'Making your stay comfortable and memorable with our range of exclusive services.',
-    'reserve_heading':          'A Best Place To Stay.\nReserve Now!',
-    'about_welcome_heading':    'Welcome!',
-    'about_welcome_body':       'Thiên Tài Hotel is a modern, centrally located hotel in Ho Chi Minh City offering comfortable, individually designed rooms with contemporary amenities. Featuring a rooftop terrace, on-site restaurant and café, and attentive 24-hour service, the hotel provides a convenient and relaxing stay close to major attractions, shopping areas, and local landmarks.',
-    'about_photos_heading':     'Photos',
-    'about_photos_description': 'These photos give you a clear look at the hotel before you arrive. From the rooms to shared spaces, each image shows the atmosphere you can expect during your stay. Take a moment to look around and get a feel for the place, so you arrive knowing what awaits you.',
-    'rooms_offers_heading':     'Great Offers',
-    'rooms_offers_description': 'Discover our exclusive room selections designed for your perfect stay.',
-}
+
+
+
 
 
 def _room_image_url(db_key, static_path):
@@ -123,12 +91,9 @@ def _get_room_images():
 
 # Create your views here.
 def get_home(request):
-    # Get hotel name and contact information
-    hotel_name = HotelService.get_hotel_name()
-    hotel_info = HotelService.get_hotel_info()
+    
 
-    # Get hotel services from database
-    hotel_services = HotelServices.objects.all()
+    
 
     # Get available room types with pricing from database
     room_types = HotelService.get_available_room_types()
@@ -144,22 +109,18 @@ def get_home(request):
 
     return render(request, 'home.html', {
         'active_page': 'home',
-        'hotel_name': hotel_name,
-        'hotel': hotel_info,
-        'hotel_services': hotel_services,
+        
+        
+        
         'room_types': room_types,
         'db_images': db_images,
         'room_images': _get_room_images(),
-        'ct': _get_all_content(_CONTENT_DEFAULTS),
-    })
+        })
 
 def get_about(request):
-    # Get hotel name and contact information
-    hotel_name = HotelService.get_hotel_name()
-    hotel_info = HotelService.get_hotel_info()
     
-    # Get hotel services from database
-    hotel_services = HotelServices.objects.all()
+    
+    
     
     # Resolve image sources: DB if uploaded, otherwise static
     db_images = _db_images_exist(['food-1', 'img-1'])
@@ -170,22 +131,19 @@ def get_about(request):
 
     return render(request, 'about.html', {
         'active_page': 'about',
-        'hotel_name': hotel_name,
-        'hotel': hotel_info,
-        'hotel_services': hotel_services,
+        
+        
+        
         'db_images': db_images,
-        'ct': _get_all_content(_CONTENT_DEFAULTS),
-    })
+        })
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def get_contact(request):
-    hotel_name = HotelService.get_hotel_name()
-    hotel_info = HotelService.get_hotel_info()
-    hotel_services = HotelServices.objects.all()
+    
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
-        phone = request.POST.get('phone', '').strip()
+        request.POST.get('phone', '').strip()
         email = request.POST.get('email', '').strip()
         message = request.POST.get('message', '').strip()
 
@@ -198,17 +156,14 @@ def get_contact(request):
 
     return render(request, 'contact.html', {
         'active_page': 'contact',
-        'hotel_name': hotel_name,
-        'hotel': hotel_info,
-        'hotel_services': hotel_services,
-        'ct': _get_all_content(_CONTENT_DEFAULTS),
-    })
+        
+        
+        
+        })
 
 @ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def get_reservation(request):
-    # Get hotel name and contact information
-    hotel_name = HotelService.get_hotel_name()
-    hotel_info = HotelService.get_hotel_info()
+    
     
     # Handle POST request (form submission) - requires login
     if request.method == 'POST':
@@ -282,8 +237,7 @@ def get_reservation(request):
                 'message': 'An unexpected error occurred. Please try again later.'
             }, status=500)
     
-    # Get hotel services from database
-    hotel_services = HotelServices.objects.all()
+    
     
     # Get available room types from database
     room_types = HotelService.get_available_room_types()
@@ -291,32 +245,28 @@ def get_reservation(request):
     # Handle GET request (display form)
     return render(request, 'reservation.html', {
         'active_page': 'reservation',
-        'hotel_name': hotel_name,
-        'hotel': hotel_info,
-        'hotel_services': hotel_services,
+        
+        
+        
         'room_types': room_types
     })
 
 def get_rooms(request):
-    # Get hotel name and contact information
-    hotel_name = HotelService.get_hotel_name()
-    hotel_info = HotelService.get_hotel_info()
     
-    # Get hotel services from database
-    hotel_services = HotelServices.objects.all()
+    
+    
     
     # Get available room types with pricing from database
     room_types = HotelService.get_available_room_types()
     
     return render(request, 'rooms.html', {
         'active_page': 'rooms',
-        'hotel_name': hotel_name,
-        'hotel': hotel_info,
-        'hotel_services': hotel_services,
+        
+        
+        
         'room_types': room_types,
         'room_images': _get_room_images(),
-        'ct': _get_all_content(_CONTENT_DEFAULTS),
-    })
+        })
 
 @ratelimit(key='ip', rate='3/m', method='POST', block=True)
 def newsletter_signup(request):
@@ -486,7 +436,7 @@ def admin_reservations(request):
     Requires user to be logged in and have staff/admin role.
     """
     # Get hotel information
-    hotel_info = HotelService.get_hotel_info()
+    HotelService.get_hotel_info()
     
     # Get available room types from database
     room_types = HotelService.get_available_room_types()
@@ -534,7 +484,7 @@ def admin_reservations(request):
     
     # Prepare context data
     context = {
-        'hotel': hotel_info,
+        
         'reservations': reservations,
         'total_reservations': total_reservations,
         'today_checkins': today_checkins,
@@ -558,16 +508,27 @@ def room_dashboard(request):
     # Handle status update via POST (staff/admin changes a room's status)
     if request.method == 'POST':
         room_id = request.POST.get('room_id')
-        new_status = request.POST.get('new_status')
-        valid_statuses = ['empty_clean', 'empty_dirty', 'occupied', 'out_of_order', 'reserved']
-        if room_id and new_status in valid_statuses:
+        new_status = request.POST.get('new_status') # backwards-compatibility
+        
+        if room_id and new_status:
             try:
                 room = Room.objects.get(room_id=room_id)
-                room.current_status = new_status
+                if new_status == 'vacant':
+                    room.reservation_status = 'vacant'
+                    room.housekeeping_status = 'clean'
+                elif new_status == 'empty_dirty': # keeping old mappings
+                    room.reservation_status = 'vacant'
+                    room.housekeeping_status = 'dirty'
+                elif new_status == 'occupied':
+                    room.reservation_status = 'occupied'
+                elif new_status == 'reserved':
+                    room.reservation_status = 'reserved'
+                elif new_status == 'out_of_order':
+                    room.housekeeping_status = 'out_of_order'
                 room.save()
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                     return JsonResponse({'status': 'ok'})
-                messages.success(request, f'Room {room.room_code} updated to {room.get_current_status_display()}.')
+                messages.success(request, f'Room {room.room_code} updated status.')
             except Room.DoesNotExist:
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                     return JsonResponse({'status': 'error', 'message': 'Room not found.'}, status=404)
@@ -589,8 +550,7 @@ def room_dashboard(request):
     # Group rooms by floor
     floors = {}
     status_counts = {
-        'empty_clean': 0, 'empty_dirty': 0,
-        'occupied': 0, 'out_of_order': 0, 'reserved': 0,
+        'vacant': 0, 'occupied': 0, 'out_of_order': 0, 'reserved': 0,
     }
     for room in rooms:
         assignment = assignment_map.get(room.room_id)
@@ -604,7 +564,12 @@ def room_dashboard(request):
             'duration': duration,
         }
         floors.setdefault(room.floor_number, []).append(room_data)
-        status_counts[room.current_status] = status_counts.get(room.current_status, 0) + 1
+        
+        # Mapping to old format for UI rendering
+        disp_status = room.reservation_status # defaults to vacant/occupied/reserved
+        if room.housekeeping_status == 'out_of_order':
+            disp_status = 'out_of_order'
+        status_counts[disp_status] = status_counts.get(disp_status, 0) + 1
 
     # Active filter from query string
     status_filter = request.GET.get('status', 'all')
@@ -612,7 +577,7 @@ def room_dashboard(request):
     context = {
         'floors': dict(sorted(floors.items())),
         'status_counts': status_counts,
-        'total_rooms': sum(status_counts.values()),
+        'total_rooms': len(rooms),
         'status_filter': status_filter,
         'hotel': HotelService.get_hotel_info(),
     }
@@ -687,7 +652,7 @@ def delete_reservation(request, booking_id):
     if request.method == 'POST':
         try:
             # Find the booking
-            booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
+            booking = CustomerBookingInfo.objects.select_related('hotel', 'user').get(booking_id=booking_id)
             booking_name = booking.guest_name
             booking_data = {
                 'guest_name': booking.guest_name,
@@ -726,7 +691,7 @@ def delete_reservation(request, booking_id):
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def manage_accounts(request):
     """View to manage user accounts (CRUD operations)."""
-    hotel_info = HotelService.get_hotel_info()
+    HotelService.get_hotel_info()
     
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -835,7 +800,7 @@ def manage_accounts(request):
         accounts = User.objects.filter(is_active=True, role='customer').order_by('-created_at')
     
     return render(request, 'manage_accounts.html', {
-        'hotel': hotel_info,
+        
         'accounts': accounts
     })
 
@@ -963,7 +928,7 @@ def edit_reservation(request, booking_id):
             from decimal import Decimal
             
             # Find the booking
-            booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
+            booking = CustomerBookingInfo.objects.select_related('hotel', 'user').get(booking_id=booking_id)
 
             # Capture old data for audit
             old_data = {

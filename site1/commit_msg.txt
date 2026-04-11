@@ -1,0 +1,23 @@
+﻿Refactor and Codebase Optimization: Schema syncing, ORM tuning, and Template DRYing
+
+Authentication & Seeding:
+- Restored default admin, staff, and customer test accounts via database seeding script.
+
+Database Schema Synchronization:
+- Fixed 500 errors caused by deprecated 'current_status' database column.
+- Re-mapped Django models (Room) and dashboard logic to support the new bifurcated sequence columns: 'reservation_status' and 'housekeeping_status'.
+
+Backend Optimization & ORM Efficiency:
+- Swept the codebase to evaluate inefficiencies, eliminating N+1 query bottlenecks in reservations loops executing via Django's select_related('hotel', 'user').
+- Stripped bulky redundant global database queries natively from views.py to streamline core backend processes.
+
+Context Processors Migration:
+- Extracted localized global data mappings (_CONTENT_DEFAULTS, HotelServices) entirely from primary views.
+- Implemented core Django Context Processors to automate site-wide payload injections natively across all templates.
+
+Test Infrastructure Improvements:
+- Updated testing configuration (pytest.ini) adding '--nomigrations' flags, ensuring seamless compatibility over locally unmanaged T-SQL architectures.
+
+Frontend Componentization Strategy (DRY pattern applied):
+- Stripped historically duplicated framework HTML wrappers (DOCTYPE, headers) from core application views mapping back to admin_reservations.html, manage_accounts.html, and room_dashboard.html.
+- Upgraded the frontend ecosystem to universally respect Django template inheritance rules ({% extends "base.html" %}) effectively slicing standard implementations into specialized structural tags (content, extra_css, extra_js).

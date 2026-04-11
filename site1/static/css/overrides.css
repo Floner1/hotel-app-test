@@ -193,29 +193,20 @@
   transition: transform 0.2s !important;
 }
 
+.inline-nav ul li.staff-tools-dropdown:hover .staff-tools-chevron,
 .staff-tools-dropdown.open .staff-tools-chevron {
   transform: rotate(180deg) !important;
 }
 
 /* The dropdown menu — use high-specificity selector to beat inline-nav rules */
 .inline-nav ul li.staff-tools-dropdown .staff-tools-menu {
-  display: none !important;
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  left: auto !important;
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.14) !important;
-  z-index: 9999 !important;
-  min-width: 220px !important;
-  padding: 6px 0 !important;
-  overflow: hidden !important;
 }
 
+.inline-nav ul li.staff-tools-dropdown .staff-tools-menu::before {
+}
+
+.inline-nav ul li.staff-tools-dropdown:hover .staff-tools-menu,
 .inline-nav ul li.staff-tools-dropdown.open .staff-tools-menu {
-  display: block !important;
 }
 
 /* Beat .inline-nav ul li a { color: #fff !important; font-size: 20px !important; } */
@@ -298,3 +289,13 @@
     opacity: 1;
   }
 }
+
+
+/* RESERVATION / CONTACT FIX */
+.contact-section .contact-info p {
+  font-size: 20px !important;
+  word-wrap: break-word !important;
+}
+.pill-vacant { background: #28a745; }
+.room-card.status-vacant { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+.dot-vacant { background: #28a745; }
