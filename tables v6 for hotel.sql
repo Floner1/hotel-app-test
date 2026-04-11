@@ -18,6 +18,7 @@ IF OBJECT_ID('trg_block_customer_writes_room_price', 'TR') IS NOT NULL DROP TRIG
 IF OBJECT_ID('trg_block_customer_writes_hotel_keys', 'TR') IS NOT NULL DROP TRIGGER trg_block_customer_writes_hotel_keys;
 
 IF OBJECT_ID('room_assignments', 'U') IS NOT NULL DROP TABLE room_assignments;
+IF OBJECT_ID('room_maintenance_logs', 'U') IS NOT NULL DROP TABLE room_maintenance_logs;
 IF OBJECT_ID('rooms', 'U') IS NOT NULL DROP TABLE rooms;
 IF OBJECT_ID('customer_requests', 'U') IS NOT NULL DROP TABLE customer_requests;
 IF OBJECT_ID('audit_log', 'U') IS NOT NULL DROP TABLE audit_log;
@@ -92,7 +93,7 @@ CREATE TABLE hotel_keys_main (
 GO
 
 /* =====================================================
-   ROOMS — Physical room inventory
+   ROOMS - Physical room inventory
 ===================================================== */
 CREATE TABLE rooms (
     room_id INT IDENTITY(1,1) PRIMARY KEY,
@@ -101,14 +102,37 @@ CREATE TABLE rooms (
     floor_number INT NOT NULL,
     room_number INT NOT NULL,
     room_type NVARCHAR(225) NULL,
-    current_status NVARCHAR(50) NOT NULL DEFAULT 'empty_clean'
-        CHECK (current_status IN ('empty_clean','empty_dirty','occupied','out_of_order','reserved')),
+    reservation_status NVARCHAR(50) NOT NULL DEFAULT 'vacant'
+        CHECK (reservation_status IN ('vacant','occupied','reserved')),
+    housekeeping_status NVARCHAR(50) NOT NULL DEFAULT 'clean'
+        CHECK (housekeeping_status IN ('clean','dirty','cleaning_in_progress','out_of_order')),
+    last_cleaned_at DATETIME NULL,
+    assigned_housekeeper_id INT NULL,
     notes NVARCHAR(MAX) NULL,
     updated_at DATETIME DEFAULT GETDATE(),
     CONSTRAINT fk_rooms_hotel FOREIGN KEY (hotel_id) REFERENCES hotel_info(hotel_id),
+    CONSTRAINT fk_rooms_housekeeper FOREIGN KEY (assigned_housekeeper_id) REFERENCES users(user_id),
     CONSTRAINT uq_rooms_floor_room UNIQUE (hotel_id, floor_number, room_number)
 );
 GO
+
+/* =====================================================
+   ROOM MAINTENANCE LOGS
+===================================================== */
+CREATE TABLE room_maintenance_logs (
+    log_id INT IDENTITY(1,1) PRIMARY KEY,
+    room_id INT NOT NULL,
+    reported_by INT NULL,
+    issue_description NVARCHAR(MAX) NOT NULL,
+    status NVARCHAR(50) NOT NULL DEFAULT 'open'
+        CHECK (status IN ('open','in_progress','resolved')),
+    resolved_at DATETIME NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT fk_rml_room FOREIGN KEY (room_id) REFERENCES rooms(room_id),
+    CONSTRAINT fk_rml_reported_by FOREIGN KEY (reported_by) REFERENCES users(user_id)
+);
+GO
+
 
 /* =====================================================
    BOOKINGS
@@ -147,7 +171,7 @@ CREATE TABLE booking_info (
 GO
 
 /* =====================================================
-   ROOM ASSIGNMENTS — Links bookings to physical rooms
+   ROOM ASSIGNMENTS - Links bookings to physical rooms
 ===================================================== */
 CREATE TABLE room_assignments (
     assignment_id INT IDENTITY(1,1) PRIMARY KEY,
@@ -276,7 +300,7 @@ WHERE user_id = SESSION_CONTEXT(N'user_id');
 GO
 
 /* =====================================================
-   ROOM DASHBOARD VIEW — Single query for the dashboard
+   ROOM DASHBOARD VIEW - Single query for the dashboard
 ===================================================== */
 CREATE VIEW v_room_dashboard AS
 SELECT
@@ -285,7 +309,10 @@ SELECT
     r.floor_number,
     r.room_number,
     r.room_type,
-    r.current_status,
+    r.reservation_status,
+    r.housekeeping_status,
+    r.last_cleaned_at,
+    r.assigned_housekeeper_id,
     r.notes AS room_notes,
     ra.assignment_id,
     ra.booking_id,
@@ -312,7 +339,7 @@ GO
 INSERT INTO room_price (hotel_id, room_type, price_per_night, room_description) VALUES
 (1, '1 Bed No Window','650000','A comfortable and affordable option ideal for short stays. Features a cozy queen bed, modern furnishings, and full amenities, offering quiet rest in a compact space without windows.'),
 (1, '2 Bed No Window Room','750000','Perfect for friends or family on a budget. This room includes two single beds, air conditioning, and a private bathroom. Designed for comfort and practicality, though it does not include a window.'),
-(1, '1 Bed With Window','850000','A bright, inviting room with a private balcony overlooking the city. Includes a queen bed, modern décor, and all standard amenities for a relaxing stay.'),
+(1, '1 Bed With Window','850000','A bright, inviting room with a private balcony overlooking the city. Includes a queen bed, modern decor, and all standard amenities for a relaxing stay.'),
 (1, '1 Bed With Balcony', '1150000','A larger balcony room with added comfort and space. Offers a queen bed, seating area, and outdoor balcony access  ideal for guests who value extra room and natural light.'),
 (1, '2 Bed & Balcony Condotel','1550000','Spacious two-bedroom condotel with a private balcony and separate living area. Equipped with full amenities and ideal for families or longer stays seeking both comfort and convenience.');
 GO
@@ -324,7 +351,7 @@ INSERT INTO hotel_services (hotel_id, service_name, service_price, service_descr
 GO
 
 /* =====================================================
-   SEED ROOMS — 53 physical rooms
+   SEED ROOMS - 53 physical rooms
    Floors 4-8, 10: 8 rooms each (48)
    Floor 9:        4 rooms       (4)
    Floor 11:       1 room        (1)
@@ -384,7 +411,7 @@ INSERT INTO rooms (hotel_id, room_code, floor_number, room_number, room_type) VA
 (1, '806', 8, 6, '2 Bed No Window Room'),
 (1, '807', 8, 7, '1 Bed With Window'),
 (1, '808', 8, 8, '1 Bed With Window'),
--- Floor 9 (4 rooms) — all 2 Bed & Balcony Condotel
+-- Floor 9 (4 rooms) - all 2 Bed & Balcony Condotel
 (1, '901', 9, 1, '2 Bed & Balcony Condotel'),
 (1, '902', 9, 2, '2 Bed & Balcony Condotel'),
 (1, '903', 9, 3, '2 Bed & Balcony Condotel'),
@@ -398,6 +425,6 @@ INSERT INTO rooms (hotel_id, room_code, floor_number, room_number, room_type) VA
 (1, '1006', 10, 6, '2 Bed No Window Room'),
 (1, '1007', 10, 7, '1 Bed With Window'),
 (1, '1008', 10, 8, '1 Bed With Window'),
--- Floor 11 (1 room) — 1 Bed No Window
+-- Floor 11 (1 room) - 1 Bed No Window	
 (1, '1101', 11, 1, '1 Bed No Window');
 GO
