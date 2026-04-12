@@ -1,6 +1,6 @@
 # Quick Reference Guide
 
-## 🚀 Starting Your Server
+## Starting Your Server
 
 ```bash
 cd site1

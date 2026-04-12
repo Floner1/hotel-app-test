@@ -43,7 +43,9 @@
       <span class="toast-message"></span>
     </div>
 
+  {% block navbar %}
     {% include "_navbar.html" %}
+  {% endblock %}
 
     {% block content %}{% endblock %}
 
@@ -120,6 +122,25 @@
               submitButton.prop('disabled', false);
             }
           });
+        });
+      });
+    </script>
+
+    <!-- Button Feedback State Script -->
+    <script>
+      $(function(){
+        $('form').on('submit', function() {
+          var btn = $(this).find('button[type="submit"]');
+          if (btn.length > 0 && !btn.hasClass('no-load')) {
+            btn.prop('disabled', true);
+            var originalText = btn.html();
+            btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...');
+            // In case of validation error preventing submit, allow restoring after timeout
+            setTimeout(function() {
+              btn.prop('disabled', false);
+              btn.html(originalText);
+            }, 5000);
+          }
         });
       });
     </script>

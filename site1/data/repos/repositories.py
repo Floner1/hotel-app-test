@@ -1,8 +1,8 @@
 from django.conf import settings
 
-from data.models.hotel import Hotel
+from data.models.hotel import Hotel, Room, RoomAssignment
 from data.models import CustomerBookingInfo
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 from django.utils import timezone
 
 _DEFAULT_PHONE = getattr(settings, 'HOTEL_DEFAULT_PHONE', '')
@@ -185,3 +185,71 @@ class ReservationRepository:
             return True
         except CustomerBookingInfo.DoesNotExist:
             return False
+
+class RoomRepository:
+    """Repository for physical room and room assignment operations."""
+
+    @staticmethod
+    def get_available_rooms_by_type(room_type, check_in, check_out):
+        """
+        Return an unevaluated queryset of Room objects that:
+        - match the given room_type
+        - have reservation_status = 'vacant'
+        - have NO active RoomAssignment overlapping [check_in, check_out)
+
+        Returns a queryset so the caller can chain .select_for_update().
+        """
+        overlapping = RoomAssignment.objects.filter(
+            room_id=OuterRef('room_id'),
+            status='active',
+            check_in__lt=check_out,
+            check_out__gt=check_in,
+        )
+        return Room.objects.filter(
+            room_type=room_type,
+            reservation_status='vacant',
+        ).exclude(Exists(overlapping))
+
+    @staticmethod
+    def count_available_rooms_by_type(room_type, check_in, check_out):
+        """Return the number of available rooms for the given type and date range."""
+        return RoomRepository.get_available_rooms_by_type(
+            room_type, check_in, check_out
+        ).count()
+
+    @staticmethod
+    def create_assignment(booking, room, assigned_by=None):
+        """Create and return a new active RoomAssignment."""
+        assignment = RoomAssignment(
+            booking=booking,
+            room=room,
+            check_in=booking.check_in,
+            check_out=booking.check_out,
+            assigned_at=timezone.now(),
+            assigned_by=assigned_by,
+            status='active',
+        )
+        assignment.save()
+        return assignment
+
+    @staticmethod
+    def get_active_assignment_for_booking(booking_id):
+        """Return the active RoomAssignment for a booking, or None."""
+        return (
+            RoomAssignment.objects
+            .filter(booking_id=booking_id, status='active')
+            .select_related('room')
+            .first()
+        )
+
+    @staticmethod
+    def update_room_status(room_id, reservation_status, housekeeping_status=None):
+        """Update a room's reservation (and optionally housekeeping) status."""
+        room = Room.objects.get(room_id=room_id)
+        room.reservation_status = reservation_status
+        if housekeeping_status is not None:
+            room.housekeeping_status = housekeeping_status
+        room.updated_at = timezone.now()
+        room.save()
+        return room
+

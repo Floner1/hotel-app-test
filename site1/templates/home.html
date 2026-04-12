@@ -11,9 +11,8 @@
   /* ---- Room carousel / logo-loop animation ---- */
   .logo-loop-container { width: 100%; overflow: hidden; position: relative; padding: 40px 0; background: linear-gradient(to right, rgba(248, 248, 248, 1) 0%, transparent 10%, transparent 90%, rgba(248, 248, 248, 1) 100%); }
   .logo-loop-track { display: flex; gap: 60px; animation: scroll 22s linear infinite; will-change: transform; }
-  .logo-loop-item { flex-shrink: 0; transition: transform 0.3s ease; }
-  .logo-loop-item:hover { transform: scale(1.1); }
-  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .logo-loop-item { flex-shrink: 0; }
+  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: 8px; border: 1px solid #e9ecef; }
   @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50%)); } }
   @media (max-width: 768px) { .logo-loop-item img { height: 200px; } .logo-loop-track { gap: 30px; } }
 

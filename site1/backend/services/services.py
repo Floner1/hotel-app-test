@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import logging
 from datetime import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -7,9 +8,10 @@ from typing import Any, Dict, Iterable, Optional
 
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.db import transaction
 
 from data.models.hotel import Hotel as BookingHotel, RoomPrice
-from data.repos.repositories import HotelRepository, ReservationRepository
+from data.repos.repositories import HotelRepository, ReservationRepository, RoomRepository
 
 logger = logging.getLogger(__name__)
 
@@ -147,15 +149,14 @@ class ReservationService:
             #    This ensures no two users can book simultaneously using the same room type.
             RoomPrice.objects.select_for_update().filter(room_type=canonical_room_type).first()
 
-            # 2. Check for overlapping bookings (assuming 1 room capacity per type as there is no inventory table)
-            overlapping_count = CustomerBookingInfo.objects.filter(
-                room_type=canonical_room_type,
-                check_in__lt=checkout_date,
-                check_out__gt=checkin_date
-            ).exclude(status__in=['cancelled', 'rejected']).count()
-
-            if overlapping_count >= 1:
-                raise ValidationError(f'The {canonical_room_type.replace("_", " ")} room is completely booked for the selected dates.')
+            # 2. Check physical room availability for the requested type and dates
+            available_count = RoomRepository.count_available_rooms_by_type(
+                canonical_room_type, checkin_date, checkout_date
+            )
+            if available_count == 0:
+                raise ValidationError(
+                    f'No {canonical_room_type.replace("_", " ")} rooms are available for the selected dates.'
+                )
 
             # Get the rate for this room type (custom rate overrides preset)        
             custom_rate_raw = reservation_data.get('custom_rate')
@@ -353,3 +354,72 @@ class ReservationService:
     @staticmethod
     def get_reservations_by_email(email):
         return ReservationRepository.get_by_email(email)
+
+class RoomService:
+    """Handles physical room allocation tied to booking status transitions."""
+
+    @classmethod
+    def allocate_room(cls, booking, assigned_by=None):
+        """
+        Allocate a physical room when a booking is confirmed.
+        Uses select_for_update() to prevent two concurrent confirmations
+        from grabbing the same room.
+        """
+        from django.db import transaction
+
+        # Guard: don't double-allocate
+        existing = RoomRepository.get_active_assignment_for_booking(booking.booking_id)
+        if existing:
+            return existing
+
+        with transaction.atomic():
+            candidates = (
+                RoomRepository.get_available_rooms_by_type(
+                    booking.room_type, booking.check_in, booking.check_out
+                )
+                .select_for_update()
+            )
+            candidate_list = list(candidates)  # evaluate under lock
+
+            if not candidate_list:
+                raise ValidationError(
+                    f'No available {booking.room_type.replace("_", " ")} rooms '
+                    f'for {booking.check_in} – {booking.check_out}.'
+                )
+
+            room = random.choice(candidate_list)
+            assignment = RoomRepository.create_assignment(booking, room, assigned_by)
+            RoomRepository.update_room_status(room.room_id, 'reserved')
+            return assignment
+
+    @classmethod
+    def check_in_room(cls, booking):
+        """Mark the assigned room as occupied on guest check-in."""
+        assignment = RoomRepository.get_active_assignment_for_booking(booking.booking_id)
+        if assignment:
+            RoomRepository.update_room_status(assignment.room_id, 'occupied')
+
+    @classmethod
+    def check_out_room(cls, booking):
+        """
+        Mark the room as vacant (dirty) and complete the assignment on check-out.
+        """
+        assignment = RoomRepository.get_active_assignment_for_booking(booking.booking_id)
+        if assignment:
+            RoomRepository.update_room_status(
+                assignment.room_id, 'vacant', housekeeping_status='dirty'
+            )
+            assignment.status = 'completed'
+            assignment.save()
+
+    @classmethod
+    def deallocate_room(cls, booking):
+        """
+        Release the room and cancel the assignment when a booking is
+        cancelled or rejected.
+        """
+        assignment = RoomRepository.get_active_assignment_for_booking(booking.booking_id)
+        if assignment:
+            RoomRepository.update_room_status(assignment.room_id, 'vacant')
+            assignment.status = 'cancelled'
+            assignment.save()

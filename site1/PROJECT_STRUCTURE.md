@@ -90,7 +90,7 @@ hotel-app-test/
 | `home/urls.py` | URL routing (which URL goes to which page) |
 | `.env` | Secret keys and environment variables |
 
-## 🚀 Common Commands
+## Common Commands
 
 Run these from the `site1/` directory:
 

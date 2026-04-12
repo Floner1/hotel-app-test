@@ -4,7 +4,9 @@
       "Bash(python manage.py makemigrations data --name \"room_roomassignment\")",
       "Bash(gh repo:*)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(mkdir -p ~/.claude/skills)",
+      "Bash(git clone:*)"
     ]
   }
 }

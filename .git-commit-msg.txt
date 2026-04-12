@@ -1,0 +1,10 @@
+﻿Refactor room allocation and clean up UI
+
+- Set up backend logic for room auto-allocation using RoomService and RoomRepository to manage physical room assignments.
+- Fixed database mapping errors and SQL Server constraint issues.
+- Resolved a docstring SyntaxError in context_processors.py.
+- Reseeded the database to fix broken login access for staff, admin, and customers.
+- Cleaned up the frontend UI: stripped out purple gradients, removed broken hover transforms, cleaned up fake social links in the footer, and removed markdown emojis. Added loading states to form buttons.
+- Hid the global navbar on the room dashboard.
+- Fixed the CSS visibility for the 3-dots icon on the room status button.
+- Patched the Edit Reservation modal in the admin panel to include a Status dropdown. This allows staff to change bookings from pending to confirmed, properly triggering the room allocation.

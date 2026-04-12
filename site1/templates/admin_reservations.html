@@ -1418,6 +1418,20 @@
                   
                   <div>
                     <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
+                      <i class="fa fa-info-circle"></i> Status *
+                    </label>
+                    <select id="edit_status" required style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
+                      <option value="pending" ${booking.status === 'pending' ? 'selected' : ''}>Pending</option>
+                      <option value="confirmed" ${booking.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                      <option value="checked_in" ${booking.status === 'checked_in' ? 'selected' : ''}>Checked-in</option>
+                      <option value="checked_out" ${booking.status === 'checked_out' ? 'selected' : ''}>Checked-out</option>
+                      <option value="cancelled" ${booking.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                      <option value="rejected" ${booking.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
                       <i class="fa fa-calendar"></i> Check-in Date *
                     </label>
                     <input type="date" id="edit_checkin_date" value="${booking.checkin_date.split(' ')[2]}-${getMonthNumber(booking.checkin_date.split(' ')[0])}-${booking.checkin_date.split(' ')[1].replace(',', '').padStart(2, '0')}" required
@@ -1583,6 +1597,7 @@
           email: document.getElementById('edit_email').value,
           phone: document.getElementById('edit_phone').value,
           room_type: document.getElementById('edit_room_type').value,
+          status: document.getElementById('edit_status').value,
           checkin_date: document.getElementById('edit_checkin_date').value,
           checkout_date: document.getElementById('edit_checkout_date').value,
           adults: document.getElementById('edit_adults').value,

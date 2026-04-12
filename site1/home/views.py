@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django_ratelimit.decorators import ratelimit
-from backend.services.services import HotelService, ReservationService
+from backend.services.services import HotelService, ReservationService, RoomService
 from data.models import User, CustomerBookingInfo
 from django.db.models import Sum
 from datetime import date, datetime
@@ -931,6 +931,7 @@ def edit_reservation(request, booking_id):
             booking = CustomerBookingInfo.objects.select_related('hotel', 'user').get(booking_id=booking_id)
 
             # Capture old data for audit
+            old_status = booking.status
             old_data = {
                 'guest_name': booking.guest_name,
                 'room_type': booking.room_type,
@@ -1018,6 +1019,29 @@ def edit_reservation(request, booking_id):
             
             # Save changes
             booking.save()
+
+            # Handle room allocation on status transitions
+            new_status = booking.status
+            if new_status != old_status:
+                try:
+                    from django.core.exceptions import ValidationError
+                    if new_status == 'confirmed':
+                        RoomService.allocate_room(booking, assigned_by=request.user)
+                    elif new_status == 'checked_in':
+                        RoomService.check_in_room(booking)
+                    elif new_status == 'checked_out':
+                        RoomService.check_out_room(booking)
+                    elif new_status in ('cancelled', 'rejected'):
+                        RoomService.deallocate_room(booking)
+                except ValidationError as room_err:
+                    # No rooms available — roll back the status change
+                    booking.status = old_status
+                    booking.save()
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': str(room_err),
+                    }, status=400)
+
             log_booking_update(request.user, booking, old_data, request)
             
             return JsonResponse({

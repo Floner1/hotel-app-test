@@ -18,11 +18,11 @@ _CONTENT_DEFAULTS = {
 }
 
 def text_overrides(request):
-    "\""
+    """
     Inject all inline-edit text overrides into every template context as JSON.  
     Keys with ':' are inline-edit overrides (page:tag:hash format).
     Embedded in the page so JS can apply them instantly with no AJAX flash.
-    "\""
+    """
     try:
         from data.models.site_content import SiteContent
         from data.models import HotelServices

@@ -4,6 +4,8 @@
 
 {% block title %}Room Dashboard | {{ hotel.hotel_name }}{% endblock %}
 
+{% block navbar %}{% endblock %}
+
 {% block extra_css %}
 <style>
 body {
@@ -13,11 +15,12 @@ body {
 
       /* ── Dashboard header (matches existing dashboard) ── */
       .dashboard-header {
-        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+        background: #ffba5a;
         color: white;
         padding: 2rem 0;
         margin-bottom: 2rem;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 8px;
       }
       .dashboard-header h1 { margin: 0; font-size: 2rem; font-weight: 600; }
       .dashboard-header p  { margin: 0.5rem 0 0 0; opacity: 0.9; }
@@ -99,8 +102,7 @@ body {
         position: relative;
       }
       .room-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       }
       .room-card .room-code {
         font-size: 1.5rem;
@@ -128,11 +130,10 @@ body {
       .room-card .stay-info i { margin-right: 3px; }
 
       /* Status colours */
-      .room-card.status-vacant  { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
-      .room-card.status-vacant  { background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: #333; }
-      .room-card.status-occupied     { background: linear-gradient(135deg, #007bff 0%, #6610f2 100%); }
-      .room-card.status-out_of_order { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
-      .room-card.status-reserved     { background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%); }
+      .room-card.status-vacant  { background: #28a745; }
+      .room-card.status-occupied     { background: #007bff; }
+      .room-card.status-out_of_order { background: #dc3545; }
+      .room-card.status-reserved     { background: #ffc107; color: #333; }
 
       /* Hide cards that don't match the filter */
       .room-card.filtered-out { display: none; }
@@ -143,6 +144,7 @@ body {
         top: 8px;
         right: 8px;
         background: rgba(255,255,255,0.25);
+        color: white;
         border: none;
         border-radius: 50%;
         width: 26px;
@@ -151,8 +153,7 @@ body {
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        color: inherit;
-        font-size: 12px;
+        font-size: 14px;
         transition: background 0.2s;
       }
       .status-btn:hover { background: rgba(255,255,255,0.45); }
@@ -292,7 +293,8 @@ body {
             {% if item.assignment and item.room.reservation_status == 'occupied' or item.assignment and item.room.reservation_status == 'reserved' %}
             <div class="stay-info">
               <div><i class="fa fa-user"></i> {{ item.assignment.booking.guest_name }}</div>
-              <div><i class="fa fa-calendar"></i> {{ item.assignment.check_in|date:"M d" }} &mdash; {{ item.duration }} night{{ item.duration|pluralize }}</div>
+              <div><i class="fa fa-hashtag"></i> Booking #{{ item.assignment.booking.booking_id }}</div>
+              <div><i class="fa fa-calendar"></i> {{ item.assignment.check_in|date:"M d" }} &rarr; {{ item.assignment.check_out|date:"M d" }} ({{ item.duration }}n)</div>
             </div>
             {% endif %}
           </div>
