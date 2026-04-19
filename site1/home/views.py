@@ -550,7 +550,7 @@ def room_dashboard(request):
     # Group rooms by floor
     floors = {}
     status_counts = {
-        'vacant': 0, 'occupied': 0, 'out_of_order': 0, 'reserved': 0,
+        'vacant': 0, 'dirty': 0, 'occupied': 0, 'out_of_order': 0, 'reserved': 0,
     }
     for room in rooms:
         assignment = assignment_map.get(room.room_id)
@@ -558,20 +558,26 @@ def room_dashboard(request):
         if assignment:
             duration = (assignment.check_out - assignment.check_in).days
 
-        room_data = {
-            'room': room,
-            'assignment': assignment,
-            'duration': duration,
-        }
-        floors.setdefault(room.floor_number, []).append(room_data)
-        
         # Mapping to old format for UI rendering
         disp_status = room.reservation_status # defaults to vacant/occupied/reserved
         if room.housekeeping_status == 'out_of_order':
             disp_status = 'out_of_order'
+        elif room.reservation_status == 'vacant' and room.housekeeping_status == 'dirty':
+            disp_status = 'dirty'
+        else:
+            if room.reservation_status == 'vacant':
+                disp_status = 'vacant'
+        
         status_counts[disp_status] = status_counts.get(disp_status, 0) + 1
 
-    # Active filter from query string
+        room_data = {
+            'room': room,
+            'assignment': assignment,
+            'duration': duration,
+            'disp_status': disp_status, # Include disp_status
+        }
+        floors.setdefault(room.floor_number, []).append(room_data)
+            
     status_filter = request.GET.get('status', 'all')
 
     context = {
@@ -662,14 +668,21 @@ def delete_reservation(request, booking_id):
                 'total_price': str(booking.total_price),
             }
 
+            # Delete related records to prevent Foreign Key constraint errors
+            booking.room_assignments.all().delete()
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM customer_requests WHERE booking_id = %s", [booking_id])
+
             # Delete the booking
             booking.delete()
             log_booking_delete(request.user, booking_id, booking_data, request)
-            
+
             return JsonResponse({
                 'status': 'success',
                 'message': f'Reservation for {booking_name} (Booking #{booking_id}) has been deleted successfully.'
             })
+              
         except CustomerBookingInfo.DoesNotExist:
             return JsonResponse({
                 'status': 'error',

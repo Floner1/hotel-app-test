@@ -213,7 +213,15 @@ class ReservationService:
                 'notes': notes if notes else None,
             }
 
-            return ReservationRepository.create(booking_data)
+            booking = ReservationRepository.create(booking_data)
+
+            # Auto-assign an available room so it immediately appears on the Room Dashboard
+            try:
+                RoomService.allocate_room(booking, assigned_by=user)
+            except Exception as e:
+                logger.warning(f"Could not auto-allocate room for booking. Error: {e}")
+
+            return booking
 
     @classmethod
     def get_room_rates(cls, force_refresh: bool = False) -> Dict[str, Decimal]:
@@ -423,3 +431,6 @@ class RoomService:
             RoomRepository.update_room_status(assignment.room_id, 'vacant')
             assignment.status = 'cancelled'
             assignment.save()
+
+
+
