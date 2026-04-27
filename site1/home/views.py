@@ -143,7 +143,6 @@ def get_contact(request):
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
-        request.POST.get('phone', '').strip()
         email = request.POST.get('email', '').strip()
         message = request.POST.get('message', '').strip()
 
@@ -435,9 +434,6 @@ def admin_reservations(request):
     Shows statistics and a filterable table of bookings with pagination.
     Requires user to be logged in and have staff/admin role.
     """
-    # Get hotel information
-    HotelService.get_hotel_info()
-    
     # Get available room types from database
     room_types = HotelService.get_available_room_types()
     
@@ -704,8 +700,6 @@ def delete_reservation(request, booking_id):
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def manage_accounts(request):
     """View to manage user accounts (CRUD operations)."""
-    HotelService.get_hotel_info()
-    
     if request.method == 'POST':
         action = request.POST.get('action')
         
