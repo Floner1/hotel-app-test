@@ -1,0 +1,15 @@
+{% extends "email/base_email.html" %}
+{% load email_filters %}
+
+{% block subject %}{{ campaign.subject }}{% endblock %}
+{% block header_title %}{{ hotel.hotel_name|default:"Thien Tai Hotel" }}{% endblock %}
+
+{% block body %}
+  {# Admin-authored HTML — render it as a safe block. #}
+  {{ campaign.body_html|safe }}
+{% endblock %}
+
+{% block footer_extra %}
+  You're receiving this because you subscribed to news from
+  {{ hotel.hotel_name|default:"Thien Tai Hotel" }}.
+{% endblock %}

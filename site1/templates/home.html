@@ -8,15 +8,15 @@
 
 {% block extra_css %}
 <style>
-  /* ---- Room carousel / logo-loop animation ---- */
-  .logo-loop-container { width: 100%; overflow: hidden; position: relative; padding: 40px 0; background: linear-gradient(to right, rgba(248, 248, 248, 1) 0%, transparent 10%, transparent 90%, rgba(248, 248, 248, 1) 100%); }
+  /* Room image loop */
+  .logo-loop-container { width: 100%; overflow: hidden; position: relative; padding: 40px 0; background: linear-gradient(to right, rgba(248,248,248,1) 0%, transparent 10%, transparent 90%, rgba(248,248,248,1) 100%); }
   .logo-loop-track { display: flex; gap: 60px; animation: scroll 22s linear infinite; will-change: transform; }
   .logo-loop-item { flex-shrink: 0; }
-  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: 8px; border: 1px solid #e9ecef; }
+  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: var(--radius-md); border: 1px solid #e9ecef; }
   @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50%)); } }
   @media (max-width: 768px) { .logo-loop-item img { height: 200px; } .logo-loop-track { gap: 30px; } }
 
-  /* ---- Admin image upload UI: hidden until Edit Mode is active ---- */
+  /* Admin image upload UI — hidden until Edit Mode is active */
   .hero-admin-btn-area,
   .admin-image-overlay {
     display: none !important;
@@ -39,7 +39,7 @@
     margin-top: 20px;
     opacity: 0;
     transform: translateY(-6px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
     pointer-events: none;
   }
 
@@ -57,15 +57,12 @@
 
   .admin-image-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s var(--ease);
     border-radius: inherit;
   }
 
@@ -74,32 +71,26 @@
   }
 
   .admin-upload-btn {
-    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
-    color: #212529;
+    background: var(--color-primary);
+    color: var(--color-text);
     border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
+    padding: 10px 22px;
+    border-radius: var(--radius-md);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(255, 186, 90, 0.35);
+    transition: background 0.2s var(--ease);
   }
 
   .admin-upload-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 186, 90, 0.5);
+    background: var(--color-accent);
   }
 
   .image-upload-modal {
     display: none;
     position: fixed;
     z-index: 10000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    animation: fadeIn 0.3s ease;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.65);
   }
 
   .image-upload-modal.show {
@@ -110,17 +101,16 @@
 
   .image-upload-content {
     background: white;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     width: 90%;
     max-width: 700px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideUp 0.3s ease;
   }
 
   .image-upload-header {
     padding: 20px 30px;
-    border-bottom: 2px solid #f0f0f0;
+    border-bottom: 1px solid #e9ecef;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -128,95 +118,72 @@
 
   .image-upload-header h2 {
     margin: 0;
-    color: #333;
+    color: var(--color-text);
     font-weight: 600;
+    font-size: var(--text-h3);
   }
 
   .close-upload-modal {
     background: none;
     border: none;
-    font-size: 32px;
+    font-size: 28px;
     cursor: pointer;
-    color: #999;
-    transition: color 0.3s ease;
+    color: var(--color-muted);
+    transition: color 0.2s var(--ease);
+    line-height: 1;
   }
 
-  .close-upload-modal:hover {
-    color: #333;
-  }
+  .close-upload-modal:hover { color: var(--color-text); }
 
-  .image-upload-body {
-    padding: 30px;
-  }
+  .image-upload-body { padding: 30px; }
 
-  .current-image-preview, .new-image-preview {
-    margin-bottom: 20px;
-  }
-
-  .current-image-preview h4, .new-image-preview h4 {
-    margin-bottom: 15px;
-    color: #333;
+  .current-image-preview h4,
+  .new-image-preview h4 {
+    margin-bottom: 12px;
+    color: var(--color-text);
     font-weight: 600;
+    font-size: var(--text-body);
   }
 
-  .current-image-preview img, .new-image-preview img {
+  .current-image-preview img,
+  .new-image-preview img {
     max-width: 100%;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-md);
   }
 
   .upload-zone {
-    border: 3px dashed #ddd;
-    border-radius: 12px;
+    border: 2px dashed #ddd;
+    border-radius: var(--radius-md);
     padding: 40px;
     text-align: center;
-    transition: all 0.3s ease;
-    background: #fafafa;
+    transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+    background: var(--color-bg-alt);
   }
 
   .upload-zone.dragover {
-    border-color: #ffba5a;
-    background: #f0efff;
+    border-color: var(--color-primary);
+    background: #fffaf2;
   }
 
   .btn-browse {
-    background: #ffba5a;
-    color: white;
+    background: var(--color-primary);
+    color: var(--color-text);
     border: none;
-    padding: 10px 30px;
-    border-radius: 8px;
+    padding: 8px 26px;
+    border-radius: var(--radius-md);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background 0.2s var(--ease);
   }
 
-  .btn-browse:hover {
-    background: #ffa527;
-    transform: translateY(-2px);
-  }
+  .btn-browse:hover { background: var(--color-accent); }
 
   .image-upload-footer {
     padding: 20px 30px;
-    border-top: 2px solid #f0f0f0;
+    border-top: 1px solid #e9ecef;
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(50px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
   }
 </style>
 {% endblock %}
@@ -225,10 +192,10 @@
     <section class="site-hero overlay" style="background-image: url({% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %})" data-stellar-background-ratio="0.5">
       <div class="container">
         <div class="row site-hero-inner justify-content-center align-items-center">
-          <div class="col-md-10 text-center" data-aos="fade-up">
+          <div class="col-md-10 text-center">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="hero-admin-wrapper">
-              <h1 class="heading">Welcome to {{ hotel_name }}<br><span style="font-size: 0.9em;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
+              <h1 class="heading tt-fade-in">{{ hotel_name }}<br><span style="font-size:0.75em;font-weight:300;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
               <div class="hero-admin-btn-area">
                 <button class="admin-upload-btn" onclick="openImageUpload('hero', '{% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}')">
                   <i class="fa fa-upload"></i> Change Hero Image
@@ -236,7 +203,7 @@
               </div>
             </div>
             {% else %}
-            <h1 class="heading">Welcome to {{ hotel_name }}<br><span style="font-size: 0.9em;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
+            <h1 class="heading tt-fade-in">{{ hotel_name }}<br><span style="font-size:0.75em;font-weight:300;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
             {% endif %}
           </div>
         </div>
@@ -248,64 +215,60 @@
         </div>
       </a>
     </section>
-    <!-- END section -->
 
-    <section class="py-5 bg-light">
+    <section class="py-5 bg-light" id="next">
       <div class="container">
         <div class="row align-items-center">
-          <div class="col-md-12 col-lg-7 ml-auto order-lg-2 position-relative mb-5" data-aos="fade-up">
+          <div class="col-md-12 col-lg-7 ml-auto order-lg-2 position-relative mb-5">
             <figure class="img-absolute">
               {% if request.user.is_authenticated and request.user.is_staff %}
               <div class="admin-image-container" data-image-id="food-1">
                 <img src="{% if db_images.food_1 %}{% url 'serve_image' 'food-1' %}{% else %}{% static 'images/food-1.jpg' %}{% endif %}"
-                     alt="Free Website Template by Templateux" class="img-fluid">
+                     alt="Thien Tai Hotel dining area" class="img-fluid">
                 <div class="admin-image-overlay">
                   <button class="admin-upload-btn" onclick="openImageUpload('food-1', '{% if db_images.food_1 %}{% url 'serve_image' 'food-1' %}{% else %}{% static 'images/food-1.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Upload Image</button>
                 </div>
               </div>
               {% else %}
               <img src="{% if db_images.food_1 %}{% url 'serve_image' 'food-1' %}{% else %}{% static 'images/food-1.jpg' %}{% endif %}"
-                   alt="Free Website Template by Templateux" class="img-fluid">
+                   alt="Thien Tai Hotel dining area" class="img-fluid">
               {% endif %}
             </figure>
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="admin-image-container" data-image-id="img-1">
               <img src="{% if db_images.img_1 %}{% url 'serve_image' 'img-1' %}{% else %}{% static 'images/img_1.jpg' %}{% endif %}"
-                   alt="Image" class="img-fluid rounded">
+                   alt="Thien Tai Hotel interior" class="img-fluid rounded">
               <div class="admin-image-overlay">
                 <button class="admin-upload-btn" onclick="openImageUpload('img-1', '{% if db_images.img_1 %}{% url 'serve_image' 'img-1' %}{% else %}{% static 'images/img_1.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Upload Image</button>
               </div>
             </div>
             {% else %}
             <img src="{% if db_images.img_1 %}{% url 'serve_image' 'img-1' %}{% else %}{% static 'images/img_1.jpg' %}{% endif %}"
-                 alt="Image" class="img-fluid rounded">
+                 alt="Thien Tai Hotel interior" class="img-fluid rounded">
             {% endif %}
           </div>
-          <div class="col-md-12 col-lg-5 order-lg-1" data-aos="fade-up">
+          <div class="col-md-12 col-lg-5 order-lg-1">
             <h2 class="heading" data-ct-key="welcome_heading">{{ ct.welcome_heading }}</h2>
             <p class="mb-4" data-ct-key="welcome_body">{{ ct.welcome_body }}</p>
             <p><a href="{% url 'about' %}" class="btn btn-primary text-white py-2 mr-3">Learn More</a> <span class="mr-3 font-family-serif"><em>or</em></span> <a href="{% url 'contact' %}" class="btn btn-outline-primary py-2">Contact</a></p>
           </div>
-
         </div>
       </div>
     </section>
 
-    <!-- Rooms and Suites Section -->
-    <!-- Showcase of available room types and their pricing -->
-    <section class="section slider-section" style="background-color: white;">
+    <!-- Room gallery -->
+    <section class="section slider-section" style="background-color:#fff;">
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;" data-ct-key="rooms_heading">{{ ct.rooms_heading }}</h2>
-            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;" data-ct-key="rooms_description">{{ ct.rooms_description }}</p>
+            <h2 class="heading" data-ct-key="rooms_heading">{{ ct.rooms_heading }}</h2>
+            <p data-ct-key="rooms_description">{{ ct.rooms_description }}</p>
           </div>
         </div>
       </div>
 
-      <div class="logo-loop-container" data-aos="fade-up" data-aos-delay="200">
+      <div class="logo-loop-container">
         <div class="logo-loop-track">
-          <!-- First set: with admin upload overlay -->
           <div class="logo-loop-item">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="admin-image-container">
@@ -319,12 +282,12 @@
           <div class="logo-loop-item">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="admin-image-container">
-              <img src="{{ room_images.double }}" alt="2 Bed No Window Room" />
+              <img src="{{ room_images.double }}" alt="2 Bed No Window" />
               <div class="admin-image-overlay">
                 <button class="admin-upload-btn" onclick="openImageUpload('room-double', '{{ room_images.double }}')"><i class="fa fa-upload"></i> Upload</button>
               </div>
             </div>
-            {% else %}<img src="{{ room_images.double }}" alt="2 Bed No Window Room" />{% endif %}
+            {% else %}<img src="{{ room_images.double }}" alt="2 Bed No Window" />{% endif %}
           </div>
           <div class="logo-loop-item">
             {% if request.user.is_authenticated and request.user.is_staff %}
@@ -349,37 +312,39 @@
           <div class="logo-loop-item">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="admin-image-container">
-              <img src="{{ room_images.condotel }}" alt="2 Bed & Balcony Condotel" />
+              <img src="{{ room_images.condotel }}" alt="2 Bed Balcony Condotel" />
               <div class="admin-image-overlay">
                 <button class="admin-upload-btn" onclick="openImageUpload('room-condotel', '{{ room_images.condotel }}')"><i class="fa fa-upload"></i> Upload</button>
               </div>
             </div>
-            {% else %}<img src="{{ room_images.condotel }}" alt="2 Bed & Balcony Condotel" />{% endif %}
+            {% else %}<img src="{{ room_images.condotel }}" alt="2 Bed Balcony Condotel" />{% endif %}
           </div>
-          <!-- Duplicate set for seamless loop (no upload button) -->
+          <!-- Duplicate set for seamless loop -->
           <div class="logo-loop-item"><img src="{{ room_images.single_bed }}" alt="1 Bed No Window" /></div>
-          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window Room" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window" /></div>
           <div class="logo-loop-item"><img src="{{ room_images.window }}" alt="1 Bed With Window" /></div>
           <div class="logo-loop-item"><img src="{{ room_images.balcony }}" alt="1 Bed With Balcony" /></div>
-          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed & Balcony Condotel" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed Balcony Condotel" /></div>
         </div>
       </div>
     </section>
 
+    <!-- Services -->
     <section class="section services-section bg-light">
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;" data-ct-key="services_heading">{{ ct.services_heading }}</h2>
-            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important; color: #6c757d;" data-ct-key="services_description">{{ ct.services_description }}</p>
+            <h2 class="heading" data-ct-key="services_heading">{{ ct.services_heading }}</h2>
+            <p data-ct-key="services_description">{{ ct.services_description }}</p>
           </div>
         </div>
 
         <div class="row justify-content-center">
           {% for service in hotel_services %}
-          <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
-            <div class="service text-center bg-white p-4 rounded shadow-sm" style="transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';"><h3 class="mb-3" style="font-weight: 600;">{{ service.name_of_service }}</h3>
-              <p style="color: #6c757d; line-height: 1.8;">{{ service.service_description }}</p>
+          <div class="col-md-6 col-lg-4 mb-4">
+            <div class="service service-card text-center bg-white p-4">
+              <h3 class="mb-3">{{ service.name_of_service }}</h3>
+              <p>{{ service.service_description }}</p>
             </div>
           </div>
           {% endfor %}
@@ -387,23 +352,23 @@
       </div>
     </section>
 
-    <!-- Find Us Section -->
-    <section class="section testimonial-section bg-light">
+    <!-- Map -->
+    <section class="section bg-light">
       <div class="container-fluid px-0">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up">Find Us</h2>
+            <h2 class="heading">Find Us</h2>
           </div>
         </div>
         <div class="row no-gutters">
-          <div class="col-12" data-aos="fade-up" data-aos-delay="200">
-            <!-- Google Map -->
+          <div class="col-12">
             <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6083.477482324672!2d106.68195077662561!3d10.768664389379548!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3d9ad5dd29%3A0xd002ee29a19b9caf!2zVGhpw6puIFTDoGkgSG90ZWw!5e0!3m2!1sen!2s!4v1769936238563!5m2!1sen!2s" width="100%" height="600" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- CTA -->
     <section class="section bg-image overlay" style="background-image: url('{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}');">
       {% if request.user.is_authenticated and request.user.is_staff %}
       <div class="admin-image-container" style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;">
@@ -414,11 +379,11 @@
       {% endif %}
       <div class="container" style="position:relative;z-index:5;">
         <div class="row align-items-center">
-          <div class="col-12 col-md-6 text-center mb-4 mb-md-0 text-md-left" data-aos="fade-up">
+          <div class="col-12 col-md-6 text-center mb-4 mb-md-0 text-md-left">
             <h2 class="text-white font-weight-bold" data-ct-key="reserve_heading">{{ ct.reserve_heading|linebreaksbr }}</h2>
           </div>
-          <div class="col-12 col-md-6 text-center text-md-right" data-aos="fade-up" data-aos-delay="200">
-            <a href="{% url 'reservation' %}" class="btn btn-outline-white-primary py-3 text-white px-5">Reserve Now</a>
+          <div class="col-12 col-md-6 text-center text-md-right">
+            <a href="{% url 'reservation' %}" class="btn btn-outline-white-primary py-3 text-white px-5">Reserve a Room</a>
           </div>
         </div>
       </div>
@@ -441,14 +406,14 @@
             <img id="currentImagePreview" src="" alt="Current Image" />
           </div>
           <div class="upload-zone" id="uploadZone">
-            <i class="fa fa-cloud-upload" style="font-size: 48px; color: var(--primary-color); margin-bottom: 15px;"></i>
-            <p><strong>Drag & Drop your image here</strong></p>
-            <p style="color: #999; margin: 10px 0;">or</p>
-            <input type="file" id="imageFileInput" style="opacity: 0; position: absolute; width: 0; height: 0;" onchange="handleFileSelect(event)">
-            <label for="imageFileInput" class="btn-browse" style="cursor: pointer;">Browse Files</label>
-            <p style="font-size: 12px; color: #999; margin-top: 15px;">Supports: JPG, PNG, GIF (Max 5MB)</p>
+            <i class="fa fa-cloud-upload" style="font-size:40px;color:var(--color-primary);margin-bottom:15px;display:block;"></i>
+            <p><strong>Drag &amp; drop your image here</strong></p>
+            <p style="color:var(--color-muted);margin:8px 0;">or</p>
+            <input type="file" id="imageFileInput" style="opacity:0;position:absolute;width:0;height:0;" onchange="handleFileSelect(event)">
+            <label for="imageFileInput" class="btn-browse" style="cursor:pointer;">Browse Files</label>
+            <p style="font-size:0.8rem;color:var(--color-muted);margin-top:12px;">Supports: JPG, PNG, GIF (max 5 MB)</p>
           </div>
-          <div class="new-image-preview" id="newImagePreview" style="display: none;">
+          <div class="new-image-preview" id="newImagePreview" style="display:none;margin-top:20px;">
             <h4>New Image</h4>
             <img id="previewImage" src="" alt="Preview" />
             <button class="btn btn-secondary mt-3" onclick="clearPreview()">Clear</button>
@@ -487,22 +452,18 @@
 
       function handleFileSelect(event) {
         const file = event.target.files[0];
-        if (file) {
-          displayPreview(file);
-        }
+        if (file) displayPreview(file);
       }
 
       function displayPreview(file) {
         if (file.size > 5 * 1024 * 1024) {
-          showToast('File size must be less than 5MB', true);
+          showToast('File size must be less than 5 MB', true);
           return;
         }
-
         if (!file.type.startsWith('image/')) {
           showToast('Please select an image file', true);
           return;
         }
-
         const reader = new FileReader();
         reader.onload = function(e) {
           document.getElementById('previewImage').src = e.target.result;
@@ -514,7 +475,7 @@
 
       function uploadImage() {
         const fileInput = document.getElementById('imageFileInput');
-        const imageId = document.getElementById('imageIdInput').value;
+        const imageId   = document.getElementById('imageIdInput').value;
 
         if (!fileInput.files.length) {
           showToast('Please select an image', true);
@@ -526,73 +487,49 @@
         formData.append('image_id', imageId);
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-        document.getElementById('uploadButton').disabled = true;
-        document.getElementById('uploadButton').textContent = 'Uploading...';
+        const btn = document.getElementById('uploadButton');
+        btn.disabled = true;
+        btn.textContent = 'Uploading...';
 
-        fetch("{% url 'upload_image' %}", {
-          method: 'POST',
-          body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            showToast(data.message, false);
-            closeImageUpload();
-            // Reload the page to show the new image
-            setTimeout(() => location.reload(), 1500);
-          } else {
-            showToast(data.message, true);
-            document.getElementById('uploadButton').disabled = false;
-            document.getElementById('uploadButton').textContent = 'Upload Image';
-          }
-        })
-        .catch(error => {
-          showToast('Upload failed: ' + error.message, true);
-          document.getElementById('uploadButton').disabled = false;
-          document.getElementById('uploadButton').textContent = 'Upload Image';
-        });
+        fetch("{% url 'upload_image' %}", { method: 'POST', body: formData })
+          .then(r => r.json())
+          .then(data => {
+            if (data.status === 'success') {
+              showToast(data.message, false);
+              closeImageUpload();
+              setTimeout(() => location.reload(), 1500);
+            } else {
+              showToast(data.message, true);
+              btn.disabled = false;
+              btn.textContent = 'Upload Image';
+            }
+          })
+          .catch(err => {
+            showToast('Upload failed: ' + err.message, true);
+            btn.disabled = false;
+            btn.textContent = 'Upload Image';
+          });
       }
 
-      // Drag and drop functionality
       const uploadZone = document.getElementById('uploadZone');
       if (uploadZone) {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-          uploadZone.addEventListener(eventName, preventDefaults, false);
+        ['dragenter','dragover','dragleave','drop'].forEach(e => {
+          uploadZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }, false);
         });
-
-        function preventDefaults(e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-          uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-          uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
-        });
-
-        uploadZone.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-          const dt = e.dataTransfer;
-          const files = dt.files;
+        ['dragenter','dragover'].forEach(e => uploadZone.addEventListener(e, () => uploadZone.classList.add('dragover'), false));
+        ['dragleave','drop'].forEach(e => uploadZone.addEventListener(e, () => uploadZone.classList.remove('dragover'), false));
+        uploadZone.addEventListener('drop', e => {
+          const files = e.dataTransfer.files;
           if (files.length) {
             document.getElementById('imageFileInput').files = files;
             displayPreview(files[0]);
           }
-        }
+        }, false);
       }
 
-      // Close modal when clicking outside
-      window.onclick = function(event) {
-        const modal = document.getElementById('imageUploadModal');
-        if (event.target === modal) {
-          closeImageUpload();
-        }
-      }
-
+      window.addEventListener('click', e => {
+        if (e.target === document.getElementById('imageUploadModal')) closeImageUpload();
+      });
     </script>
     {% endif %}
 {% endblock %}

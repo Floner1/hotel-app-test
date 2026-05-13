@@ -147,6 +147,32 @@ LOGOUT_REDIRECT_URL = '/'
 HOTEL_DEFAULT_PHONE = os.getenv('HOTEL_DEFAULT_PHONE', '+63 900 000 0000')
 HOTEL_DEFAULT_EMAIL = os.getenv('HOTEL_DEFAULT_EMAIL', 'info@hotelbooking.local')
 
+# ---------- Email (Gmail SMTP via django.core.mail) ----------
+# In DEBUG mode emails print to the console; in production they go via SMTP.
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('GMAIL_FROM_EMAIL', '')
+EMAIL_HOST_PASSWORD = os.getenv('GMAIL_APP_PASSWORD', '')
+EMAIL_TIMEOUT = 15  # seconds — fail fast rather than hanging the request
+
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL',
+    f"Thien Tai Hotel <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else 'webmaster@localhost'
+)
+ADMIN_NOTIFICATION_EMAIL = os.getenv('ADMIN_NOTIFICATION_EMAIL', EMAIL_HOST_USER)
+
+# Base URL used when building absolute unsubscribe links inside emails.
+SITE_BASE_URL = os.getenv('SITE_BASE_URL', 'http://localhost:8000')
+
+# Email queue retention (days) — used by retry_failed_emails cleanup pass.
+EMAIL_QUEUE_RETENTION_DAYS = int(os.getenv('EMAIL_QUEUE_RETENTION_DAYS', '90'))
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

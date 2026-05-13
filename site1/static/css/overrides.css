@@ -1,4 +1,9 @@
-/* NAVBAR FIX - Force horizontal layout with color matching site logo */
+/* ==========================================================================
+   Overrides — Thien Tai Hotel
+   Depends on design tokens in style.css :root block.
+========================================================================== */
+
+/* ── Navbar layout ──────────────────────────────────────────────────────── */
 .site-header .container-fluid > .row {
   flex-wrap: nowrap !important;
 }
@@ -23,34 +28,30 @@
   display: inline-block !important;
 }
 
-/* Match nav link colors to site logo - white by default, black on scroll */
+/* Nav links — white default, black on scroll */
 .inline-nav ul li a {
   color: #fff !important;
-  transition: color 0.3s ease !important;
-  font-size: 20px !important;
+  font-size: 15px !important;
+  transition: color 0.3s var(--ease) !important;
 }
 
 .site-header.scrolled .inline-nav ul li a {
   color: #000 !important;
-  font-size: 20px !important;
 }
 
-.inline-nav ul li a:hover {
-  color: #f8b739 !important;
-}
-
+.inline-nav ul li a:hover,
 .site-header.scrolled .inline-nav ul li a:hover {
-  color: #f8b739 !important;
+  color: var(--color-primary) !important;
 }
 
-/* Responsive: Hide inline nav on small/medium screens, show hamburger only */
+/* Responsive: hide inline nav on small screens */
 @media (max-width: 991.98px) {
   .inline-nav {
     display: none !important;
   }
 }
 
-/* LOGO FIX */
+/* ── Logo ───────────────────────────────────────────────────────────────── */
 .site-logo {
   white-space: nowrap !important;
   flex: 0 0 auto !important;
@@ -68,16 +69,15 @@
 .site-logo .logo-img {
   height: 45px !important;
   width: auto !important;
-  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: height 0.3s var(--ease) !important;
 }
 
 .site-logo .hotel-name-text {
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1), margin 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 0.3s var(--ease), max-width 0.3s var(--ease) !important;
   opacity: 1 !important;
   overflow: hidden !important;
   max-width: 300px !important;
   display: inline-block !important;
-  will-change: max-width, opacity !important;
 }
 
 .nav-col {
@@ -107,20 +107,163 @@
   }
 }
 
-/* PAGE HEADING AND BREADCRUMB FONT SIZES */
+/* ── Staff & Admin Tools dropdown ───────────────────────────────────────── */
+.inline-nav ul li.staff-tools-dropdown {
+  display: inline-block !important;
+  position: relative !important;
+}
+
+.inline-nav ul li.staff-tools-dropdown .staff-tools-trigger {
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 7px 14px !important;
+  border-radius: var(--radius-md) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease) !important;
+  white-space: nowrap !important;
+}
+
+.inline-nav ul li.staff-tools-dropdown .staff-tools-trigger:hover {
+  background: rgba(255, 255, 255, 0.30) !important;
+  color: #fff !important;
+}
+
+.site-header.scrolled .inline-nav ul li.staff-tools-dropdown .staff-tools-trigger {
+  background: rgba(255, 186, 90, 0.12) !important;
+  border: 1.5px solid rgba(255, 186, 90, 0.4) !important;
+  color: var(--color-text) !important;
+}
+
+.site-header.scrolled .inline-nav ul li.staff-tools-dropdown .staff-tools-trigger:hover {
+  background: rgba(255, 186, 90, 0.22) !important;
+  color: var(--color-text) !important;
+}
+
+.staff-tools-chevron {
+  font-size: 0.72em !important;
+  margin-left: 2px !important;
+  transition: transform 0.2s var(--ease) !important;
+}
+
+.inline-nav ul li.staff-tools-dropdown:hover .staff-tools-chevron,
+.staff-tools-dropdown.open .staff-tools-chevron {
+  transform: rotate(180deg) !important;
+}
+
+/* Dropdown menu — CSS-controlled visibility */
+.inline-nav ul li.staff-tools-dropdown .staff-tools-menu {
+  display: block !important;
+  opacity: 0;
+  visibility: hidden;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  min-width: 220px;
+  padding: 6px 0;
+  transition: opacity 0.2s var(--ease), visibility 0.2s var(--ease);
+}
+
+.inline-nav ul li.staff-tools-dropdown:hover .staff-tools-menu,
+.inline-nav ul li.staff-tools-dropdown.open .staff-tools-menu {
+  opacity: 1;
+  visibility: visible;
+}
+
+.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 11px 18px !important;
+  color: #333 !important;
+  text-decoration: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: background 0.15s var(--ease) !important;
+  white-space: nowrap !important;
+  border-radius: 0 !important;
+}
+
+.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a:hover {
+  background: var(--color-bg-alt) !important;
+  color: var(--color-text) !important;
+}
+
+.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a i.fa {
+  width: 18px !important;
+  text-align: center !important;
+  font-size: 14px !important;
+  color: var(--color-muted) !important;
+}
+
+.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a:hover i.fa {
+  color: var(--color-accent) !important;
+}
+
+/* ── Hero and breadcrumbs ────────────────────────────────────────────────── */
 .site-hero-inner h1.heading {
-  font-size: 72px !important;
+  font-size: var(--text-h1);
 }
 
 .custom-breadcrumbs {
-  font-size: 20px !important;
+  font-size: var(--text-caption);
 }
 
 .custom-breadcrumbs li {
-  font-size: 20px !important;
+  font-size: var(--text-caption);
 }
 
-/* ROOM IMAGE CONSISTENCY */
+/* ── Type scale enforcement ──────────────────────────────────────────────── */
+body {
+  font-size: var(--text-body);
+  line-height: 1.8;
+}
+
+p {
+  font-size: var(--text-body);
+  line-height: 1.8;
+}
+
+h1, .h1 { font-size: var(--text-h1); }
+h2, .h2, .heading { font-size: var(--text-h2); }
+h3, .h3 { font-size: var(--text-h3); }
+
+.btn { font-size: 15px; }
+.form-control { font-size: var(--text-body); }
+
+/* ── Section headings (remove inline !important overrides in templates) ──── */
+.section-heading {
+  font-size: var(--text-h2);
+}
+.section-subtext {
+  font-size: var(--text-body);
+  color: var(--color-muted);
+}
+
+/* ── Service cards ───────────────────────────────────────────────────────── */
+.service-card {
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  cursor: default;
+  border-radius: var(--radius-md);
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Room cards ──────────────────────────────────────────────────────────── */
 .room .img-wrap img {
   width: 100% !important;
   height: 240px !important;
@@ -133,125 +276,80 @@
 }
 
 .room-info h2 {
-  font-size: 1.75rem !important;
+  font-size: var(--text-h3) !important;
   font-weight: 600 !important;
   margin-bottom: 0.75rem !important;
-  color: #333 !important;
+  color: var(--color-text) !important;
   white-space: nowrap !important;
 }
 
 .room-info span {
-  color: #f8b739 !important;
-  font-size: 1.125rem !important;
+  color: var(--color-primary) !important;
+  font-size: 1rem !important;
   font-weight: 600 !important;
   letter-spacing: 2px !important;
   display: block !important;
 }
 
-/* STAFF & ADMIN TOOLS DROPDOWN */
-.inline-nav ul li.staff-tools-dropdown {
-  display: inline-block !important;
-  position: relative !important;
+/* ── Premium services section ────────────────────────────────────────────── */
+.services-section {
+  background-color: var(--color-bg-alt) !important;
+  padding: var(--space-lg) 0;
 }
 
-.inline-nav ul li.staff-tools-dropdown .staff-tools-trigger {
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 7px !important;
-  padding: 7px 14px !important;
-  border-radius: 8px !important;
-  background: rgba(255,255,255,0.18) !important;
-  border: 1.5px solid rgba(255,255,255,0.45) !important;
-  color: #fff !important;
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  text-decoration: none !important;
-  transition: background 0.2s, border-color 0.2s !important;
-  white-space: nowrap !important;
+.services-section .service {
+  background: var(--color-bg);
+  padding: 2rem 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  height: 100%;
 }
 
-.inline-nav ul li.staff-tools-dropdown .staff-tools-trigger:hover {
-  background: rgba(255,255,255,0.30) !important;
-  color: #fff !important;
+/* ── Section spacing ─────────────────────────────────────────────────────── */
+.section {
+  padding: var(--space-lg) 0;
 }
 
-.site-header.scrolled .inline-nav ul li.staff-tools-dropdown .staff-tools-trigger {
-  background: #eef2ff !important;
-  border: 1.5px solid #c5d0f5 !important;
-  color: #3b5bdb !important;
+/* ── Inline nav layout ───────────────────────────────────────────────────── */
+.inline-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
 }
 
-.site-header.scrolled .inline-nav ul li.staff-tools-dropdown .staff-tools-trigger:hover {
-  background: #dde5ff !important;
-  color: #2f4ac7 !important;
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.footer-section {
+  padding: 50px 0 30px;
 }
 
-.staff-tools-chevron {
-  font-size: 0.72em !important;
-  margin-left: 2px !important;
-  transition: transform 0.2s !important;
+.footer-section .link li a {
+  font-size: 15px;
 }
 
-.inline-nav ul li.staff-tools-dropdown:hover .staff-tools-chevron,
-.staff-tools-dropdown.open .staff-tools-chevron {
-  transform: rotate(180deg) !important;
+.footer-section .contact-info .contact-item {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* The dropdown menu — use high-specificity selector to beat inline-nav rules */
-.inline-nav ul li.staff-tools-dropdown .staff-tools-menu {
-}
-
-.inline-nav ul li.staff-tools-dropdown .staff-tools-menu::before {
-}
-
-.inline-nav ul li.staff-tools-dropdown:hover .staff-tools-menu,
-.inline-nav ul li.staff-tools-dropdown.open .staff-tools-menu {
-}
-
-/* Beat .inline-nav ul li a { color: #fff !important; font-size: 20px !important; } */
-.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  padding: 11px 18px !important;
-  color: #333333 !important;
-  text-decoration: none !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  transition: background 0.15s !important;
-  white-space: nowrap !important;
-  border-radius: 0 !important;
-}
-
-.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a:hover {
-  background: #eef2ff !important;
-  color: #3b5bdb !important;
-}
-
-.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a i.fa {
-  width: 18px !important;
-  text-align: center !important;
-  font-size: 14px !important;
-  color: #6b7baa !important;
-}
-
-.inline-nav ul li.staff-tools-dropdown .staff-tools-menu a:hover i.fa {
-  color: #3b5bdb !important;
-}
-
-/* FOOTER FIX - Force labels and values on separate lines */
 .footer-section .contact-info .contact-label {
   display: block !important;
   font-weight: normal !important;
-  margin-bottom: 5px !important;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 5px;
+  font-size: 15px;
 }
 
 .footer-section .contact-info .contact-value {
   display: block !important;
-  font-weight: normal !important;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+  font-weight: normal;
+  padding-left: 0;
 }
 
+/* ── Toast notification ──────────────────────────────────────────────────── */
 .toast-notification {
   position: fixed;
   top: 20px;
@@ -259,11 +357,11 @@
   background-color: #28a745;
   color: white;
   padding: 15px 25px;
-  border-radius: 5px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 9999;
   display: none;
-  animation: slideInRight 0.4s ease-out;
+  animation: slideInRight 0.3s var(--ease);
 }
 
 .toast-notification.show {
@@ -290,12 +388,12 @@
   }
 }
 
-
-/* RESERVATION / CONTACT FIX */
+/* ── Contact / reservation pages ─────────────────────────────────────────── */
 .contact-section .contact-info p {
-  font-size: 20px !important;
+  font-size: var(--text-body) !important;
   word-wrap: break-word !important;
 }
+
+/* ── Room dashboard status pills ─────────────────────────────────────────── */
 .pill-vacant { background: #28a745; }
-.room-card.status-vacant { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
-.dot-vacant { background: #28a745; }
+.dot-vacant  { background: #28a745; }

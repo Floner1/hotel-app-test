@@ -1,0 +1,31 @@
+{% extends "email/base_email.html" %}
+{% load email_filters %}
+
+{% block subject %}[Internal] {{ event_type }}{% endblock %}
+{% block header_title %}Thien Tai Hotel &mdash; Internal{% endblock %}
+{% block header_subtitle %}
+  <div style="margin-top:6px;font-size:13px;color:#1a1a1a;">{{ event_type|cut:"_"|title }}</div>
+{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 16px 0;">A new <strong>{{ event_type }}</strong> event was recorded.</p>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:16px 0;border-collapse:collapse;">
+    {% for key, value in payload.items %}
+      {% if key != 'booking' and key != 'hotel' %}
+        <tr>
+          <td style="padding:6px 12px 6px 0;color:#6b7280;width:160px;vertical-align:top;">{{ key|cut:"_"|title }}</td>
+          <td style="padding:6px 0;vertical-align:top;word-break:break-word;">{{ value }}</td>
+        </tr>
+      {% endif %}
+    {% endfor %}
+  </table>
+
+  {% if payload.booking %}
+    <p style="margin:18px 0 0 0;color:#6b7280;font-size:12px;">
+      Recorded at {{ payload.booking.booking_date|vietnam_time }}.
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block footer_extra %}You're receiving this as the admin notification recipient for the hotel system.{% endblock %}

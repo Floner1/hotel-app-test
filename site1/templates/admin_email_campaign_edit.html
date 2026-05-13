@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if campaign %}Edit{% else %}New{% endif %} campaign | {{ hotel.hotel_name }}{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background-color: #f5f7fa; font-family: 'Roboto', sans-serif; }
+  .dashboard-header {
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white; padding: 2rem 0; margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .dashboard-header h1 { margin: 0; font-size: 2rem; font-weight: 600; }
+  .form-card {
+    background: white; border-radius: 8px; padding: 1.75rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem;
+  }
+  .form-card label { font-weight: 600; font-size: 0.875rem; color: #1a1a1a; }
+  .form-card input, .form-card textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb;
+    border-radius: 4px; font-size: 0.95rem; font-family: inherit;
+  }
+  .form-card textarea { min-height: 220px; font-family: 'Menlo', 'Monaco', monospace; font-size: 0.85rem; }
+  .form-card .hint { font-size: 0.8rem; color: #6b7280; margin-top: 4px; }
+  .nav-back { color: white; text-decoration: none; font-size: 0.9rem; }
+  .nav-back:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <div class="container">
+    <a href="{% url 'email_campaigns' %}" class="nav-back">&larr; Back to campaigns</a>
+    <h1>{% if campaign %}Edit campaign{% else %}New campaign{% endif %}</h1>
+    {% if campaign %}
+      <p style="margin-top:6px;opacity:0.9;">Status: {{ campaign.status }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="container">
+  <form method="post" class="form-card">
+    {% csrf_token %}
+
+    {% with v=form_values|default:campaign %}
+      <div class="form-group">
+        <label for="name">Internal name</label>
+        <input type="text" id="name" name="name" maxlength="225" required
+               value="{% if form_values %}{{ form_values.name }}{% elif campaign %}{{ campaign.name }}{% endif %}">
+        <div class="hint">For your reference only — recipients never see this.</div>
+      </div>
+
+      <div class="form-group" style="margin-top:1.25rem;">
+        <label for="subject">Subject line</label>
+        <input type="text" id="subject" name="subject" maxlength="500" required
+               value="{% if form_values %}{{ form_values.subject }}{% elif campaign %}{{ campaign.subject }}{% endif %}">
+      </div>
+
+      <div class="form-group" style="margin-top:1.25rem;">
+        <label for="body_html">HTML body</label>
+        <textarea id="body_html" name="body_html" required>{% if form_values %}{{ form_values.body_html }}{% elif campaign %}{{ campaign.body_html }}{% endif %}</textarea>
+        <div class="hint">Wrapped automatically in the branded email shell. Use clean HTML — tables for layout, inline styles.</div>
+      </div>
+
+      <div class="form-group" style="margin-top:1.25rem;">
+        <label for="body_text">Plain-text body (optional)</label>
+        <textarea id="body_text" name="body_text">{% if form_values %}{{ form_values.body_text }}{% elif campaign %}{{ campaign.body_text }}{% endif %}</textarea>
+        <div class="hint">Falls back to a stripped version of the HTML if blank.</div>
+      </div>
+    {% endwith %}
+
+    <div style="margin-top:1.75rem;display:flex;gap:8px;">
+      <button type="submit" class="btn btn-primary">{% if campaign %}Save changes{% else %}Save draft{% endif %}</button>
+      <a href="{% url 'email_campaigns' %}" class="btn btn-link">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

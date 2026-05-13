@@ -1,14 +1,12 @@
 {% load static %}
-<!-- Main Navigation Header -->
-<!-- The header contains the hotel logo and main navigation menu -->
 <header class="site-header js-site-header">
   <div class="container-fluid">
     <div class="row align-items-center">
-      <div class="col-auto site-logo" data-aos="fade"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel Logo" class="logo-img"><span class="hotel-name-text">{{ hotel_name }}</span></a></div>
+      <div class="col-auto site-logo"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel Logo" class="logo-img"><span class="hotel-name-text">{{ hotel_name }}</span></a></div>
       <div class="col nav-col">
 
-        <!-- Inline Navigation for Desktop -->
-        <div class="d-none d-lg-block inline-nav" data-aos="fade">
+        <!-- Inline navigation — desktop -->
+        <div class="d-none d-lg-block inline-nav">
           <ul>
             <li{% if active_page == 'home' %} class="active"{% endif %}><a href="{% url 'home' %}">Home</a></li>
             <li{% if active_page == 'rooms' %} class="active"{% endif %}><a href="{% url 'rooms' %}">Rooms</a></li>
@@ -17,23 +15,13 @@
             <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
             {% if user.is_authenticated %}
               {% if user.role == 'admin' or user.role == 'staff' %}
-                <li class="staff-tools-dropdown" id="staffToolsDropdown" style="position:relative;display:inline-block;"
-                    onmouseenter="document.getElementById('staffToolsMenu').setAttribute('style', 'display:block !important;position:absolute;top:100%;margin-top:10px;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.14);z-index:9999;min-width:220px;padding:6px 0;');"
-                    onmouseleave="document.getElementById('staffToolsMenu').setAttribute('style', 'display:none !important;position:absolute;top:100%;margin-top:10px;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.14);z-index:9999;min-width:220px;padding:6px 0;');">
-                  
-                  <!-- Invisible Bridge to keep hover active between button and menu -->
-                  <div style="position:absolute;top:100%;left:0;width:100%;height:15px;background:transparent;z-index:9998;"></div>
-
-                  <a href="#" class="staff-tools-trigger" onclick="document.getElementById('staffToolsMenu').setAttribute('style', 'display:block !important;position:absolute;top:100%;margin-top:10px;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.14);z-index:9999;min-width:220px;padding:6px 0;'); return false;" style="display:inline-flex;align-items:center;gap:7px;white-space:nowrap;"><i class="fa fa-cogs"></i> Staff &amp; Admin Tools <i class="fa fa-chevron-down staff-tools-chevron"></i></a>
-                  
-                  <div id="staffToolsMenu" class="staff-tools-menu" style="display:none !important;position:absolute;top:100%;margin-top:10px;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.14);z-index:9999;min-width:220px;padding:6px 0;">
-                    <a href="{% url 'admin_reservations' %}" style="display:flex !important;align-items:center;gap:10px;padding:11px 18px;color:#333 !important;font-size:14px !important;font-weight:500;text-decoration:none;white-space:nowrap;"
-                       onmouseenter="this.style.setProperty('background','#eef2ff','important');this.style.setProperty('color','#3b5bdb','important')" onmouseleave="this.style.setProperty('background','','important');this.style.setProperty('color','#333','important')"><i class="fa fa-list-alt" style="width:18px;text-align:center;color:#6b7baa;"></i> Dashboard</a>
-                    <a href="{% url 'room_dashboard' %}" style="display:flex !important;align-items:center;gap:10px;padding:11px 18px;color:#333 !important;font-size:14px !important;font-weight:500;text-decoration:none;white-space:nowrap;"
-                       onmouseenter="this.style.setProperty('background','#eef2ff','important');this.style.setProperty('color','#3b5bdb','important')" onmouseleave="this.style.setProperty('background','','important');this.style.setProperty('color','#333','important')"><i class="fa fa-building" style="width:18px;text-align:center;color:#6b7baa;"></i> Room Dashboard</a>
+                <li class="staff-tools-dropdown" id="staffToolsDropdown">
+                  <a href="#" class="staff-tools-trigger"><i class="fa fa-cogs"></i> Staff &amp; Admin Tools <i class="fa fa-chevron-down staff-tools-chevron"></i></a>
+                  <div id="staffToolsMenu" class="staff-tools-menu">
+                    <a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a>
+                    <a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a>
                     {% if user.role == 'admin' %}
-                      <a href="#" id="navEditModeToggle" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;" style="display:flex !important;align-items:center;gap:10px;padding:11px 18px;color:#333 !important;font-size:14px !important;font-weight:500;text-decoration:none;white-space:nowrap;"
-                         onmouseenter="this.style.setProperty('background','#eef2ff','important');this.style.setProperty('color','#3b5bdb','important')" onmouseleave="this.style.setProperty('background','','important');this.style.setProperty('color','#333','important')"><i class="fa fa-pencil" style="width:18px;text-align:center;color:#6b7baa;"></i> Edit Mode</a>
+                      <a href="#" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;"><i class="fa fa-pencil"></i> Edit Mode</a>
                     {% endif %}
                   </div>
                 </li>
@@ -46,14 +34,14 @@
           </ul>
         </div>
 
-        <!-- Mobile Menu Toggle -->
-        <div class="site-menu-toggle js-site-menu-toggle d-lg-none" data-aos="fade">
+        <!-- Mobile menu toggle -->
+        <div class="site-menu-toggle js-site-menu-toggle d-lg-none">
           <span></span>
           <span></span>
           <span></span>
         </div>
-        <!-- END menu-toggle -->
 
+        <!-- Mobile fullscreen menu -->
         <div class="site-navbar js-site-navbar">
           <nav role="navigation">
             <div class="container">
@@ -67,7 +55,7 @@
                     <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
                     {% if user.is_authenticated %}
                       {% if user.role == 'admin' or user.role == 'staff' %}
-                        <li><span style="display:block;color:rgba(255,255,255,0.5);font-size:0.8em;margin-top:10px;margin-bottom:5px;">STAFF &amp; ADMIN TOOLS</span></li>
+                        <li><span style="display:block;color:rgba(0,0,0,0.4);font-size:0.75em;text-transform:uppercase;letter-spacing:.1em;margin-top:10px;margin-bottom:5px;">Staff &amp; Admin</span></li>
                         <li><a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a></li>
                         <li><a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a></li>
                         {% if user.role == 'admin' %}
@@ -89,4 +77,3 @@
     </div>
   </div>
 </header>
-<!-- END head -->

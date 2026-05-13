@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django_ratelimit.decorators import ratelimit
-from backend.services.services import HotelService, ReservationService, RoomService
+from backend.services.services import HotelService, ReservationService, RoomService, EmailService
 from data.models import User, CustomerBookingInfo
 from django.db.models import Sum
 from datetime import date, datetime
@@ -150,6 +150,10 @@ def get_contact(request):
             messages.error(request, 'Please fill in Name, Email and Message fields.')
         else:
             logger.info('Contact form submission from %s <%s>', name, email)
+            try:
+                EmailService.queue_contact_receipt(name=name, email=email, message=message)
+            except Exception:
+                logger.exception('queue_contact_receipt failed')
             messages.success(request, 'Your message has been sent. We will get back to you soon!')
             return redirect('contact')
 
@@ -272,14 +276,57 @@ def newsletter_signup(request):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         from django.core.validators import validate_email
         from django.core.exceptions import ValidationError
+        from data.repos.repositories import EmailRepository
         email = request.POST.get('email', '').strip()
         try:
             validate_email(email)
         except ValidationError:
             return JsonResponse({'status': 'error', 'message': 'Please provide a valid email address.'}, status=400)
-        logger.info('Newsletter signup: %s', email)
-        return JsonResponse({'status': 'ok', 'message': 'Thank you for subscribing!'})
+
+        user = request.user if request.user.is_authenticated else None
+        try:
+            subscriber, created = EmailRepository.create_subscriber(
+                email=email, user=user, source='footer_signup'
+            )
+        except Exception:
+            logger.exception('Newsletter signup persist failed for %s', email)
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Something went wrong saving your subscription. Please try again.'
+            }, status=500)
+
+        if subscriber is None:
+            return JsonResponse({'status': 'error', 'message': 'Please provide a valid email address.'}, status=400)
+
+        msg = 'Thank you for subscribing!' if created else 'You are already subscribed — thank you!'
+        return JsonResponse({'status': 'ok', 'message': msg})
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+
+def unsubscribe_view(request, token):
+    """Token-based unsubscribe. GET shows a confirm screen; POST acts."""
+    from data.repos.repositories import EmailRepository
+    subscriber = EmailRepository.get_by_token(token)
+    if not subscriber:
+        return render(request, 'email/unsubscribe.html', {'status': 'invalid'}, status=404)
+
+    if subscriber.status == 'unsubscribed':
+        return render(request, 'email/unsubscribe.html', {
+            'status': 'already_unsubscribed',
+            'subscriber': subscriber,
+        })
+
+    if request.method == 'POST':
+        EmailRepository.unsubscribe(subscriber)
+        return render(request, 'email/unsubscribe.html', {
+            'status': 'unsubscribed',
+            'subscriber': subscriber,
+        })
+
+    return render(request, 'email/unsubscribe.html', {
+        'status': 'confirm',
+        'subscriber': subscriber,
+    })
 
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
@@ -813,6 +860,187 @@ def manage_accounts(request):
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+def email_log(request):
+    """Admin view: list email_queue rows with filters."""
+    from data.models import EmailQueue
+
+    status = request.GET.get('status') or None
+    email_type = request.GET.get('type') or None
+
+    qs = EmailQueue.objects.all().order_by('-created_at')
+    if status in ('sent', 'failed'):
+        qs = qs.filter(status=status)
+    if email_type:
+        qs = qs.filter(email_type=email_type)
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(qs, 25)
+    try:
+        rows = paginator.page(page)
+    except PageNotAnInteger:
+        rows = paginator.page(1)
+    except EmptyPage:
+        rows = paginator.page(paginator.num_pages)
+
+    stats = {
+        'total': EmailQueue.objects.count(),
+        'sent': EmailQueue.objects.filter(status='sent').count(),
+        'failed': EmailQueue.objects.filter(status='failed').count(),
+    }
+
+    return render(request, 'admin_email_log.html', {
+        'rows': rows,
+        'stats': stats,
+        'filter_status': status or '',
+        'filter_type': email_type or '',
+        'hotel': HotelService.get_hotel_info(),
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+def email_subscribers(request):
+    """Admin view: list subscribers; allow manual unsubscribe."""
+    from data.repos.repositories import EmailRepository
+    from data.models import EmailSubscriber
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        sub_id = request.POST.get('subscriber_id')
+        if action == 'unsubscribe' and sub_id:
+            sub = EmailSubscriber.objects.filter(id=sub_id).first()
+            if sub:
+                EmailRepository.unsubscribe(sub)
+                messages.success(request, f'{sub.email} has been unsubscribed.')
+            else:
+                messages.error(request, 'Subscriber not found.')
+        return redirect('email_subscribers')
+
+    status = request.GET.get('status') or None
+    qs = EmailSubscriber.objects.all().order_by('-created_at')
+    if status in ('subscribed', 'unsubscribed', 'bounced'):
+        qs = qs.filter(status=status)
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(qs, 25)
+    try:
+        rows = paginator.page(page)
+    except PageNotAnInteger:
+        rows = paginator.page(1)
+    except EmptyPage:
+        rows = paginator.page(paginator.num_pages)
+
+    stats = {
+        'total': EmailSubscriber.objects.count(),
+        'subscribed': EmailSubscriber.objects.filter(status='subscribed').count(),
+        'unsubscribed': EmailSubscriber.objects.filter(status='unsubscribed').count(),
+        'bounced': EmailSubscriber.objects.filter(status='bounced').count(),
+    }
+
+    return render(request, 'admin_email_subscribers.html', {
+        'rows': rows,
+        'stats': stats,
+        'filter_status': status or '',
+        'hotel': HotelService.get_hotel_info(),
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+def email_campaigns(request):
+    """Admin view: list email campaigns."""
+    from data.repos.repositories import EmailRepository
+    campaigns = EmailRepository.list_campaigns()
+    return render(request, 'admin_email_campaigns.html', {
+        'campaigns': campaigns,
+        'hotel': HotelService.get_hotel_info(),
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+def email_campaign_edit(request, campaign_id=None):
+    """Create or edit a campaign draft."""
+    from data.repos.repositories import EmailRepository
+
+    campaign = None
+    if campaign_id:
+        campaign = EmailRepository.get_campaign(campaign_id)
+        if not campaign:
+            return render(request, '404.html', status=404)
+
+    if request.method == 'POST':
+        name = (request.POST.get('name') or '').strip()
+        subject = (request.POST.get('subject') or '').strip()
+        body_html = request.POST.get('body_html') or ''
+        body_text = request.POST.get('body_text') or ''
+
+        if not name or not subject or not body_html:
+            messages.error(request, 'Name, subject, and HTML body are required.')
+            return render(request, 'admin_email_campaign_edit.html', {
+                'campaign': campaign,
+                'form_values': {
+                    'name': name, 'subject': subject,
+                    'body_html': body_html, 'body_text': body_text,
+                },
+                'hotel': HotelService.get_hotel_info(),
+            })
+
+        if campaign:
+            if campaign.status != 'draft':
+                messages.error(request, 'Only drafts can be edited.')
+                return redirect('email_campaigns')
+            EmailRepository.update_campaign(
+                campaign.id, name=name, subject=subject,
+                body_html=body_html, body_text=body_text or None,
+            )
+            messages.success(request, 'Campaign updated.')
+            return redirect('email_campaigns')
+        else:
+            new_camp = EmailRepository.create_campaign(
+                name=name, subject=subject, body_html=body_html,
+                body_text=body_text or None, created_by=request.user,
+            )
+            messages.success(request, f'Campaign "{new_camp.name}" saved as draft.')
+            return redirect('email_campaigns')
+
+    return render(request, 'admin_email_campaign_edit.html', {
+        'campaign': campaign,
+        'form_values': None,
+        'hotel': HotelService.get_hotel_info(),
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+def email_campaign_send(request, campaign_id):
+    """Send a draft campaign to all active subscribers."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST only'}, status=405)
+
+    from data.repos.repositories import EmailRepository
+    campaign = EmailRepository.get_campaign(campaign_id)
+    if not campaign:
+        messages.error(request, 'Campaign not found.')
+        return redirect('email_campaigns')
+    if campaign.status != 'draft':
+        messages.error(request, 'Only drafts can be sent.')
+        return redirect('email_campaigns')
+
+    result = EmailService.queue_campaign(campaign.id)
+    if result:
+        messages.success(
+            request,
+            f'Campaign "{result.name}" sent: {result.sent_count} delivered, '
+            f'{result.failed_count} failed (of {result.recipient_count} recipients).'
+        )
+    else:
+        messages.error(request, 'Campaign send failed. Check server logs.')
+    return redirect('email_campaigns')
+
+
+@login_required
+@user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def upload_image(request):
     """Handle image upload for admin users — saves binary data to the ImagesRef DB table."""
     if request.method == 'POST':
@@ -1048,6 +1276,19 @@ def edit_reservation(request, booking_id):
                         'status': 'error',
                         'message': str(room_err),
                     }, status=400)
+
+                # Fire transactional email for guest-facing status changes.
+                # Email failure is non-fatal — handled inside EmailService.
+                try:
+                    if new_status == 'confirmed':
+                        EmailService.queue_booking_confirmation(booking.booking_id)
+                    elif new_status in ('cancelled', 'rejected'):
+                        EmailService.queue_booking_cancellation(
+                            booking.booking_id,
+                            reason=data.get('cancellation_reason') or None,
+                        )
+                except Exception:
+                    logger.exception('Email dispatch failed for booking #%s', booking.booking_id)
 
             log_booking_update(request.user, booking, old_data, request)
             

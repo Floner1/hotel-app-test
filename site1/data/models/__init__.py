@@ -11,6 +11,7 @@ from .hotel import (
 )
 from .images import ImagesRef
 from .site_content import SiteContent
+from .email import EmailSubscriber, EmailCampaign, EmailQueue
 
 __all__ = [
     'User',
@@ -23,4 +24,7 @@ __all__ = [
     'AuditLog',
     'ImagesRef',
     'SiteContent',
+    'EmailSubscriber',
+    'EmailCampaign',
+    'EmailQueue',
 ]

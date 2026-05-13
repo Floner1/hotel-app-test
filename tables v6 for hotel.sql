@@ -17,6 +17,9 @@ IF OBJECT_ID('trg_block_customer_writes_hotel_services', 'TR') IS NOT NULL DROP 
 IF OBJECT_ID('trg_block_customer_writes_room_price', 'TR') IS NOT NULL DROP TRIGGER trg_block_customer_writes_room_price;
 IF OBJECT_ID('trg_block_customer_writes_hotel_keys', 'TR') IS NOT NULL DROP TRIGGER trg_block_customer_writes_hotel_keys;
 
+IF OBJECT_ID('email_queue', 'U') IS NOT NULL DROP TABLE email_queue;
+IF OBJECT_ID('email_campaigns', 'U') IS NOT NULL DROP TABLE email_campaigns;
+IF OBJECT_ID('email_subscribers', 'U') IS NOT NULL DROP TABLE email_subscribers;
 IF OBJECT_ID('room_assignments', 'U') IS NOT NULL DROP TABLE room_assignments;
 IF OBJECT_ID('room_maintenance_logs', 'U') IS NOT NULL DROP TABLE room_maintenance_logs;
 IF OBJECT_ID('rooms', 'U') IS NOT NULL DROP TABLE rooms;
@@ -246,6 +249,75 @@ CREATE TABLE site_content (
     content_value NVARCHAR(MAX) NOT NULL,
     updated_at    DATETIME DEFAULT GETDATE()
 );
+GO
+
+/* =====================================================
+   EMAIL INFRASTRUCTURE
+   - email_subscribers: opt-in marketing list with unsubscribe tokens
+   - email_campaigns:   newsletter drafts + send statistics
+   - email_queue:       per-send log (status sent|failed) shared by
+                        transactional + marketing emails
+===================================================== */
+CREATE TABLE email_subscribers (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    email NVARCHAR(255) NOT NULL UNIQUE,
+    name NVARCHAR(225) NULL,
+    user_id INT NULL,
+    status NVARCHAR(20) NOT NULL DEFAULT 'subscribed'
+        CHECK (status IN ('subscribed','unsubscribed','bounced')),
+    source NVARCHAR(100) NULL,
+    subscribed_at DATETIME NULL,
+    unsubscribed_at DATETIME NULL,
+    unsubscribe_token NVARCHAR(64) NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT fk_subscribers_user FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+GO
+
+CREATE TABLE email_campaigns (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(225) NOT NULL,
+    subject NVARCHAR(500) NOT NULL,
+    body_html NVARCHAR(MAX) NOT NULL,
+    body_text NVARCHAR(MAX) NULL,
+    status NVARCHAR(20) NOT NULL DEFAULT 'draft'
+        CHECK (status IN ('draft','sent','cancelled')),
+    sent_at DATETIME NULL,
+    recipient_count INT NOT NULL DEFAULT 0,
+    sent_count INT NOT NULL DEFAULT 0,
+    failed_count INT NOT NULL DEFAULT 0,
+    created_by INT NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT fk_campaigns_user FOREIGN KEY (created_by) REFERENCES users(user_id)
+);
+GO
+
+CREATE TABLE email_queue (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    to_email NVARCHAR(255) NOT NULL,
+    to_name NVARCHAR(225) NULL,
+    subject NVARCHAR(500) NOT NULL,
+    template_name NVARCHAR(100) NULL,
+    email_type NVARCHAR(50) NOT NULL,
+    status NVARCHAR(20) NOT NULL DEFAULT 'sent'
+        CHECK (status IN ('sent','failed')),
+    attempts INT NOT NULL DEFAULT 1,
+    error_message NVARCHAR(MAX) NULL,
+    provider_msg_id NVARCHAR(255) NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    sent_at DATETIME NULL,
+    user_id INT NULL,
+    related_type NVARCHAR(50) NULL,
+    related_id INT NULL,
+    campaign_id INT NULL,
+    CONSTRAINT fk_emailqueue_user FOREIGN KEY (user_id) REFERENCES users(user_id),
+    CONSTRAINT fk_emailqueue_campaign FOREIGN KEY (campaign_id) REFERENCES email_campaigns(id)
+);
+GO
+
+CREATE INDEX ix_email_queue_status_created ON email_queue (status, created_at DESC);
+CREATE INDEX ix_email_queue_related ON email_queue (related_type, related_id);
 GO
 
 /* =====================================================

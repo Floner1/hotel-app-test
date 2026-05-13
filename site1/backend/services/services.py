@@ -11,7 +11,12 @@ from django.utils import timezone
 from django.db import transaction
 
 from data.models.hotel import Hotel as BookingHotel, RoomPrice
-from data.repos.repositories import HotelRepository, ReservationRepository, RoomRepository
+from data.repos.repositories import (
+    HotelRepository,
+    ReservationRepository,
+    RoomRepository,
+    EmailRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +226,15 @@ class ReservationService:
             except Exception as e:
                 logger.warning(f"Could not auto-allocate room for booking. Error: {e}")
 
-            return booking
+        # Fire booking confirmation email AFTER the transaction commits so
+        # the row is guaranteed visible to the email service. Failure is
+        # logged into email_queue and never bubbles up to the caller.
+        try:
+            EmailService.queue_booking_confirmation(booking.booking_id)
+        except Exception:
+            logger.exception("queue_booking_confirmation failed for #%s", booking.booking_id)
+
+        return booking
 
     @classmethod
     def get_room_rates(cls, force_refresh: bool = False) -> Dict[str, Decimal]:
@@ -433,4 +446,272 @@ class RoomService:
             assignment.save()
 
 
+class EmailService:
+    """Centralised email send pipeline.
+
+    Every public method follows the same shape:
+      1. resolve the recipient + context
+      2. render the right template
+      3. call the provider
+      4. write a row into email_queue (sent or failed)
+      5. NEVER raise — email failure is non-fatal for the caller
+    """
+
+    # --------------- transactional helpers ---------------
+
+    @classmethod
+    def queue_booking_confirmation(cls, reservation_id):
+        """Send 'we received your booking' to the guest, plus admin notification."""
+        from data.models import CustomerBookingInfo
+        try:
+            booking = (
+                CustomerBookingInfo.objects
+                .select_related('hotel', 'user')
+                .get(booking_id=reservation_id)
+            )
+        except CustomerBookingInfo.DoesNotExist:
+            logger.warning("queue_booking_confirmation: booking %s missing", reservation_id)
+            return
+
+        if not booking.email:
+            logger.info("Booking #%s has no guest email; skipping confirmation", reservation_id)
+        else:
+            cls._send(
+                to_email=booking.email,
+                to_name=booking.guest_name,
+                subject=f"Booking confirmation — {booking.hotel.hotel_name}",
+                template_name='email/booking_confirmation.html',
+                email_type='booking_confirmation',
+                context={'booking': booking, 'hotel': booking.hotel},
+                user=booking.user,
+                related_type='booking',
+                related_id=booking.booking_id,
+            )
+
+        # Mirror to admin so the front desk sees new bookings in their inbox.
+        cls.queue_admin_notification('new_booking', {
+            'booking_id': booking.booking_id,
+            'guest_name': booking.guest_name,
+            'room_type': booking.room_type,
+            'check_in': str(booking.check_in),
+            'check_out': str(booking.check_out),
+            'total_price': str(booking.total_price),
+            'email': booking.email or '(none)',
+            'phone': booking.phone or '(none)',
+            'booking': booking,
+            'hotel': booking.hotel,
+        })
+
+    @classmethod
+    def queue_booking_cancellation(cls, reservation_id, reason=None):
+        from data.models import CustomerBookingInfo
+        try:
+            booking = (
+                CustomerBookingInfo.objects
+                .select_related('hotel', 'user')
+                .get(booking_id=reservation_id)
+            )
+        except CustomerBookingInfo.DoesNotExist:
+            logger.warning("queue_booking_cancellation: booking %s missing", reservation_id)
+            return
+
+        if not booking.email:
+            logger.info("Booking #%s has no guest email; skipping cancellation", reservation_id)
+            return
+
+        cls._send(
+            to_email=booking.email,
+            to_name=booking.guest_name,
+            subject=f"Booking cancellation — {booking.hotel.hotel_name}",
+            template_name='email/booking_cancellation.html',
+            email_type='booking_cancellation',
+            context={'booking': booking, 'hotel': booking.hotel, 'reason': reason},
+            user=booking.user,
+            related_type='booking',
+            related_id=booking.booking_id,
+        )
+
+    @classmethod
+    def queue_contact_receipt(cls, name, email, message):
+        """Acknowledge a contact form submission; also notify admin."""
+        if not email:
+            return
+        hotel = HotelService.get_hotel_info()
+        cls._send(
+            to_email=email,
+            to_name=name,
+            subject=f"We received your message — {hotel['hotel_name']}",
+            template_name='email/contact_receipt.html',
+            email_type='contact_receipt',
+            context={'name': name, 'email': email, 'message': message, 'hotel': hotel},
+            related_type='contact',
+        )
+        cls.queue_admin_notification('contact_form', {
+            'name': name,
+            'email': email,
+            'message': message,
+            'hotel': hotel,
+        })
+
+    @classmethod
+    def queue_admin_notification(cls, event_type, payload):
+        """Send an internal notification to ADMIN_NOTIFICATION_EMAIL."""
+        admin_addr = getattr(settings_module, 'ADMIN_NOTIFICATION_EMAIL', None)
+        if not admin_addr:
+            logger.info("ADMIN_NOTIFICATION_EMAIL not configured; skipping admin notify")
+            return
+        subject_map = {
+            'new_booking': 'New booking received',
+            'contact_form': 'New contact form submission',
+        }
+        subject = subject_map.get(event_type, f'Notification: {event_type}')
+        cls._send(
+            to_email=admin_addr,
+            subject=f"[Thien Tai Hotel] {subject}",
+            template_name='email/admin_notification.html',
+            email_type='admin_notification',
+            context={'event_type': event_type, 'payload': payload},
+            related_type=event_type,
+            related_id=payload.get('booking_id') if isinstance(payload, dict) else None,
+        )
+
+    @classmethod
+    def queue_campaign(cls, campaign_id):
+        """Send a draft campaign to every active subscriber. Logs per-recipient
+        rows into email_queue and updates the campaign's send stats."""
+        campaign = EmailRepository.get_campaign(campaign_id)
+        if not campaign:
+            logger.warning("queue_campaign: campaign %s missing", campaign_id)
+            return None
+        if campaign.status != 'draft':
+            logger.warning("queue_campaign: campaign %s is not in draft status", campaign_id)
+            return campaign
+
+        subscribers = list(EmailRepository.active_subscribers())
+        sent_count = 0
+        failed_count = 0
+
+        for sub in subscribers:
+            # Personalise the unsubscribe link per recipient.
+            unsubscribe_url = cls._build_unsubscribe_url(sub.unsubscribe_token)
+            context = {
+                'campaign': campaign,
+                'subscriber': sub,
+                'unsubscribe_url': unsubscribe_url,
+                'hotel': HotelService.get_hotel_info(),
+            }
+            try:
+                # Render the campaign body wrapped in base_email; campaign body
+                # is rich HTML the admin authored.
+                html = cls._render('email/campaign.html', context, fallback_body=campaign.body_html)
+                from backend.email_providers import send_email
+                msg_id = send_email(
+                    to=[sub.email],
+                    subject=campaign.subject,
+                    html_body=html,
+                    text_body=campaign.body_text or None,
+                    headers={'List-Unsubscribe': f'<{unsubscribe_url}>'},
+                )
+                EmailRepository.log_sent(
+                    to_email=sub.email,
+                    to_name=sub.name,
+                    subject=campaign.subject,
+                    email_type='campaign',
+                    template_name='email/campaign.html',
+                    user=sub.user,
+                    related_type='subscriber',
+                    related_id=sub.id,
+                    campaign=campaign,
+                    provider_msg_id=msg_id,
+                )
+                sent_count += 1
+            except Exception as exc:
+                logger.exception("Campaign %s send to %s failed", campaign.id, sub.email)
+                EmailRepository.log_failed(
+                    to_email=sub.email,
+                    to_name=sub.name,
+                    subject=campaign.subject,
+                    email_type='campaign',
+                    template_name='email/campaign.html',
+                    error=exc,
+                    user=sub.user,
+                    related_type='subscriber',
+                    related_id=sub.id,
+                    campaign=campaign,
+                )
+                failed_count += 1
+
+        EmailRepository.mark_campaign_sent(
+            campaign.id,
+            recipient_count=len(subscribers),
+            sent_count=sent_count,
+            failed_count=failed_count,
+        )
+        return EmailRepository.get_campaign(campaign.id)
+
+    # --------------- internal plumbing ---------------
+
+    @classmethod
+    def _send(cls, *, to_email, subject, template_name, email_type, context,
+              to_name=None, user=None, related_type=None, related_id=None,
+              campaign=None):
+        """Render → send → log. Never raises."""
+        try:
+            html = cls._render(template_name, context)
+        except Exception as exc:
+            logger.exception("Failed to render %s", template_name)
+            EmailRepository.log_failed(
+                to_email=to_email, subject=subject, email_type=email_type,
+                template_name=template_name, to_name=to_name, user=user,
+                related_type=related_type, related_id=related_id, campaign=campaign,
+                error=f"template render failed: {exc}",
+            )
+            return None
+
+        try:
+            from backend.email_providers import send_email
+            msg_id = send_email(
+                to=[to_email],
+                subject=subject,
+                html_body=html,
+            )
+            EmailRepository.log_sent(
+                to_email=to_email, to_name=to_name, subject=subject,
+                email_type=email_type, template_name=template_name,
+                user=user, related_type=related_type, related_id=related_id,
+                campaign=campaign, provider_msg_id=msg_id,
+            )
+            return msg_id
+        except Exception as exc:
+            logger.exception("Email send failed (%s -> %s)", email_type, to_email)
+            EmailRepository.log_failed(
+                to_email=to_email, subject=subject, email_type=email_type,
+                template_name=template_name, to_name=to_name, user=user,
+                related_type=related_type, related_id=related_id, campaign=campaign,
+                error=exc,
+            )
+            return None
+
+    @staticmethod
+    def _render(template_name, context, fallback_body=None):
+        from django.template.loader import render_to_string
+        try:
+            return render_to_string(template_name, context)
+        except Exception:
+            if fallback_body is not None:
+                # Used by queue_campaign when the admin pastes raw HTML.
+                base_ctx = dict(context)
+                base_ctx['raw_body'] = fallback_body
+                return render_to_string('email/campaign.html', base_ctx)
+            raise
+
+    @staticmethod
+    def _build_unsubscribe_url(token):
+        base = getattr(settings_module, 'SITE_BASE_URL', '').rstrip('/')
+        path = f'/unsubscribe/{token}/'
+        return f"{base}{path}" if base else path
+
+
+# Late import for settings to avoid circulars at module load.
+from django.conf import settings as settings_module  # noqa: E402
 

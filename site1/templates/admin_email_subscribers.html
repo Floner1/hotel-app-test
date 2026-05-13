@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Email Subscribers | {{ hotel.hotel_name }}{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background-color: #f5f7fa; font-family: 'Roboto', sans-serif; }
+  .dashboard-header {
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white; padding: 2rem 0; margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .dashboard-header h1 { margin: 0; font-size: 2rem; font-weight: 600; }
+  .stat-card {
+    background: white; border-radius: 8px; padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1rem;
+  }
+  .stat-card .label { color: #6b7280; font-size: 0.875rem; }
+  .stat-card .value { font-size: 1.75rem; font-weight: 600; margin-top: 4px; }
+  .stat-card.subscribed .value { color: #16a34a; }
+  .stat-card.unsubscribed .value { color: #6b7280; }
+  .stat-card.bounced .value { color: #dc2626; }
+  .table-wrap { background: white; border-radius: 8px; padding: 1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  table.sub-table { width: 100%; }
+  table.sub-table th { font-size: 0.8rem; color: #6b7280; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  table.sub-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; }
+  .badge-status { padding: 3px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+  .badge-subscribed { background: #dcfce7; color: #166534; }
+  .badge-unsubscribed { background: #f1f5f9; color: #475569; }
+  .badge-bounced { background: #fee2e2; color: #991b1b; }
+  .nav-back { color: white; text-decoration: none; font-size: 0.9rem; }
+  .nav-back:hover { text-decoration: underline; }
+  .btn-mini { padding: 4px 10px; font-size: 0.8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <div class="container">
+    <a href="{% url 'admin_reservations' %}" class="nav-back">&larr; Back to dashboard</a>
+    <h1>Email Subscribers</h1>
+    <p style="margin-top:6px;opacity:0.9;">Newsletter and marketing recipients.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-3"><div class="stat-card"><div class="label">Total</div><div class="value">{{ stats.total }}</div></div></div>
+    <div class="col-md-3"><div class="stat-card subscribed"><div class="label">Subscribed</div><div class="value">{{ stats.subscribed }}</div></div></div>
+    <div class="col-md-3"><div class="stat-card unsubscribed"><div class="label">Unsubscribed</div><div class="value">{{ stats.unsubscribed }}</div></div></div>
+    <div class="col-md-3"><div class="stat-card bounced"><div class="label">Bounced</div><div class="value">{{ stats.bounced }}</div></div></div>
+  </div>
+
+  <div class="table-wrap">
+    <form method="get" style="margin-bottom:1rem;">
+      <label style="color:#6b7280;margin-right:6px;">Status</label>
+      <select name="status" onchange="this.form.submit()" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:4px;">
+        <option value="">All</option>
+        <option value="subscribed" {% if filter_status == "subscribed" %}selected{% endif %}>Subscribed</option>
+        <option value="unsubscribed" {% if filter_status == "unsubscribed" %}selected{% endif %}>Unsubscribed</option>
+        <option value="bounced" {% if filter_status == "bounced" %}selected{% endif %}>Bounced</option>
+      </select>
+    </form>
+
+    <table class="sub-table">
+      <thead>
+        <tr><th>Email</th><th>Name</th><th>Status</th><th>Source</th><th>Subscribed</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for s in rows %}
+          <tr>
+            <td>{{ s.email }}</td>
+            <td>{{ s.name|default:"—" }}</td>
+            <td><span class="badge-status badge-{{ s.status }}">{{ s.status }}</span></td>
+            <td style="font-size:0.85rem;color:#6b7280;">{{ s.source|default:"—" }}</td>
+            <td style="font-size:0.85rem;color:#6b7280;">{{ s.subscribed_at|date:"d M Y"|default:"—" }}</td>
+            <td>
+              {% if s.status == "subscribed" %}
+                <form method="post" style="display:inline;" onsubmit="return confirm('Unsubscribe {{ s.email|escapejs }}?');">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="unsubscribe">
+                  <input type="hidden" name="subscriber_id" value="{{ s.id }}">
+                  <button type="submit" class="btn btn-mini btn-outline-danger no-load">Unsubscribe</button>
+                </form>
+              {% else %}
+                <span style="color:#6b7280;font-size:0.8rem;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" style="text-align:center;color:#6b7280;padding:30px;">No subscribers yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if rows.has_other_pages %}
+      <div style="margin-top:1rem;text-align:center;">
+        {% if rows.has_previous %}
+          <a href="?page={{ rows.previous_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="btn btn-sm btn-outline-secondary">&laquo; Prev</a>
+        {% endif %}
+        <span style="margin: 0 8px;color:#6b7280;">Page {{ rows.number }} of {{ rows.paginator.num_pages }}</span>
+        {% if rows.has_next %}
+          <a href="?page={{ rows.next_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="btn btn-sm btn-outline-secondary">Next &raquo;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

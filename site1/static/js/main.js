@@ -33,11 +33,6 @@
 	$('#dropdown04').on('show.bs.dropdown', function () {
 	});
 
-  // aos
-  AOS.init({
-    duration: 1000
-  });
-
 	// home slider
 	$('.home-slider').owlCarousel({
     loop:true,
@@ -219,7 +214,7 @@
 
       $('html, body').animate({
         scrollTop: $('html').offset().top
-      }, 500, 'easeInOutExpo');
+      }, 500);
       
       return false;
     });

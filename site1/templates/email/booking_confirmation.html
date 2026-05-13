@@ -1,0 +1,70 @@
+{% extends "email/base_email.html" %}
+{% load email_filters %}
+
+{% block subject %}Booking confirmation #{{ booking.booking_id }}{% endblock %}
+{% block header_title %}Thien Tai Hotel{% endblock %}
+{% block header_subtitle %}
+  <div style="margin-top:6px;font-size:13px;color:#1a1a1a;">Booking received &middot; #{{ booking.booking_id }}</div>
+{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 16px 0;">Hi {{ booking.guest_name }},</p>
+
+  <p style="margin:0 0 16px 0;">
+    Thank you for booking with us. We've received your reservation and our front desk
+    will confirm it shortly. The details are below for your records.
+  </p>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:16px 0;border-collapse:collapse;">
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;width:140px;">Booking ID</td>
+      <td style="padding:8px 0;"><strong>#{{ booking.booking_id }}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Room type</td>
+      <td style="padding:8px 0;">{{ booking.room_type }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Check-in</td>
+      <td style="padding:8px 0;">{{ booking.check_in|vietnam_date }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Check-out</td>
+      <td style="padding:8px 0;">{{ booking.check_out|vietnam_date }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Guests</td>
+      <td style="padding:8px 0;">{{ booking.adults }} adult{{ booking.adults|pluralize }}{% if booking.children %}, {{ booking.children }} child{{ booking.children|pluralize:"ren" }}{% endif %}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Rate / night</td>
+      <td style="padding:8px 0;">{{ booking.booked_rate }} VND</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Total</td>
+      <td style="padding:8px 0;"><strong>{{ booking.total_price }} VND</strong></td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Status</td>
+      <td style="padding:8px 0;text-transform:capitalize;">{{ booking.status }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Booked at</td>
+      <td style="padding:8px 0;">{{ booking.booking_date|vietnam_time }}</td>
+    </tr>
+  </table>
+
+  {% if booking.special_requests %}
+    <p style="margin:16px 0 4px 0;color:#6b7280;">Special requests</p>
+    <div style="padding:12px;background-color:#f9fafb;border-radius:4px;border:1px solid #e5e7eb;">
+      {{ booking.special_requests|linebreaksbr }}
+    </div>
+  {% endif %}
+
+  <p style="margin:20px 0 0 0;">
+    If you need to change or cancel this booking, please reply to this email
+    or contact the front desk.
+  </p>
+{% endblock %}
+
+{% block footer_extra %}You received this email because you booked a room at Thien Tai Hotel.{% endblock %}

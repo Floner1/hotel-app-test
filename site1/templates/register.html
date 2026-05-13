@@ -15,8 +15,8 @@
   .register-form {
     background: white;
     padding: 3rem;
-    border-radius: 10px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.1);
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     max-width: 600px;
     margin: 0 auto;
   }
@@ -41,9 +41,9 @@
     width: 100%;
     padding: 0.75rem 1rem;
     border: 1px solid #ddd;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     font-size: 1rem;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s var(--ease);
   }
 
   .register-form input:focus {
@@ -55,19 +55,23 @@
   .register-form .btn-register {
     width: 100%;
     padding: 0.875rem;
-    background-color: #f8b739;
-    color: white;
+    background-color: var(--color-primary);
+    color: var(--color-text);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-md);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.2s var(--ease), transform 0.15s var(--ease);
     margin-top: 1rem;
   }
 
   .register-form .btn-register:hover {
-    background-color: #e0a530;
+    background-color: var(--color-accent);
+  }
+
+  .register-form .btn-register:active {
+    transform: translateY(1px);
   }
 
   .register-form .form-text {
@@ -78,7 +82,7 @@
 
   .register-form .alert {
     padding: 0.75rem 1rem;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     margin-bottom: 1.5rem;
   }
 
@@ -121,8 +125,8 @@
     <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/hero_4.jpg' %})" data-stellar-background-ratio="0.5">
       <div class="container">
         <div class="row site-hero-inner justify-content-center align-items-center">
-          <div class="col-md-10 text-center" data-aos="fade">
-            <h1 class="heading mb-3">Create Your Account</h1>
+          <div class="col-md-10 text-center">
+            <h1 class="heading mb-3 tt-fade-in">Create Your Account</h1>
             <ul class="custom-breadcrumbs mb-4">
               <li><a href="{% url 'home' %}">Home</a></li>
               <li>&bullet;</li>
@@ -144,7 +148,7 @@
       <div class="container">
         <div class="row">
           <div class="col-md-12">
-            <div class="register-form" data-aos="fade-up">
+            <div class="register-form">
               <h2>Join {{ hotel_name }}</h2>
               <p class="mb-4">Create an account to make reservations and manage your bookings.</p>
 
@@ -216,11 +220,11 @@
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-8">
-            <h2 class="heading" data-aos="fade-up">Why Create an Account?</h2>
+            <h2 class="heading">Why Create an Account?</h2>
           </div>
         </div>
         <div class="row">
-          <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+          <div class="col-md-4">
             <div class="media d-block room mb-0">
               <div class="media-body">
                 <h3 class="mt-0"><span class="ion-ios-checkmark-circle"></span> Quick Booking</h3>
@@ -228,7 +232,7 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+          <div class="col-md-4">
             <div class="media d-block room mb-0">
               <div class="media-body">
                 <h3 class="mt-0"><span class="ion-ios-list-box"></span> View Bookings</h3>
@@ -236,7 +240,7 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+          <div class="col-md-4">
             <div class="media d-block room mb-0">
               <div class="media-body">
                 <h3 class="mt-0"><span class="ion-ios-bell"></span> Get Updates</h3>

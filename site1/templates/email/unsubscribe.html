@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Unsubscribe &mdash; Thien Tai Hotel{% endblock %}
+
+{% block content %}
+<section class="section" style="padding:80px 0;">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-7 text-center">
+        {% if status == "unsubscribed" %}
+          <h1 style="font-size:1.75rem;font-weight:600;margin-bottom:1rem;">You've been unsubscribed</h1>
+          <p style="color:#6b7280;line-height:1.6;">
+            {{ subscriber.email }} will no longer receive marketing emails from
+            Thien Tai Hotel. You'll still get transactional emails for any bookings
+            you make.
+          </p>
+        {% elif status == "already_unsubscribed" %}
+          <h1 style="font-size:1.75rem;font-weight:600;margin-bottom:1rem;">Already unsubscribed</h1>
+          <p style="color:#6b7280;line-height:1.6;">
+            {{ subscriber.email }} is already unsubscribed from our marketing list.
+          </p>
+        {% elif status == "confirm" %}
+          <h1 style="font-size:1.75rem;font-weight:600;margin-bottom:1rem;">Unsubscribe from marketing emails?</h1>
+          <p style="color:#6b7280;line-height:1.6;">
+            You're about to unsubscribe <strong>{{ subscriber.email }}</strong> from
+            Thien Tai Hotel marketing emails.
+          </p>
+          <form method="post" style="margin-top:1.5rem;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Unsubscribe</button>
+            <a href="{% url 'home' %}" class="btn btn-link" style="margin-left:8px;">Cancel</a>
+          </form>
+        {% else %}
+          <h1 style="font-size:1.75rem;font-weight:600;margin-bottom:1rem;">Unsubscribe link is invalid</h1>
+          <p style="color:#6b7280;line-height:1.6;">
+            We couldn't find a subscriber matching this link. If you keep receiving
+            unwanted emails, reply to one of them and we'll handle it manually.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

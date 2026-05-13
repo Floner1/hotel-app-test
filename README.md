@@ -45,10 +45,9 @@ Visit: http://127.0.0.1:8000/
 
 ### UI/UX
 - **Infinite scroll galleries** - Horizontal scrolling for photos and rooms
-- **Interactive cards** - Hover animations on Premium Services sections
-- **Great offers menu** - Expandable dropdown tabs with room details
+- **Room rate menu** - Expandable tabs with room images, descriptions, and pricing
 - **Responsive design** - Mobile-optimized layouts
-- **AOS animations** - Fade-up entrance effects on scroll
+- **Design tokens** - CSS custom properties for consistent color, spacing, radius, and type scale
 
 ### Database security
 - **Database-level RBAC** - Triggers enforce role permissions
@@ -153,22 +152,24 @@ python manage.py runserver
 
 ### Infinite scroll galleries
 - Horizontal animation (22s duration)
-- Hover scale effects (1.1x zoom)
 - Gradient fade-out edges
 - Responsive sizing (280px desktop, 200px mobile)
 
-### Premium services cards
-- Clean white backgrounds with shadows
-- Hover lift effect (translateY -10px)
-- Consistent typography (3.5rem headings)
-- Responsive grid layouts
+### Service cards
+- White backgrounds, subtle shadow
+- Hover lift: max translateY(-4px), box-shadow capped at 8px spread
+- Responsive grid layout
 
-### Great offers menu (rooms.html)
+### Room rates menu (rooms.html)
 - Hover-expandable dropdown tabs
-- Room images, descriptions, and pricing
-- Smooth transitions (0.5s ease)
+- Room images, descriptions, and per-night pricing
 - Database-driven content
 - Responsive design
+
+### Design system
+- CSS custom properties in `style.css :root`
+- 1 primary color, 1 accent, 2 radius values, 3 spacing levels, 1 type scale, 1 easing curve
+- All transitions use `cubic-bezier(0.25, 0.1, 0.25, 1)`
 
 ## Troubleshooting
 

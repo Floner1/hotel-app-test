@@ -1,3 +1,51 @@
+/* ─── Design Tokens ────────────────────────────────────────────
+   All spacing, color, radius, type scale, and easing are defined
+   here. Do not add raw values elsewhere — reference these vars.
+─────────────────────────────────────────────────────────────── */
+:root {
+  /* Brand colors */
+  --color-primary:  #ffba5a;
+  --color-accent:   #d49040;
+  --color-text:     #212529;
+  --color-muted:    #6c757d;
+  --color-bg:       #ffffff;
+  --color-bg-alt:   #f7f7f7;
+
+  /* Spacing (3 levels) */
+  --space-sm:  1.5rem;
+  --space-md:  3rem;
+  --space-lg:  5rem;
+
+  /* Border radius (2 levels) */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  /* Easing — used on every transition */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* Type scale */
+  --text-h1:      3.2rem;
+  --text-h2:      2.4rem;
+  --text-h3:      1.6rem;
+  --text-body:    1rem;
+  --text-caption: 0.875rem;
+}
+
+/* Simple entrance animation — replaces AOS */
+@keyframes tt-appear {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tt-fade-in {
+  animation: tt-appear 0.45s var(--ease) both;
+}
+
+/* Accessible focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
 body {
   overflow-x: clip;
   background: #fff;
@@ -45,7 +93,9 @@ h1, h2, h3, h4, h5 {
   padding-right: 30px;
   padding-top: 10px;
   padding-bottom: 10px;
-  border-radius: 50px; }
+  border-radius: var(--radius-md); }
+  .btn:active {
+    transform: translateY(1px); }
   .btn.btn-outline-white {
     border: 2px solid #fff; }
     .btn.btn-outline-white:hover {
@@ -800,9 +850,9 @@ textarea.form-control {
   width: 3px;
   background-color: white;
   border-radius: 50%;
-  -webkit-animation: 1.6s ease infinite wheel-up-down;
-  -moz-animation: 1.6s ease infinite wheel-up-down;
-  animation: 1.6s ease infinite wheel-up-down; }
+  -webkit-animation: 1.6s var(--ease) infinite wheel-up-down;
+  -moz-animation: 1.6s var(--ease) infinite wheel-up-down;
+  animation: 1.6s var(--ease) infinite wheel-up-down; }
 
 @-webkit-keyframes wheel-up-down {
   0% {
@@ -1001,7 +1051,7 @@ textarea.form-control {
   .block-2 .front {
     -webkit-transform: rotateY(0deg);
     -ms-transform: rotateY(0deg);
-    background: lightgreen;
+    background: var(--color-bg-alt);
     z-index: 2;
     background-size: cover;
     background-position: center center;
@@ -1086,7 +1136,7 @@ textarea.form-control {
   position: relative; }
   .check-availabilty .block-32 {
     background: #fff;
-    border-radius: 10px; }
+    border-radius: var(--radius-md); }
 
 .room {
   position: relative;
@@ -1301,11 +1351,11 @@ textarea.form-control {
   width: 100%;
   height: 300px;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s var(--ease);
 }
 
 .image-carousel .item:hover img {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .owl-carousel .owl-stage {

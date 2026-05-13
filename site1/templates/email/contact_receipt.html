@@ -1,0 +1,28 @@
+{% extends "email/base_email.html" %}
+{% load email_filters %}
+
+{% block subject %}We received your message{% endblock %}
+{% block header_subtitle %}
+  <div style="margin-top:6px;font-size:13px;color:#1a1a1a;">Message received</div>
+{% endblock %}
+
+{% block body %}
+  <p style="margin:0 0 16px 0;">Hi {{ name }},</p>
+
+  <p style="margin:0 0 16px 0;">
+    Thank you for getting in touch. We've received your message and someone from
+    our team will reply within one business day.
+  </p>
+
+  <p style="margin:16px 0 4px 0;color:#6b7280;">Your message</p>
+  <div style="padding:12px;background-color:#f9fafb;border-radius:4px;border:1px solid #e5e7eb;">
+    {{ message|linebreaksbr }}
+  </div>
+
+  <p style="margin:20px 0 0 0;">
+    If your enquiry is urgent, you can call us at
+    <a href="tel:+841234567" style="color:#d49040;">+84 1234567</a>.
+  </p>
+{% endblock %}
+
+{% block footer_extra %}You received this email because you submitted the contact form on the Thien Tai Hotel website.{% endblock %}

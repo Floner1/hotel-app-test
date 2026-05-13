@@ -4,15 +4,15 @@
       <div class="col-md-3 mb-5">
         <ul class="list-unstyled link">
           <li><a href="{% url 'about' %}">About Us</a></li>
-          <li><a href="{% url 'home' %}">Terms &amp; Conditions</a></li>
-          <li><a href="{% url 'home' %}">Privacy Policy</a></li>
+          <li><a href="{% url 'contact' %}">Contact Us</a></li>
+          <li><a href="{% url 'reservation' %}">Reservation</a></li>
         </ul>
       </div>
       <div class="col-md-3 mb-5">
         <ul class="list-unstyled link">
-          <li><a href="{% url 'about' %}">About Us</a></li>
-          <li><a href="{% url 'contact' %}">Contact Us</a></li>
-          <li><a href="{% url 'reservation' %}">Reservation</a></li>
+          <li><a href="{% url 'home' %}">Home</a></li>
+          <li><a href="{% url 'rooms' %}">Rooms</a></li>
+          <li><a href="{% url 'login' %}">Login</a></li>
         </ul>
       </div>
       <div class="col-md-3 mb-5 contact-info">
@@ -30,21 +30,18 @@
         </div>
       </div>
       <div class="col-md-3 mb-5">
-        <p>Sign up for our newsletter</p>
+        <p>Subscribe for updates</p>
         <form id="newsletter-form" class="footer-newsletter">
           <div class="form-group">
-            <input type="email" class="form-control" name="email" placeholder="Email..." required>
-            <button type="submit" class="btn"><span class="fa fa-paper-plane"></span></button>
+            <input type="email" class="form-control" name="email" placeholder="Email address" required>
+            <button type="submit" class="btn no-load"><span class="fa fa-paper-plane"></span></button>
           </div>
         </form>
       </div>
     </div>
     <div class="row pt-5">
-      <p class="col-md-6 text-left">
-      </p>
-
-      <p class="col-md-6 text-right social">
-        <!-- Removed empty social links -->
+      <p class="col-md-12 text-center" style="color:rgba(255,255,255,0.3);font-size:0.8rem;">
+        &copy; {{ hotel_name }}
       </p>
     </div>
   </div>

@@ -8,193 +8,128 @@
 
 {% block extra_css %}
 <style>
-  /* Services Section Styling */
-  .service {
-    padding: 2rem 1rem;
-    transition: transform 0.3s ease;
-    height: 100%;
-  }
-
-  .service:hover {
-    transform: translateY(-5px);
-  }
-
-  .service .icon {
-    color: #f8b739;
-  }
-
-  /* Services row spacing - spread items evenly */
-  .section .row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    align-items: stretch;
-  }
-
-  /* Logo Loop Carousel */
-  .logo-loop-container { width: 100%; overflow: hidden; position: relative; padding: 40px 0; background: linear-gradient(to right, rgba(248, 248, 248, 1) 0%, transparent 10%, transparent 90%, rgba(248, 248, 248, 1) 100%); }
+  /* Room image loop */
+  .logo-loop-container { width: 100%; overflow: hidden; position: relative; padding: 40px 0; background: linear-gradient(to right, rgba(248,248,248,1) 0%, transparent 10%, transparent 90%, rgba(248,248,248,1) 100%); }
   .logo-loop-track { display: flex; gap: 60px; animation: scroll 22s linear infinite; will-change: transform; }
-  .logo-loop-item { flex-shrink: 0; transition: transform 0.3s ease; }
-  .logo-loop-item:hover { transform: scale(1.1); }
-  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .logo-loop-item { flex-shrink: 0; }
+  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: var(--radius-md); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50%)); } }
   @media (max-width: 768px) { .logo-loop-item img { height: 200px; } .logo-loop-track { gap: 30px; } }
 
-  /* Flowing Menu Styles */
-  .flowing-menu-container {
-    width: 100%;
-    overflow: hidden;
-    padding: 20px 0;
-  }
+  /* Expandable room menu */
+  .flowing-menu-container { width: 100%; overflow: hidden; padding: 20px 0; }
 
   .flowing-menu {
     display: flex;
     flex-direction: column;
-    gap: 0;
     background: #fff;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
 
   .menu-item {
     position: relative;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e9ecef;
   }
 
-  .menu-item:last-child {
-    border-bottom: none;
-  }
+  .menu-item:last-child { border-bottom: none; }
 
   .menu-tab {
-    padding: 25px 30px;
+    padding: 22px 28px;
     cursor: pointer;
     background: #fff;
-    transition: all 0.3s ease;
-    position: relative;
+    transition: background 0.2s var(--ease), padding-left 0.2s var(--ease);
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
 
-  .menu-tab:hover {
-    background: #f8f9fa;
-    padding-left: 40px;
-  }
+  .menu-tab:hover { background: var(--color-bg-alt); padding-left: 36px; }
 
   .menu-tab::after {
     content: '\25BC';
-    font-size: 14px;
-    color: #6c757d;
-    transition: transform 0.3s ease;
+    font-size: 12px;
+    color: var(--color-muted);
+    transition: transform 0.25s var(--ease);
   }
 
-  .menu-item:hover .menu-tab::after {
-    transform: rotate(180deg);
-  }
+  .menu-item:hover .menu-tab::after { transform: rotate(180deg); }
 
   .room-name {
-    font-size: 1.5rem;
+    font-size: var(--text-h3);
     font-weight: 600;
-    color: #333;
-    transition: color 0.3s ease;
+    color: var(--color-text);
+    transition: color 0.2s var(--ease);
   }
 
-  .menu-tab:hover .room-name {
-    color: #1a73e8;
-  }
+  .menu-tab:hover .room-name { color: var(--color-accent); }
 
   .menu-dropdown {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.5s ease, padding 0.5s ease;
-    background: #f8f9fa;
+    transition: max-height 0.4s var(--ease), padding 0.4s var(--ease);
+    background: var(--color-bg-alt);
   }
 
-  .menu-item:hover .menu-dropdown {
-    max-height: 600px;
-    padding: 30px;
-  }
+  .menu-item:hover .menu-dropdown { max-height: 600px; padding: 28px; }
 
   .dropdown-content {
     opacity: 0;
-    transform: translateY(-20px);
-    transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+    transform: translateY(-12px);
+    transition: opacity 0.3s var(--ease) 0.05s, transform 0.3s var(--ease) 0.05s;
   }
 
-  .menu-item:hover .dropdown-content {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  .menu-item:hover .dropdown-content { opacity: 1; transform: translateY(0); }
 
   .room-image {
     width: 100%;
     height: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: var(--radius-md);
   }
 
-  .flowing-menu .room-info {
-    padding: 0 20px;
-  }
+  .flowing-menu .room-info { padding: 0 20px; }
 
   .room-title {
-    font-size: 2rem;
+    font-size: var(--text-h2);
     font-weight: 700;
-    color: #333;
-    margin-bottom: 15px;
+    color: var(--color-text);
+    margin-bottom: 12px;
   }
 
   .room-description {
-    color: #6c757d;
+    color: var(--color-muted);
     line-height: 1.8;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 
   .room-price {
     display: flex;
     align-items: baseline;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 10px;
   }
 
   .price-amount {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
-    color: #1a73e8;
+    color: var(--color-accent);
   }
 
   .price-label {
-    font-size: 0.9rem;
-    color: #6c757d;
+    font-size: var(--text-caption);
+    color: var(--color-muted);
     text-transform: uppercase;
     letter-spacing: 1px;
   }
 
   @media (max-width: 768px) {
-    .menu-tab {
-      padding: 20px 20px;
-    }
-
-    .room-name {
-      font-size: 1.2rem;
-    }
-
-    .room-title {
-      font-size: 1.5rem;
-    }
-
-    .price-amount {
-      font-size: 2rem;
-    }
-
-    .menu-item:hover .menu-dropdown {
-      padding: 20px;
-    }
-
-    .flowing-menu .room-info {
-      padding: 20px 0 0 0;
-    }
+    .menu-tab { padding: 18px 18px; }
+    .room-name { font-size: 1.1rem; }
+    .room-title { font-size: 1.4rem; }
+    .price-amount { font-size: 1.6rem; }
+    .menu-item:hover .menu-dropdown { padding: 18px; }
+    .flowing-menu .room-info { padding: 18px 0 0 0; }
   }
 </style>
 {% endblock %}
@@ -203,8 +138,8 @@
     <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/hero_4.jpg' %})" data-stellar-background-ratio="0.5">
       <div class="container">
         <div class="row site-hero-inner justify-content-center align-items-center">
-          <div class="col-md-10 text-center" data-aos="fade">
-            <h1 class="heading mb-3">Rooms</h1>
+          <div class="col-md-10 text-center">
+            <h1 class="heading mb-3 tt-fade-in">Rooms</h1>
             <ul class="custom-breadcrumbs mb-4">
               <li><a href="{% url 'home' %}">Home</a></li>
               <li>&bullet;</li>
@@ -220,30 +155,29 @@
         </div>
       </a>
     </section>
-    <!-- END section -->
 
-    <section class="section slider-section" style="background-color: white;">
+    <section class="section slider-section" style="background-color:#fff;" id="next">
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;">Rooms &amp; Suites</h2>
-            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important;">Our rooms offer a quiet place to rest. Simple layouts, comfortable beds, and a calm setting make it easy to relax. Each room is clean, well kept, and designed for a good night's sleep. Whether you stay one night or longer, you will have everything you need to feel comfortable.</p>
+            <h2 class="heading">Rooms &amp; Suites</h2>
+            <p>Five room types, each with a fixed nightly rate. Quiet layouts, comfortable beds, and consistent upkeep across the property.</p>
           </div>
         </div>
       </div>
 
-      <div class="logo-loop-container" data-aos="fade-up" data-aos-delay="200">
+      <div class="logo-loop-container">
         <div class="logo-loop-track">
           <div class="logo-loop-item"><img src="{{ room_images.single_bed }}" alt="1 Bed No Window" /></div>
-          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window Room" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window" /></div>
           <div class="logo-loop-item"><img src="{{ room_images.window }}" alt="1 Bed With Window" /></div>
           <div class="logo-loop-item"><img src="{{ room_images.balcony }}" alt="1 Bed With Balcony" /></div>
-          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed &amp; Balcony Condotel" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed Balcony Condotel" /></div>
           <div class="logo-loop-item"><img src="{{ room_images.single_bed }}" alt="1 Bed No Window" /></div>
-          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window Room" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.double }}" alt="2 Bed No Window" /></div>
           <div class="logo-loop-item"><img src="{{ room_images.window }}" alt="1 Bed With Window" /></div>
           <div class="logo-loop-item"><img src="{{ room_images.balcony }}" alt="1 Bed With Balcony" /></div>
-          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed &amp; Balcony Condotel" /></div>
+          <div class="logo-loop-item"><img src="{{ room_images.condotel }}" alt="2 Bed Balcony Condotel" /></div>
         </div>
       </div>
     </section>
@@ -252,12 +186,12 @@
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade" style="font-size: 3.5rem !important;">Great Offers</h2>
-            <p data-aos="fade" style="font-size: 1.25rem !important; color: #6c757d;">Discover our exclusive room selections designed for your perfect stay.</p>
+            <h2 class="heading">Room Rates</h2>
+            <p>All rates are per room, per night. Prices shown at time of booking.</p>
           </div>
         </div>
 
-        <div class="flowing-menu-container" data-aos="fade-up">
+        <div class="flowing-menu-container">
           <div class="flowing-menu">
             {% for room in room_types %}
             <div class="menu-item" data-room-id="{{ forloop.counter }}">
@@ -285,12 +219,12 @@
                     <div class="col-md-6">
                       <div class="room-info">
                         <h3 class="room-title">{{ room.display }}</h3>
-                        <p class="room-description">{{ room.description|default:"Experience comfort and luxury in this beautifully appointed room, designed to make your stay memorable." }}</p>
+                        <p class="room-description">{{ room.description|default:"[MISSING: room description]" }}</p>
                         <div class="room-price">
-                          <span class="price-amount">₫{{ room.price|floatformat:0|intcomma }}</span>
-                          <span class="price-label">/ PER NIGHT</span>
+                          <span class="price-amount">&#8363;{{ room.price|floatformat:0|intcomma }}</span>
+                          <span class="price-label">/ per night</span>
                         </div>
-                        <a href="{% url 'reservation' %}" class="btn btn-primary text-white mt-3">Book Now</a>
+                        <a href="{% url 'reservation' %}" class="btn btn-primary text-white mt-3">Book This Room</a>
                       </div>
                     </div>
                   </div>
@@ -307,16 +241,16 @@
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading" data-aos="fade-up" style="font-size: 3.5rem !important;">Our Premium Services</h2>
-            <p data-aos="fade-up" data-aos-delay="100" style="font-size: 1.25rem !important; color: #6c757d;">Making your stay comfortable and memorable with our range of exclusive services.</p>
+            <h2 class="heading">Hotel Services</h2>
           </div>
         </div>
 
         <div class="row justify-content-center">
           {% for service in hotel_services %}
-          <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" {% if forloop.counter0 > 0 %}data-aos-delay="{{ forloop.counter0 }}00"{% endif %}>
-            <div class="service text-center bg-white p-4 rounded shadow-sm" style="transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';"><h3 class="mb-3" style="font-weight: 600;">{{ service.name_of_service }}</h3>
-              <p style="color: #6c757d; line-height: 1.8;">{{ service.service_description }}</p>
+          <div class="col-md-6 col-lg-4 mb-4">
+            <div class="service service-card text-center bg-white p-4">
+              <h3 class="mb-3">{{ service.name_of_service }}</h3>
+              <p>{{ service.service_description }}</p>
             </div>
           </div>
           {% endfor %}
@@ -325,13 +259,13 @@
     </section>
 
     <section class="section bg-image overlay" style="background-image: url('{% static 'images/hero_4.jpg' %}');">
-      <div class="container" >
+      <div class="container">
         <div class="row align-items-center">
-          <div class="col-12 col-md-6 text-center mb-4 mb-md-0 text-md-left" data-aos="fade-up">
-            <h2 class="text-white font-weight-bold">A Best Place To Stay.<br>Reserve Now!</h2>
+          <div class="col-12 col-md-6 text-center mb-4 mb-md-0 text-md-left">
+            <h2 class="text-white font-weight-bold">Book directly. No agency fees.</h2>
           </div>
-          <div class="col-12 col-md-6 text-center text-md-right" data-aos="fade-up" data-aos-delay="200">
-            <a href="{% url 'reservation' %}" class="btn btn-outline-white-primary py-3 text-white px-5">Reserve Now</a>
+          <div class="col-12 col-md-6 text-center text-md-right">
+            <a href="{% url 'reservation' %}" class="btn btn-outline-white-primary py-3 text-white px-5">Reserve a Room</a>
           </div>
         </div>
       </div>

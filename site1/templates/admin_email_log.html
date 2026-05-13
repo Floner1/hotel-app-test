@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Email Log | {{ hotel.hotel_name }}{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background-color: #f5f7fa; font-family: 'Roboto', sans-serif; }
+  .dashboard-header {
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white; padding: 2rem 0; margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .dashboard-header h1 { margin: 0; font-size: 2rem; font-weight: 600; }
+  .stat-card {
+    background: white; border-radius: 8px; padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1rem;
+  }
+  .stat-card .label { color: #6b7280; font-size: 0.875rem; }
+  .stat-card .value { font-size: 1.75rem; font-weight: 600; margin-top: 4px; }
+  .stat-card.sent .value { color: #16a34a; }
+  .stat-card.failed .value { color: #dc2626; }
+  .table-wrap { background: white; border-radius: 8px; padding: 1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  table.email-table { width: 100%; }
+  table.email-table th { font-size: 0.8rem; color: #6b7280; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  table.email-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; }
+  .badge-status { padding: 3px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+  .badge-sent { background: #dcfce7; color: #166534; }
+  .badge-failed { background: #fee2e2; color: #991b1b; }
+  .filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-bar select, .filter-bar input { padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 0.9rem; }
+  .nav-back { color: #d49040; text-decoration: none; font-size: 0.9rem; }
+  .nav-back:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <div class="container">
+    <a href="{% url 'admin_reservations' %}" class="nav-back" style="color:white;">&larr; Back to dashboard</a>
+    <h1>Email Log</h1>
+    <p style="margin-top:6px;opacity:0.9;">Every email send attempt is logged here.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-4"><div class="stat-card"><div class="label">Total</div><div class="value">{{ stats.total }}</div></div></div>
+    <div class="col-md-4"><div class="stat-card sent"><div class="label">Sent</div><div class="value">{{ stats.sent }}</div></div></div>
+    <div class="col-md-4"><div class="stat-card failed"><div class="label">Failed</div><div class="value">{{ stats.failed }}</div></div></div>
+  </div>
+
+  <div class="table-wrap">
+    <form method="get" class="filter-bar">
+      <label style="color:#6b7280;margin:0;">Status</label>
+      <select name="status" onchange="this.form.submit()">
+        <option value="">All</option>
+        <option value="sent" {% if filter_status == "sent" %}selected{% endif %}>Sent</option>
+        <option value="failed" {% if filter_status == "failed" %}selected{% endif %}>Failed</option>
+      </select>
+      <label style="color:#6b7280;margin:0;">Type</label>
+      <select name="type" onchange="this.form.submit()">
+        <option value="">All types</option>
+        <option value="booking_confirmation" {% if filter_type == "booking_confirmation" %}selected{% endif %}>Booking confirmation</option>
+        <option value="booking_cancellation" {% if filter_type == "booking_cancellation" %}selected{% endif %}>Booking cancellation</option>
+        <option value="contact_receipt" {% if filter_type == "contact_receipt" %}selected{% endif %}>Contact receipt</option>
+        <option value="admin_notification" {% if filter_type == "admin_notification" %}selected{% endif %}>Admin notification</option>
+        <option value="campaign" {% if filter_type == "campaign" %}selected{% endif %}>Campaign</option>
+      </select>
+      {% if filter_status or filter_type %}
+        <a href="{% url 'email_log' %}" style="font-size:0.85rem;color:#d49040;">Clear filters</a>
+      {% endif %}
+    </form>
+
+    <table class="email-table">
+      <thead>
+        <tr>
+          <th>#</th><th>To</th><th>Type</th><th>Subject</th><th>Status</th><th>Created</th><th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.id }}</td>
+            <td>{{ row.to_email }}{% if row.to_name %}<br><span style="font-size:0.75rem;color:#6b7280;">{{ row.to_name }}</span>{% endif %}</td>
+            <td><code style="font-size:0.75rem;background:#f1f5f9;padding:2px 6px;border-radius:3px;">{{ row.email_type }}</code></td>
+            <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ row.subject }}</td>
+            <td><span class="badge-status badge-{{ row.status }}">{{ row.status }}</span></td>
+            <td style="font-size:0.85rem;color:#6b7280;">{{ row.created_at|date:"d M Y H:i" }}</td>
+            <td style="max-width:260px;font-size:0.8rem;color:#dc2626;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ row.error_message|default:'' }}">{{ row.error_message|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" style="text-align:center;color:#6b7280;padding:30px;">No email log entries.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if rows.has_other_pages %}
+      <div style="margin-top:1rem;text-align:center;">
+        {% if rows.has_previous %}
+          <a href="?page={{ rows.previous_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="btn btn-sm btn-outline-secondary">&laquo; Prev</a>
+        {% endif %}
+        <span style="margin: 0 8px;color:#6b7280;">Page {{ rows.number }} of {{ rows.paginator.num_pages }}</span>
+        {% if rows.has_next %}
+          <a href="?page={{ rows.next_page_number }}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="btn btn-sm btn-outline-secondary">Next &raquo;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

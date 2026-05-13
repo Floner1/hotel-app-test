@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Email Campaigns | {{ hotel.hotel_name }}{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background-color: #f5f7fa; font-family: 'Roboto', sans-serif; }
+  .dashboard-header {
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white; padding: 2rem 0; margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .dashboard-header h1 { margin: 0; font-size: 2rem; font-weight: 600; }
+  .table-wrap { background: white; border-radius: 8px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  table.camp-table { width: 100%; }
+  table.camp-table th { font-size: 0.8rem; color: #6b7280; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  table.camp-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; }
+  .badge { padding: 3px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+  .badge-draft { background: #fef3c7; color: #92400e; }
+  .badge-sent { background: #dcfce7; color: #166534; }
+  .badge-cancelled { background: #f1f5f9; color: #475569; }
+  .nav-back { color: white; text-decoration: none; font-size: 0.9rem; }
+  .nav-back:hover { text-decoration: underline; }
+  .btn-mini { padding: 4px 12px; font-size: 0.8rem; }
+  .actions-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <div class="container">
+    <a href="{% url 'admin_reservations' %}" class="nav-back">&larr; Back to dashboard</a>
+    <h1>Email Campaigns</h1>
+    <p style="margin-top:6px;opacity:0.9;">Newsletters and marketing sends.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="table-wrap">
+    <div class="actions-bar">
+      <div style="color:#6b7280;font-size:0.9rem;">{{ campaigns|length }} campaign{{ campaigns|length|pluralize }}</div>
+      <a href="{% url 'email_campaign_new' %}" class="btn btn-primary btn-sm">+ New campaign</a>
+    </div>
+
+    <table class="camp-table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Subject</th><th>Status</th><th>Recipients</th><th>Sent</th><th>Failed</th><th>Sent at</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in campaigns %}
+          <tr>
+            <td><strong>{{ c.name }}</strong></td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.subject }}</td>
+            <td><span class="badge badge-{{ c.status }}">{{ c.status }}</span></td>
+            <td>{{ c.recipient_count }}</td>
+            <td style="color:#16a34a;">{{ c.sent_count }}</td>
+            <td style="color:#dc2626;">{{ c.failed_count }}</td>
+            <td style="font-size:0.85rem;color:#6b7280;">{{ c.sent_at|date:"d M Y H:i"|default:"—" }}</td>
+            <td>
+              {% if c.status == "draft" %}
+                <a href="{% url 'email_campaign_edit' c.id %}" class="btn btn-mini btn-outline-secondary no-load">Edit</a>
+                <form method="post" action="{% url 'email_campaign_send' c.id %}" style="display:inline;"
+                      onsubmit="return confirm('Send campaign &quot;{{ c.name|escapejs }}&quot; to all active subscribers?');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-mini btn-primary">Send</button>
+                </form>
+              {% else %}
+                <span style="color:#6b7280;font-size:0.8rem;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" style="text-align:center;color:#6b7280;padding:30px;">
+            No campaigns yet. <a href="{% url 'email_campaign_new' %}" style="color:#d49040;">Create your first one</a>.
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
