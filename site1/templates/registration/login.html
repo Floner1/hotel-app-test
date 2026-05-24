@@ -1,72 +1,157 @@
-<!DOCTYPE HTML>
-<html>
-  <head>
-    {% load static %}
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Login - Hotel</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    
-    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=|Roboto+Sans:400,700|Playfair+Display:400,700">
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% extends "base.html" %}
+{% load static %}
 
-    <style>
-      .login-container {
-        max-width: 500px;
-        margin: 100px auto;
-        padding: 40px;
-        background: white;
-        border-radius: var(--radius-md, 8px);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-      .login-header {
-        text-align: center;
-        margin-bottom: 30px;
-      }
-      .error-message {
-        color: #dc3545;
-        margin-bottom: 15px;
-        padding: 10px;
-        background: #f8d7da;
-        border-radius: var(--radius-sm, 4px);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="login-container">
-      <div class="login-header">
-        <h2>Login</h2>
-        <p class="text-muted">Access Dashboard</p>
-      </div>
-      
+{% block title %}Sign In | {{ hotel_name|default:"Thiên Tài Hotel" }}{% endblock %}
+
+{% block page_id %}login{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-section {
+    padding: var(--space-lg) 0;
+    background: var(--color-bg);
+  }
+
+  .auth-card {
+    max-width: 440px;
+    margin: 0 auto;
+    background: var(--color-bg);
+    padding: var(--space-md);
+    border: 1px solid #e5e7eb;
+    border-radius: var(--radius-md);
+  }
+
+  .auth-card h2 {
+    font-size: var(--text-h3);
+    margin: 0 0 var(--space-sm);
+    color: var(--color-text);
+  }
+
+  .auth-card .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .auth-card label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    color: var(--color-text);
+    font-size: var(--text-caption);
+  }
+
+  .auth-card .form-control {
+    height: 46px;
+    border-width: 1px;
+    border-color: #e5e7eb;
+    border-radius: var(--radius-sm);
+  }
+
+  .auth-card .btn-submit {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--color-primary);
+    color: var(--color-text);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--duration-base, 250ms) var(--ease);
+  }
+
+  .auth-card .btn-submit:hover {
+    background: var(--color-accent);
+  }
+
+  .auth-card .btn-submit:active {
+    transform: translateY(1px);
+  }
+
+  .auth-card .error-message {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    background: #fdecea;
+    color: #b3261e;
+    border: 1px solid #f5c2c0;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-caption);
+  }
+
+  .auth-card .auth-footer {
+    margin-top: var(--space-sm);
+    text-align: center;
+    color: var(--color-muted);
+    font-size: var(--text-caption);
+  }
+
+  .auth-card .auth-footer a {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .auth-card .auth-footer a:hover {
+    color: var(--color-primary);
+  }
+
+  .site-header { display: none !important; }
+  .page-title-bar { margin-top: 0 !important; }
+
+  .page-title-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .page-title-logo {
+    height: 56px;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-title-bar">
+  <div class="container">
+    <div class="page-title-inner">
+      <a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="{{ hotel_name|default:'Thiên Tài Hotel' }}" class="page-title-logo"></a>
+      <h1>Sign In</h1>
+    </div>
+  </div>
+</section>
+
+<section class="auth-section">
+  <div class="container">
+    <div class="auth-card">
+      <h2>Access your account</h2>
+
       {% if form.errors %}
         <div class="error-message">
-          <strong>Invalid username or password.</strong> Please try again.
+          Invalid username or password. Please try again.
         </div>
       {% endif %}
-      
+
       <form method="post">
         {% csrf_token %}
-        <div class="form-group mb-3">
+        <div class="form-group">
           <label for="id_username">Username</label>
           <input type="text" name="username" class="form-control" id="id_username" required autofocus>
         </div>
-        
-        <div class="form-group mb-4">
+
+        <div class="form-group">
           <label for="id_password">Password</label>
           <input type="password" name="password" class="form-control" id="id_password" required>
         </div>
-        
-        <button type="submit" class="btn btn-primary btn-block w-100">Login</button>
-        
+
+        <button type="submit" class="btn-submit">Sign In</button>
+
         <input type="hidden" name="next" value="{{ next }}">
       </form>
-      
-      <div class="text-center mt-4">
-        <p class="text-muted mb-2">Don't have an account? <a href="{% url 'register' %}">Create Account</a></p>
-        <a href="{% url 'home' %}" class="text-muted">Back to Home</a>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="{% url 'register' %}">Create one</a>
       </div>
     </div>
-  </body>
-</html>
+  </div>
+</section>
+{% endblock %}

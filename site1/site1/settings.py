@@ -148,11 +148,12 @@ HOTEL_DEFAULT_PHONE = os.getenv('HOTEL_DEFAULT_PHONE', '+63 900 000 0000')
 HOTEL_DEFAULT_EMAIL = os.getenv('HOTEL_DEFAULT_EMAIL', 'info@hotelbooking.local')
 
 # ---------- Email (Gmail SMTP via django.core.mail) ----------
-# In DEBUG mode emails print to the console; in production they go via SMTP.
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
+# Use SMTP whenever Gmail credentials are present (even in DEBUG).
+# Falls back to console-only when no credentials are configured.
+if os.getenv('GMAIL_APP_PASSWORD'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))

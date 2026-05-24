@@ -2,7 +2,7 @@
 <header class="site-header js-site-header">
   <div class="container-fluid">
     <div class="row align-items-center">
-      <div class="col-auto site-logo"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel Logo" class="logo-img"><span class="hotel-name-text">{{ hotel_name }}</span></a></div>
+      <div class="col-auto site-logo"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="{{ hotel_name|default:'Thiên Tài Hotel' }} Logo" class="logo-img"><span class="hotel-name-text">{{ hotel_name }}</span></a></div>
       <div class="col nav-col">
 
         <!-- Inline navigation — desktop -->
@@ -16,12 +16,12 @@
             {% if user.is_authenticated %}
               {% if user.role == 'admin' or user.role == 'staff' %}
                 <li class="staff-tools-dropdown" id="staffToolsDropdown">
-                  <a href="#" class="staff-tools-trigger"><i class="fa fa-cogs"></i> Staff &amp; Admin Tools <i class="fa fa-chevron-down staff-tools-chevron"></i></a>
-                  <div id="staffToolsMenu" class="staff-tools-menu">
+                  <a href="#" class="staff-tools-trigger" role="button" aria-haspopup="true" aria-expanded="false" aria-controls="staffToolsMenu"><i class="fa fa-cogs"></i> Staff &amp; Admin Tools <i class="fa fa-chevron-down staff-tools-chevron"></i></a>
+                  <div id="staffToolsMenu" class="staff-tools-menu" role="menu">
                     <a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a>
                     <a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a>
                     {% if user.role == 'admin' %}
-                      <a href="#" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;"><i class="fa fa-pencil"></i> Edit Mode</a>
+                      <a href="#" id="navEditModeToggle" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;"><i class="fa fa-pencil"></i> Edit Mode</a>
                     {% endif %}
                   </div>
                 </li>
@@ -55,7 +55,7 @@
                     <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
                     {% if user.is_authenticated %}
                       {% if user.role == 'admin' or user.role == 'staff' %}
-                        <li><span style="display:block;color:rgba(0,0,0,0.4);font-size:0.75em;text-transform:uppercase;letter-spacing:.1em;margin-top:10px;margin-bottom:5px;">Staff &amp; Admin</span></li>
+                        <li><span class="nav-section-label">Staff &amp; Admin</span></li>
                         <li><a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a></li>
                         <li><a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a></li>
                         {% if user.role == 'admin' %}

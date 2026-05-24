@@ -44,7 +44,7 @@
   function isEditable(el) {
     /* Only pick elements that contain *direct* text (TextNode children)
        and are not part of the admin edit UI itself.  */
-    if (el.closest('#adminEditToggle, #aeModal, #aeDbConfirm, .ae-modal, .ae-modal-box, .ae-db-confirm, .site-menu-toggle, script, style, noscript, .admin-upload-btn, .hero-admin-btn-area, .image-upload-modal')) return false;
+    if (el.closest('#adminEditToggle, #aeModal, #aeDbConfirm, .ae-modal, .ae-modal-box, .ae-db-confirm, .site-menu-toggle, #staffToolsDropdown, .staff-tools-dropdown, .staff-tools-menu, script, style, noscript, .admin-upload-btn, .hero-admin-btn-area, .image-upload-modal')) return false;
     if (el.classList.contains('admin-edit-toggle-btn') || el.id === 'adminEditToggle') return false;
     // Must have some direct text
     var text = '';
@@ -95,8 +95,11 @@
   }
 
   /* ---- edit-mode hover highlight ---- */
+  var NAV_EXCLUDE = '#staffToolsDropdown, .staff-tools-dropdown, .staff-tools-menu, .staff-tools-trigger, .site-header, header';
+
   function onMouseOver(e) {
     if (!editMode) return;
+    if (e.target.closest(NAV_EXCLUDE)) return;
     var el = e.target.closest(TEXT_TAGS);
     if (el && isEditable(el)) {
       el.classList.add('ae-highlight');
@@ -104,6 +107,7 @@
   }
   function onMouseOut(e) {
     if (!editMode) return;
+    if (e.target.closest(NAV_EXCLUDE)) return;
     var el = e.target.closest(TEXT_TAGS);
     if (el) el.classList.remove('ae-highlight');
   }
@@ -111,6 +115,7 @@
   /* ---- click → open modal ---- */
   function onClick(e) {
     if (!editMode) return;
+    if (e.target.closest(NAV_EXCLUDE)) return;
     var el = e.target.closest(TEXT_TAGS);
     if (!el || !isEditable(el)) return;
     e.preventDefault();
@@ -122,20 +127,36 @@
     }
     currentKey = buildKey(el);
 
-    // Check if this element is database-sourced (has data-ct-key)
-    var ctKey = el.getAttribute('data-ct-key');
+    var ctKey    = el.getAttribute('data-ct-key');
+    var dbSource = el.getAttribute('data-db-source');
     if (ctKey) {
-      showDbConfirm(ctKey, el);
+      showDbConfirm(ctKey);
+    } else if (dbSource) {
+      showDbSourceWarn(dbSource);
     } else {
       openEditModal();
     }
   }
 
-  /* ---- DB confirmation modal ---- */
-  function showDbConfirm(ctKey, el) {
+  /* ---- DB confirmation modal (data-ct-key: edit writes back to SiteContent) ---- */
+  function showDbConfirm(ctKey) {
     var overlay = document.getElementById('aeDbConfirm');
-    var keySpan = document.getElementById('aeDbKeyName');
-    keySpan.textContent = ctKey;
+    document.getElementById('aeDbConfirmTitle').textContent = 'Database Content';
+    document.getElementById('aeDbConfirmMsg').innerHTML =
+      'This text is pulled from the database ' +
+      '(key: <strong>' + ctKey + '</strong>).<br>' +
+      'Editing it will update the database record directly.';
+    overlay.classList.add('ae-show');
+  }
+
+  /* ---- DB source warning (data-db-source: edit saves a display override only) ---- */
+  function showDbSourceWarn(source) {
+    var overlay = document.getElementById('aeDbConfirm');
+    document.getElementById('aeDbConfirmTitle').textContent = 'Database Record';
+    document.getElementById('aeDbConfirmMsg').innerHTML =
+      'This text is loaded from the <strong>' + source + '</strong> database table.<br>' +
+      'Editing here saves a display override only &mdash; the source record is not changed.<br>' +
+      'To permanently update it, use the admin panel.';
     overlay.classList.add('ae-show');
   }
 
@@ -233,14 +254,11 @@
     editMode = !editMode;
     var btn = document.getElementById('adminEditToggle');
     if (editMode) {
-      btn.textContent = '✕ Exit Edit Mode';
-      btn.classList.add('ae-active');
+      if (btn) { btn.innerHTML = '<i class="fa fa-pencil"></i> &#10005; Exit Edit Mode'; btn.classList.add('ae-active'); }
       document.body.classList.add('ae-editing');
     } else {
-      btn.textContent = '✎ Edit Mode';
-      btn.classList.remove('ae-active');
+      if (btn) { btn.innerHTML = '<i class="fa fa-pencil"></i> Edit Mode'; btn.classList.remove('ae-active'); }
       document.body.classList.remove('ae-editing');
-      // remove any lingering highlight
       document.querySelectorAll('.ae-highlight').forEach(function (el) {
         el.classList.remove('ae-highlight');
       });
@@ -249,7 +267,7 @@
 
   /* ---- build the UI (toggle button + modal) ---- */
   function buildUI() {
-    // We rely solely on the navbar Edit Mode toggle.
+    // Wire up the navbar Edit Mode link as the toggle button.
     var btn = document.getElementById('navEditModeToggle');
     if (btn) {
       btn.id = 'adminEditToggle';
@@ -277,10 +295,8 @@
     dbConfirm.innerHTML =
       '<div class="ae-db-confirm-box">' +
         '<div class="ae-db-confirm-icon">⚠️</div>' +
-        '<div class="ae-db-confirm-title">Database Content</div>' +
-        '<p class="ae-db-confirm-msg">This text is pulled from the database ' +
-          '(key: <strong id="aeDbKeyName"></strong>).<br>' +
-          'Editing it will update the database record directly.</p>' +
+        '<div class="ae-db-confirm-title" id="aeDbConfirmTitle">Database Content</div>' +
+        '<p class="ae-db-confirm-msg" id="aeDbConfirmMsg"></p>' +
         '<div class="ae-db-confirm-actions">' +
           '<button class="ae-modal-cancel" id="aeDbCancelBtn">Cancel</button>' +
           '<button class="ae-modal-save"   id="aeDbConfirmBtn">Yes, Edit</button>' +

@@ -660,12 +660,15 @@ class EmailService:
             html = cls._render(template_name, context)
         except Exception as exc:
             logger.exception("Failed to render %s", template_name)
-            EmailRepository.log_failed(
-                to_email=to_email, subject=subject, email_type=email_type,
-                template_name=template_name, to_name=to_name, user=user,
-                related_type=related_type, related_id=related_id, campaign=campaign,
-                error=f"template render failed: {exc}",
-            )
+            try:
+                EmailRepository.log_failed(
+                    to_email=to_email, subject=subject, email_type=email_type,
+                    template_name=template_name, to_name=to_name, user=user,
+                    related_type=related_type, related_id=related_id, campaign=campaign,
+                    error=f"template render failed: {exc}",
+                )
+            except Exception:
+                logger.exception("log_failed also failed for %s -> %s", email_type, to_email)
             return None
 
         try:
@@ -684,12 +687,15 @@ class EmailService:
             return msg_id
         except Exception as exc:
             logger.exception("Email send failed (%s -> %s)", email_type, to_email)
-            EmailRepository.log_failed(
-                to_email=to_email, subject=subject, email_type=email_type,
-                template_name=template_name, to_name=to_name, user=user,
-                related_type=related_type, related_id=related_id, campaign=campaign,
-                error=exc,
-            )
+            try:
+                EmailRepository.log_failed(
+                    to_email=to_email, subject=subject, email_type=email_type,
+                    template_name=template_name, to_name=to_name, user=user,
+                    related_type=related_type, related_id=related_id, campaign=campaign,
+                    error=exc,
+                )
+            except Exception:
+                logger.exception("log_failed also failed for %s -> %s", email_type, to_email)
             return None
 
     @staticmethod

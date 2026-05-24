@@ -2,8 +2,17 @@
 from datetime import datetime, timezone, timedelta
 
 from django import template
+from django.conf import settings
 
 register = template.Library()
+
+
+@register.simple_tag
+def static_url(path):
+    """Return an absolute URL to a static asset, suitable for use in emails."""
+    base = getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000').rstrip('/')
+    static = getattr(settings, 'STATIC_URL', '/static/').strip('/')
+    return f"{base}/{static}/{path.lstrip('/')}"
 
 VN_TZ = timezone(timedelta(hours=7))
 
@@ -48,3 +57,50 @@ def vietnam_date(dt):
         return dt.astimezone(VN_TZ).strftime('%d %b %Y')
     except Exception:
         return ''
+
+
+@register.filter
+def vnd(value):
+    """Format a number as VND with comma-separated thousands, e.g. 750,000.00."""
+    try:
+        return f'{float(value):,.2f}'
+    except (TypeError, ValueError):
+        return value
+
+
+_KEY_LABELS = {
+    'booking_id': 'Booking ID',
+    'guest_name': 'Guest Name',
+    'room_type': 'Room Type',
+    'check_in': 'Check-in',
+    'check_out': 'Check-out',
+    'total_price': 'Total Price',
+    'email': 'Email',
+    'phone': 'Phone',
+}
+
+_EVENT_LABELS = {
+    'new_booking': 'New Booking',
+    'edit_booking': 'Edit Booking',
+    'cancel_booking': 'Cancellation',
+}
+
+
+@register.filter
+def prettify_key(key):
+    return _KEY_LABELS.get(key, key.replace('_', ' ').title())
+
+
+@register.filter
+def prettify_event(event_type):
+    return _EVENT_LABELS.get(event_type, event_type.replace('_', ' ').title())
+
+
+@register.filter
+def format_date_value(value):
+    """Convert ISO date strings (YYYY-MM-DD) to DD/MM/YYYY."""
+    import re
+    if isinstance(value, str) and re.match(r'^\d{4}-\d{2}-\d{2}$', value):
+        y, m, d = value.split('-')
+        return f'{d}/{m}/{y}'
+    return value

@@ -13,8 +13,17 @@ _CONTENT_DEFAULTS = {
     'about_welcome_body':       'Thiên Tài Hotel is a modern, centrally located hotel in Ho Chi Minh City offering comfortable, individually designed rooms with contemporary amenities. Featuring a rooftop terrace, on-site restaurant and café, and attentive 24-hour service, the hotel provides a convenient and relaxing stay close to major attractions, shopping areas, and local landmarks.',
     'about_photos_heading':     'Photos',
     'about_photos_description': 'These photos give you a clear look at the hotel before you arrive. From the rooms to shared spaces, each image shows the atmosphere you can expect during your stay. Take a moment to look around and get a feel for the place, so you arrive knowing what awaits you.',
+    'about_services_heading':   'Our Premium Services',
     'rooms_offers_heading':     'Great Offers',
     'rooms_offers_description': 'Discover our exclusive room selections designed for your perfect stay.',
+    'rooms_section_heading':    'Rooms & Suites',
+    'rooms_section_description': 'Five room types, each with a fixed nightly rate. Quiet layouts, comfortable beds, and consistent upkeep across the property.',
+    'rooms_rates_heading':      'Room Rates',
+    'rooms_rates_description':  'All rates per room, per night. Prices shown at time of booking.',
+    'rooms_cta_heading':        'Book directly. No agency fees.',
+    'contact_map_heading':      'Find Us',
+    'contact_map_embed':        'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6083.477482324672!2d106.68195077662561!3d10.768664389379548!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3d9ad5dd29%3A0xd002ee29a19b9caf!2zVGhpw6puIFTDoGkgSG90ZWw!5e0!3m2!1sen!2s!4v1769936238563!5m2!1sen!2s',
+    'footer_newsletter_copy':   'Occasional updates on availability and seasonal rates.',
 }
 
 def text_overrides(request):

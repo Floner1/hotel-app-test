@@ -1,55 +1,55 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Create Account | Thien Tai Hotel{% endblock %}
+{% block title %}Create Account | {{ hotel_name|default:"Thiên Tài Hotel" }}{% endblock %}
 
 {% block page_id %}register{% endblock %}
 
 {% block extra_css %}
 <style>
   .register-section {
-    padding: 7em 0;
+    padding: var(--space-lg) 0;
     min-height: 80vh;
   }
 
   .register-form {
-    background: white;
+    background: var(--color-bg);
     padding: 3rem;
     border-radius: var(--radius-md);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
     max-width: 600px;
     margin: 0 auto;
   }
 
   .register-form h2 {
-    margin-bottom: 1.5rem;
-    color: #333;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text);
     font-weight: 600;
   }
 
   .register-form .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-sm);
   }
 
   .register-form label {
     font-weight: 500;
-    color: #555;
+    color: var(--color-text);
     margin-bottom: 0.5rem;
   }
 
   .register-form input {
     width: 100%;
     padding: 0.75rem 1rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border, #e5e7eb);
     border-radius: var(--radius-sm);
-    font-size: 1rem;
-    transition: border-color 0.3s var(--ease);
+    font-size: var(--text-body);
+    transition: border-color var(--duration-base) var(--ease);
   }
 
   .register-form input:focus {
     outline: none;
-    border-color: #f8b739;
-    box-shadow: 0 0 0 0.2rem rgba(248, 183, 57, 0.25);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(255, 186, 90, 0.2);
   }
 
   .register-form .btn-register {
@@ -59,10 +59,10 @@
     color: var(--color-text);
     border: none;
     border-radius: var(--radius-md);
-    font-size: 1rem;
+    font-size: var(--text-body);
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s var(--ease), transform 0.15s var(--ease);
+    transition: background-color var(--duration-base) var(--ease), transform var(--duration-fast) var(--ease);
     margin-top: 1rem;
   }
 
@@ -75,15 +75,15 @@
   }
 
   .register-form .form-text {
-    font-size: 0.875rem;
-    color: #666;
+    font-size: var(--text-caption);
+    color: var(--color-muted);
     margin-top: 0.5rem;
   }
 
   .register-form .alert {
     padding: 0.75rem 1rem;
     border-radius: var(--radius-sm);
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-sm);
   }
 
   .register-form .alert-danger {
@@ -100,18 +100,18 @@
 
   .register-form .login-link {
     text-align: center;
-    margin-top: 1.5rem;
-    color: #666;
+    margin-top: var(--space-sm);
+    color: var(--color-muted);
   }
 
   .register-form .login-link a {
-    color: #f8b739;
+    color: var(--color-primary);
     text-decoration: none;
     font-weight: 500;
   }
 
   .register-form .login-link a:hover {
-    text-decoration: underline;
+    color: var(--color-accent);
   }
 
   .required-field::after {
@@ -122,27 +122,16 @@
 {% endblock %}
 
 {% block content %}
-    <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/hero_4.jpg' %})" data-stellar-background-ratio="0.5">
+    <section class="page-title-bar">
       <div class="container">
-        <div class="row site-hero-inner justify-content-center align-items-center">
-          <div class="col-md-10 text-center">
-            <h1 class="heading mb-3 tt-fade-in">Create Your Account</h1>
-            <ul class="custom-breadcrumbs mb-4">
-              <li><a href="{% url 'home' %}">Home</a></li>
-              <li>&bullet;</li>
-              <li>Create Account</li>
-            </ul>
-          </div>
-        </div>
+        <h1>Create Account</h1>
+        <ul class="custom-breadcrumbs">
+          <li><a href="{% url 'home' %}">Home</a></li>
+          <li>&bullet;</li>
+          <li>Create Account</li>
+        </ul>
       </div>
-
-      <a class="mouse smoothscroll" href="#next">
-        <div class="mouse-icon">
-          <span class="mouse-wheel"></span>
-        </div>
-      </a>
     </section>
-    <!-- END section -->
 
     <section class="section register-section" id="next">
       <div class="container">
@@ -216,39 +205,4 @@
       </div>
     </section>
 
-    <section class="section slider-section">
-      <div class="container">
-        <div class="row justify-content-center text-center mb-5">
-          <div class="col-md-8">
-            <h2 class="heading">Why Create an Account?</h2>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-4">
-            <div class="media d-block room mb-0">
-              <div class="media-body">
-                <h3 class="mt-0"><span class="ion-ios-checkmark-circle"></span> Quick Booking</h3>
-                <p>Save your information for faster reservations in the future.</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="media d-block room mb-0">
-              <div class="media-body">
-                <h3 class="mt-0"><span class="ion-ios-list-box"></span> View Bookings</h3>
-                <p>Access and manage all your reservations in one place.</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="media d-block room mb-0">
-              <div class="media-body">
-                <h3 class="mt-0"><span class="ion-ios-bell"></span> Get Updates</h3>
-                <p>Receive notifications about your booking status and confirmations.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 {% endblock %}

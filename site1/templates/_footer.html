@@ -1,48 +1,56 @@
-<footer class="section footer-section">
+{% load static %}
+<footer class="site-footer">
   <div class="container">
-    <div class="row mb-4">
-      <div class="col-md-3 mb-5">
-        <ul class="list-unstyled link">
+    <div class="site-footer__brand">
+      <a href="{% url 'home' %}">
+        <img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="{{ hotel_name }}">
+        <span class="site-footer__brand-name">{{ hotel_name }}</span>
+      </a>
+    </div>
+
+    <div class="site-footer__rule"></div>
+
+    <div class="site-footer__cols">
+      <div class="site-footer__col">
+        <h4 class="site-footer__heading">Hotel</h4>
+        <ul>
           <li><a href="{% url 'about' %}">About Us</a></li>
-          <li><a href="{% url 'contact' %}">Contact Us</a></li>
+          <li><a href="{% url 'contact' %}">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="site-footer__col">
+        <h4 class="site-footer__heading">Stay</h4>
+        <ul>
+          <li><a href="{% url 'rooms' %}">Rooms</a></li>
           <li><a href="{% url 'reservation' %}">Reservation</a></li>
         </ul>
       </div>
-      <div class="col-md-3 mb-5">
-        <ul class="list-unstyled link">
-          <li><a href="{% url 'home' %}">Home</a></li>
-          <li><a href="{% url 'rooms' %}">Rooms</a></li>
-          <li><a href="{% url 'login' %}">Login</a></li>
+
+<div class="site-footer__col">
+        <h4 class="site-footer__heading">Reach Us</h4>
+        <ul>
+          {% if hotel.phone %}<li><a href="tel:{{ hotel.phone }}">{{ hotel.phone }}</a></li>{% endif %}
+          {% if hotel.email %}<li><a href="mailto:{{ hotel.email }}">{{ hotel.email }}</a></li>{% endif %}
+          {% if hotel.hotel_address %}<li class="site-footer__address">{{ hotel.hotel_address }}</li>{% endif %}
         </ul>
       </div>
-      <div class="col-md-3 mb-5 contact-info">
-        <div class="contact-item">
-          <span class="contact-label">Address:</span>
-          <span class="contact-value">{{ hotel.hotel_address }}</span>
-        </div>
-        <div class="contact-item">
-          <span class="contact-label">Phone:</span>
-          <span class="contact-value">{{ hotel.phone }}</span>
-        </div>
-        <div class="contact-item">
-          <span class="contact-label">Email:</span>
-          <span class="contact-value">{{ hotel.email }}</span>
-        </div>
-      </div>
-      <div class="col-md-3 mb-5">
-        <p>Subscribe for updates</p>
-        <form id="newsletter-form" class="footer-newsletter">
-          <div class="form-group">
-            <input type="email" class="form-control" name="email" placeholder="Email address" required>
-            <button type="submit" class="btn no-load"><span class="fa fa-paper-plane"></span></button>
-          </div>
-        </form>
-      </div>
     </div>
-    <div class="row pt-5">
-      <p class="col-md-12 text-center" style="color:rgba(255,255,255,0.3);font-size:0.8rem;">
-        &copy; {{ hotel_name }}
-      </p>
+
+    <div class="site-footer__rule"></div>
+
+    <div class="site-footer__newsletter">
+      <p class="site-footer__newsletter-label">Newsletter</p>
+      <p class="site-footer__newsletter-copy" data-ct-key="footer_newsletter_copy">{{ ct.footer_newsletter_copy|default:"Occasional updates on availability and seasonal rates." }}</p>
+      <form id="newsletter-form" class="site-footer__newsletter-form">
+        <label for="footer-newsletter-email" class="sr-only">Email address</label>
+        <input type="email" id="footer-newsletter-email" class="form-control" name="email" placeholder="Email address" required>
+        <button type="submit" class="btn no-load">Subscribe</button>
+      </form>
+    </div>
+
+    <div class="site-footer__bottom">
+      <p>&copy; {% now "Y" %} {{ hotel_name }}. All rights reserved.</p>
     </div>
   </div>
 </footer>

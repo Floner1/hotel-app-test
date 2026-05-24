@@ -2,12 +2,54 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Reservation Form | Thien Tai Hotel{% endblock %}
+{% block title %}Reservation Form | {{ hotel_name|default:"Thiên Tài Hotel" }}{% endblock %}
 
 {% block page_id %}reservation{% endblock %}
 
+{% block extra_css %}
+<style>
+  .reservation-total {
+    margin: 0 0 1.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--color-bg-alt);
+    border: 1px solid #e5e7eb;
+    border-radius: var(--radius-md);
+  }
+  .reservation-total__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.4rem 0;
+    color: var(--color-muted);
+    font-size: var(--text-caption);
+  }
+  .reservation-total__row--grand {
+    border-top: 1px solid #e5e7eb;
+    margin-top: 0.4rem;
+    padding-top: 0.75rem;
+    color: var(--color-text);
+    font-size: var(--text-body);
+    font-weight: 600;
+  }
+  .reservation-total__row--grand .reservation-total__value {
+    color: var(--color-primary);
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+  .reservation-total__note {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .required-mark {
+    color: #dc3545;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-    <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/hero_4.jpg' %})" data-stellar-background-ratio="0.5">
+    <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/slider-3.jpg' %})">
       <div class="container">
         <div class="row site-hero-inner justify-content-center align-items-center">
           <div class="col-md-10 text-center">
@@ -38,38 +80,38 @@
 
               <div class="row">
                 <div class="col-md-6 form-group">
-                  <label class="text-black font-weight-bold" for="name">Name <span style="color:red;">*</span></label>
+                  <label  for="name">Name <span class="required-mark">*</span></label>
                   <input type="text" id="name" name="name" class="form-control" value="{% if user.is_authenticated %}{{ user.username }}{% endif %}" required>
                 </div>
                 <div class="col-md-6 form-group">
-                  <label class="text-black font-weight-bold" for="phone">Phone <span style="color:red;">*</span></label>
+                  <label  for="phone">Phone <span class="required-mark">*</span></label>
                   <input type="text" id="phone" name="phone" class="form-control" required>
                 </div>
               </div>
 
               <div class="row">
                 <div class="col-md-12 form-group">
-                  <label class="text-black font-weight-bold" for="email">Email <span style="color:red;">*</span></label>
+                  <label  for="email">Email <span class="required-mark">*</span></label>
                   <input type="email" id="email" name="email" class="form-control" value="{% if user.is_authenticated %}{{ user.email }}{% endif %}" required>
                 </div>
               </div>
 
               <div class="row">
                 <div class="col-md-6 form-group">
-                  <label class="text-black font-weight-bold" for="checkin_date">Check-in Date <span style="color:red;">*</span></label>
+                  <label  for="checkin_date">Check-in Date <span class="required-mark">*</span></label>
                   <input type="text" id="checkin_date" name="checkin_date" class="form-control" required>
                 </div>
                 <div class="col-md-6 form-group">
-                  <label class="text-black font-weight-bold" for="checkout_date">Check-out Date <span style="color:red;">*</span></label>
+                  <label  for="checkout_date">Check-out Date <span class="required-mark">*</span></label>
                   <input type="text" id="checkout_date" name="checkout_date" class="form-control" required>
                 </div>
               </div>
 
               <div class="row">
                 <div class="col-md-6 form-group">
-                  <label for="adults" class="font-weight-bold text-black">Adults <span style="color:red;">*</span></label>
+                  <label for="adults" >Adults <span class="required-mark">*</span></label>
                   <div class="field-icon-wrap">
-                    <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                    <div class="icon"><i class="fa fa-angle-down" aria-hidden="true"></i></div>
                     <select name="adults" id="adults" class="form-control">
                       <option value="1">1</option>
                       <option value="2">2</option>
@@ -79,9 +121,9 @@
                   </div>
                 </div>
                 <div class="col-md-6 form-group">
-                  <label for="children" class="font-weight-bold text-black">Children</label>
+                  <label for="children" >Children</label>
                   <div class="field-icon-wrap">
-                    <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                    <div class="icon"><i class="fa fa-angle-down" aria-hidden="true"></i></div>
                     <select name="children" id="children" class="form-control">
                       <option value="0">0</option>
                       <option value="1">1</option>
@@ -95,13 +137,13 @@
 
               <div class="row">
                 <div class="col-md-12 form-group">
-                  <label for="room_type" class="font-weight-bold text-black">Room Type <span style="color:red;">*</span></label>
+                  <label for="room_type" >Room Type <span class="required-mark">*</span></label>
                   <div class="field-icon-wrap">
-                    <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                    <div class="icon"><i class="fa fa-angle-down" aria-hidden="true"></i></div>
                     <select name="room_type" id="room_type" class="form-control" required>
-                      <option value="">Select a room type</option>
+                      <option value="" data-price="0">Select a room type</option>
                       {% for room in room_types %}
-                      <option value="{{ room.canonical }}">{{ room.display }}{% if room.price %} — &#8363;{{ room.price|floatformat:0|intcomma }}/night{% endif %}</option>
+                      <option value="{{ room.canonical }}" data-price="{{ room.price|default:0 }}">{{ room.display }}{% if room.price %} — &#8363;{{ room.price|floatformat:0|intcomma }}/night{% endif %}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -110,9 +152,25 @@
 
               <div class="row mb-4">
                 <div class="col-md-12 form-group">
-                  <label class="text-black font-weight-bold" for="notes">Notes</label>
+                  <label  for="notes">Notes</label>
                   <textarea name="notes" id="notes" class="form-control" cols="30" rows="6"></textarea>
                 </div>
+              </div>
+
+              <div class="reservation-total" id="reservation-total" aria-live="polite">
+                <div class="reservation-total__row">
+                  <span class="reservation-total__label">Nights</span>
+                  <span class="reservation-total__value" id="total-nights">—</span>
+                </div>
+                <div class="reservation-total__row">
+                  <span class="reservation-total__label">Rate per night</span>
+                  <span class="reservation-total__value" id="total-rate">—</span>
+                </div>
+                <div class="reservation-total__row reservation-total__row--grand">
+                  <span class="reservation-total__label">Estimated total</span>
+                  <span class="reservation-total__value" id="total-amount">—</span>
+                </div>
+                <p class="reservation-total__note">Final total confirmed on booking.</p>
               </div>
 
               <div class="row">
@@ -126,9 +184,9 @@
           <div class="col-md-5">
             <div class="row">
               <div class="col-md-10 ml-auto contact-info">
-                <p><span class="d-block">Address:</span> <span><strong>{{ hotel.hotel_address }}</strong></span></p>
-                <p><span class="d-block">Phone:</span> <span><strong>{{ hotel.phone }}</strong></span></p>
-                <p><span class="d-block">Email:</span> <span><strong>{{ hotel.email }}</strong></span></p>
+                <p><span class="d-block">Address:</span> <span>{{ hotel.hotel_address }}</span></p>
+                <p><span class="d-block">Phone:</span> <span>{{ hotel.phone }}</span></p>
+                <p><span class="d-block">Email:</span> <span>{{ hotel.email }}</span></p>
               </div>
             </div>
           </div>
@@ -136,11 +194,13 @@
       </div>
     </section>
 
+    <!-- Services -->
     <section class="section services-section bg-light">
       <div class="container">
         <div class="row justify-content-center text-center mb-5">
           <div class="col-md-7">
-            <h2 class="heading">Hotel Services</h2>
+            <h2 class="heading" data-ct-key="services_heading">{{ ct.services_heading|default:"Our Premium Services" }}</h2>
+            <p data-ct-key="services_description">{{ ct.services_description }}</p>
           </div>
         </div>
 
@@ -148,8 +208,8 @@
           {% for service in hotel_services %}
           <div class="col-md-6 col-lg-4 mb-4">
             <div class="service service-card text-center bg-white p-4">
-              <h3 class="mb-3">{{ service.name_of_service }}</h3>
-              <p>{{ service.service_description }}</p>
+              <h3 class="mb-3" data-db-source="hotel_services">{{ service.name_of_service }}</h3>
+              <p data-db-source="hotel_services">{{ service.service_description }}</p>
             </div>
           </div>
           {% endfor %}
@@ -157,20 +217,6 @@
       </div>
     </section>
 
-    <section class="section bg-light">
-      <div class="container-fluid px-0">
-        <div class="row justify-content-center text-center mb-5">
-          <div class="col-md-7">
-            <h2 class="heading">Find Us</h2>
-          </div>
-        </div>
-        <div class="row no-gutters">
-          <div class="col-12">
-            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6083.477482324672!2d106.68195077662561!3d10.768664389379548!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3d9ad5dd29%3A0xd002ee29a19b9caf!2zVGhpw6puIFTDoGkgSG90ZWw!5e0!3m2!1sen!2s!4v1769936238563!5m2!1sen!2s" width="100%" height="600" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-          </div>
-        </div>
-      </div>
-    </section>
 {% endblock %}
 
 {% block extra_js %}
@@ -190,6 +236,36 @@
       }
       return dateString;
     }
+
+    function parseDate(value) {
+      if (!value) return null;
+      var parts = value.split('/');
+      if (parts.length !== 3) return null;
+      var m = parseInt(parts[0], 10), d = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+      if (isNaN(m) || isNaN(d) || isNaN(y)) return null;
+      var date = new Date(y, m - 1, d);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    function updateTotal() {
+      var ci = parseDate($('#checkin_date').val());
+      var co = parseDate($('#checkout_date').val());
+      var price = parseFloat($('#room_type option:selected').data('price')) || 0;
+
+      var nights = 0;
+      if (ci && co && co > ci) {
+        nights = Math.round((co - ci) / 86400000);
+      }
+
+      var total = nights * price;
+
+      $('#total-nights').text(nights > 0 ? nights : '—');
+      $('#total-rate').text(price > 0 ? '₫' + price.toLocaleString('vi-VN') : '—');
+      $('#total-amount').text(total > 0 ? '₫' + total.toLocaleString('vi-VN') : '—');
+    }
+
+    $('#checkin_date, #checkout_date').on('change input', updateTotal);
+    $('#room_type').on('change', updateTotal);
 
     $('#reservation-form').on('submit', function(e) {
       e.preventDefault();
@@ -217,6 +293,7 @@
       $.ajax({
         url:  '{% url "reservation" %}',
         type: 'POST',
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
         data: formData,
         success: function(response) {
           formMessages.removeClass('alert-danger').addClass('alert alert-success');

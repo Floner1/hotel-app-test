@@ -2,18 +2,18 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Home | Thien Tai Hotel{% endblock %}
+{% block title %}Home | {{ hotel_name|default:"Thiên Tài Hotel" }}{% endblock %}
 
 {% block page_id %}home{% endblock %}
 
 {% block extra_css %}
 <style>
-  /* Room image loop */
+  /* Scrolling image strip */
   .logo-loop-container { width: 100%; overflow: hidden; position: relative; padding: 40px 0; background: linear-gradient(to right, rgba(248,248,248,1) 0%, transparent 10%, transparent 90%, rgba(248,248,248,1) 100%); }
-  .logo-loop-track { display: flex; gap: 60px; animation: scroll 22s linear infinite; will-change: transform; }
+  .logo-loop-track { display: flex; flex-wrap: nowrap; gap: 60px; animation: logo-scroll 22s linear infinite; will-change: transform; }
   .logo-loop-item { flex-shrink: 0; }
-  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: var(--radius-md); border: 1px solid #e9ecef; }
-  @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-50%)); } }
+  .logo-loop-item img { height: 280px; width: auto; object-fit: cover; border-radius: var(--radius-md); border: 1px solid #e9ecef; display: block; }
+  @keyframes logo-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
   @media (max-width: 768px) { .logo-loop-item img { height: 200px; } .logo-loop-track { gap: 30px; } }
 
   /* Admin image upload UI — hidden until Edit Mode is active */
@@ -137,6 +137,18 @@
 
   .image-upload-body { padding: 30px; }
 
+  .hero-subtitle {
+    font-size: var(--text-h2);
+    font-weight: 300;
+  }
+
+  .upload-zone-icon {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin-bottom: var(--space-sm);
+    display: block;
+  }
+
   .current-image-preview h4,
   .new-image-preview h4 {
     margin-bottom: 12px;
@@ -189,13 +201,13 @@
 {% endblock %}
 
 {% block content %}
-    <section class="site-hero overlay" style="background-image: url({% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %})" data-stellar-background-ratio="0.5">
+    <section class="site-hero overlay" style="background-image: url({% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %})">
       <div class="container">
         <div class="row site-hero-inner justify-content-center align-items-center">
-          <div class="col-md-10 text-center">
+          <div class="col-md-12 text-center">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="hero-admin-wrapper">
-              <h1 class="heading tt-fade-in">{{ hotel_name }}<br><span style="font-size:0.75em;font-weight:300;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
+              <h1 class="heading" style="font-size: 76px; white-space: nowrap;">Welcome to {{ hotel_name|default:"Thien Tai Hotel" }}</h1>
               <div class="hero-admin-btn-area">
                 <button class="admin-upload-btn" onclick="openImageUpload('hero', '{% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}')">
                   <i class="fa fa-upload"></i> Change Hero Image
@@ -203,7 +215,7 @@
               </div>
             </div>
             {% else %}
-            <h1 class="heading tt-fade-in">{{ hotel_name }}<br><span style="font-size:0.75em;font-weight:300;" data-ct-key="hero_subtitle">{{ ct.hero_subtitle }}</span></h1>
+            <h1 class="heading" style="font-size: 76px; white-space: nowrap;">Welcome to {{ hotel_name|default:"Thien Tai Hotel" }}</h1>
             {% endif %}
           </div>
         </div>
@@ -224,27 +236,27 @@
               {% if request.user.is_authenticated and request.user.is_staff %}
               <div class="admin-image-container" data-image-id="food-1">
                 <img src="{% if db_images.food_1 %}{% url 'serve_image' 'food-1' %}{% else %}{% static 'images/food-1.jpg' %}{% endif %}"
-                     alt="Thien Tai Hotel dining area" class="img-fluid">
+                     alt="{{ hotel_name|default:'Thiên Tài Hotel' }} dining area" class="img-fluid">
                 <div class="admin-image-overlay">
                   <button class="admin-upload-btn" onclick="openImageUpload('food-1', '{% if db_images.food_1 %}{% url 'serve_image' 'food-1' %}{% else %}{% static 'images/food-1.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Upload Image</button>
                 </div>
               </div>
               {% else %}
               <img src="{% if db_images.food_1 %}{% url 'serve_image' 'food-1' %}{% else %}{% static 'images/food-1.jpg' %}{% endif %}"
-                   alt="Thien Tai Hotel dining area" class="img-fluid">
+                   alt="{{ hotel_name|default:'Thiên Tài Hotel' }} dining area" class="img-fluid">
               {% endif %}
             </figure>
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="admin-image-container" data-image-id="img-1">
               <img src="{% if db_images.img_1 %}{% url 'serve_image' 'img-1' %}{% else %}{% static 'images/img_1.jpg' %}{% endif %}"
-                   alt="Thien Tai Hotel interior" class="img-fluid rounded">
+                   alt="{{ hotel_name|default:'Thiên Tài Hotel' }} interior" class="img-fluid rounded">
               <div class="admin-image-overlay">
                 <button class="admin-upload-btn" onclick="openImageUpload('img-1', '{% if db_images.img_1 %}{% url 'serve_image' 'img-1' %}{% else %}{% static 'images/img_1.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Upload Image</button>
               </div>
             </div>
             {% else %}
             <img src="{% if db_images.img_1 %}{% url 'serve_image' 'img-1' %}{% else %}{% static 'images/img_1.jpg' %}{% endif %}"
-                 alt="Thien Tai Hotel interior" class="img-fluid rounded">
+                 alt="{{ hotel_name|default:'Thiên Tài Hotel' }} interior" class="img-fluid rounded">
             {% endif %}
           </div>
           <div class="col-md-12 col-lg-5 order-lg-1">
@@ -343,8 +355,8 @@
           {% for service in hotel_services %}
           <div class="col-md-6 col-lg-4 mb-4">
             <div class="service service-card text-center bg-white p-4">
-              <h3 class="mb-3">{{ service.name_of_service }}</h3>
-              <p>{{ service.service_description }}</p>
+              <h3 class="mb-3" data-db-source="hotel_services">{{ service.name_of_service }}</h3>
+              <p data-db-source="hotel_services">{{ service.service_description }}</p>
             </div>
           </div>
           {% endfor %}
@@ -352,28 +364,12 @@
       </div>
     </section>
 
-    <!-- Map -->
-    <section class="section bg-light">
-      <div class="container-fluid px-0">
-        <div class="row justify-content-center text-center mb-5">
-          <div class="col-md-7">
-            <h2 class="heading">Find Us</h2>
-          </div>
-        </div>
-        <div class="row no-gutters">
-          <div class="col-12">
-            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6083.477482324672!2d106.68195077662561!3d10.768664389379548!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3d9ad5dd29%3A0xd002ee29a19b9caf!2zVGhpw6puIFTDoGkgSG90ZWw!5e0!3m2!1sen!2s!4v1769936238563!5m2!1sen!2s" width="100%" height="600" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- CTA -->
-    <section class="section bg-image overlay" style="background-image: url('{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}');">
+    <section class="section bg-image overlay" style="background-image: url('{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/slider-7.jpg' %}{% endif %}');">
       {% if request.user.is_authenticated and request.user.is_staff %}
       <div class="admin-image-container" style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;">
         <div class="admin-image-overlay" style="z-index:10;">
-          <button class="admin-upload-btn" onclick="openImageUpload('reserve-bg', '{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Change Background</button>
+          <button class="admin-upload-btn" onclick="openImageUpload('reserve-bg', '{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/slider-7.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Change Background</button>
         </div>
       </div>
       {% endif %}
@@ -406,7 +402,7 @@
             <img id="currentImagePreview" src="" alt="Current Image" />
           </div>
           <div class="upload-zone" id="uploadZone">
-            <i class="fa fa-cloud-upload" style="font-size:40px;color:var(--color-primary);margin-bottom:15px;display:block;"></i>
+            <i class="fa fa-cloud-upload upload-zone-icon"></i>
             <p><strong>Drag &amp; drop your image here</strong></p>
             <p style="color:var(--color-muted);margin:8px 0;">or</p>
             <input type="file" id="imageFileInput" style="opacity:0;position:absolute;width:0;height:0;" onchange="handleFileSelect(event)">

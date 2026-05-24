@@ -34,6 +34,7 @@
 	});
 
 	// home slider
+  if ($.fn.owlCarousel) {
 	$('.home-slider').owlCarousel({
     loop:true,
     autoplay: true,
@@ -88,7 +89,7 @@
         nav:true,
         loop:false
       }
-  	}
+	  }
 	});
 
 	// owl carousel
@@ -120,18 +121,20 @@
         nav:true,
         loop:false
       }
-  	}
+	  }
 	});
-
+  }
   var siteStellar = function() {
-    $(window).stellar({
-      responsive: false,
-      parallaxBackgrounds: true,
-      parallaxElements: true,
-      horizontalScrolling: false,
-      hideDistantElements: false,
-      scrollProperty: 'scroll'
-    });
+    if ($.fn.stellar) {
+      $(window).stellar({
+        responsive: false,
+        parallaxBackgrounds: true,
+        parallaxElements: true,
+        horizontalScrolling: false,
+        hideDistantElements: false,
+        scrollProperty: 'scroll'
+      });
+    }
   }
   siteStellar();
 
@@ -158,7 +161,6 @@
       'startDate': 'today',
       'todayHighlight': true
     });
-    $('#m_time').timepicker();
   };
   dateAndTime();
 
@@ -167,7 +169,7 @@
 
     $(window).scroll(function(){
       var $win = $(window);
-      if ($win.scrollTop() > 200) {
+      if ($win.scrollTop() > 10) {
         $('.js-site-header').addClass('scrolled');
       } else {
         $('.js-site-header').removeClass('scrolled');
@@ -180,29 +182,61 @@
 
 
   // Initialize image carousel
-  $('.image-carousel').owlCarousel({
-    loop: true,
-    autoplay: true,
-    margin: 20,
-    nav: true,
-    dots: true,
-    autoplayHoverPause: true,
-    items: 3,
-    navText : ["<span class='ion-chevron-left'></span>","<span class='ion-chevron-right'></span>"],
-    responsive:{
-      0:{
-        items:1,
-        nav:false
-      },
-      600:{
-        items:2,
-        nav:false
-      },
-      1000:{
-        items:3,
-        nav:true,
-        loop:false
+  if ($.fn.owlCarousel) {
+    $('.image-carousel').owlCarousel({
+      loop: true,
+      autoplay: true,
+      margin: 20,
+      nav: true,
+      dots: true,
+      autoplayHoverPause: true,
+      items: 3,
+      navText : ["<span class='ion-chevron-left'></span>","<span class='ion-chevron-right'></span>"],
+      responsive:{
+        0:{
+          items:1,
+          nav:false
+        },
+        600:{
+          items:2,
+          nav:false
+        },
+        1000:{
+          items:3,
+          nav:true,
+          loop:false
+        }
       }
+    });
+  }
+
+  // Staff & Admin tools dropdown — click toggle with outside-click close
+  $(document).on('click', '.staff-tools-trigger', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var $dropdown = $(this).closest('.staff-tools-dropdown');
+    var wasOpen = $dropdown.hasClass('open');
+    $('.staff-tools-dropdown').removeClass('open');
+    $('.staff-tools-trigger').attr('aria-expanded', 'false');
+    if (!wasOpen) {
+      $dropdown.addClass('open');
+      $(this).attr('aria-expanded', 'true');
+    }
+  });
+
+  $(document).on('click', '.staff-tools-menu', function(e) {
+    e.stopPropagation();
+  });
+
+  $(document).on('click', function() {
+    $('.staff-tools-dropdown').removeClass('open');
+    $('.staff-tools-trigger').attr('aria-expanded', 'false');
+  });
+
+  $(document).on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      $('.staff-tools-dropdown').removeClass('open');
+      $('.staff-tools-trigger').attr('aria-expanded', 'false');
     }
   });
 

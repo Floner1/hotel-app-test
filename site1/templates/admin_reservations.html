@@ -5,6 +5,7 @@
 {% block title %}Reservations Dashboard | {{ hotel.hotel_name }}{% endblock %}
 
 {% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -59,43 +60,43 @@
       }
 
       .stats-card.total .icon {
-        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
-        color: white;
+        background: var(--color-bg-alt);
+        color: var(--color-muted);
       }
 
       .stats-card.pending .icon {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
+        background: #fff7e6;
+        color: var(--color-accent);
       }
 
       .stats-card.confirmed .icon {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
+        background: #e8f5ec;
+        color: #28a745;
       }
 
       .stats-card.revenue .icon {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        color: white;
+        background: #fff4e0;
+        color: var(--color-primary);
       }
 
       .stats-card.checkout .icon {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        color: white;
+        background: #fdecea;
+        color: #dc3545;
       }
 
       .stats-card.active .icon {
-        background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
-        color: white;
+        background: #fff4e0;
+        color: var(--color-primary);
       }
 
       .stats-card.info .icon {
-        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        color: white;
+        background: var(--color-bg-alt);
+        color: var(--color-muted);
       }
 
       .stats-card.warning .icon {
-        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-        color: white;
+        background: #fff7e6;
+        color: var(--color-accent);
       }
 
       .stats-card h3 {

@@ -131,10 +131,8 @@ def get_about(request):
 
     return render(request, 'about.html', {
         'active_page': 'about',
-        
-        
-        
         'db_images': db_images,
+        'room_images': _get_room_images(),
         })
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
