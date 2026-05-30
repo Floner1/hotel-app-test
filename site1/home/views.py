@@ -1276,11 +1276,10 @@ def edit_reservation(request, booking_id):
                     }, status=400)
 
                 # Fire transactional email for guest-facing status changes.
+                # Confirmation email is already sent on booking creation (services.py).
                 # Email failure is non-fatal — handled inside EmailService.
                 try:
-                    if new_status == 'confirmed':
-                        EmailService.queue_booking_confirmation(booking.booking_id)
-                    elif new_status in ('cancelled', 'rejected'):
+                    if new_status in ('cancelled', 'rejected'):
                         EmailService.queue_booking_cancellation(
                             booking.booking_id,
                             reason=data.get('cancellation_reason') or None,

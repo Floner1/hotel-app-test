@@ -85,7 +85,7 @@
                 </div>
                 <div class="col-md-6 form-group">
                   <label  for="phone">Phone <span class="required-mark">*</span></label>
-                  <input type="text" id="phone" name="phone" class="form-control" required>
+                  <input type="text" id="phone" name="phone" class="form-control" required pattern="^\+?[0-9]+$" title="Phone number may only contain digits and an optional leading +">
                 </div>
               </div>
 
@@ -175,7 +175,10 @@
 
               <div class="row">
                 <div class="col-md-6 form-group">
-                  <input type="submit" value="Reserve Now" class="btn btn-primary text-white py-3 px-5 font-weight-bold">
+                  <input type="submit" value="Reserve Now" class="btn btn-primary text-white py-3 px-5 font-weight-bold w-100">
+                </div>
+                <div class="col-md-6 form-group" id="book-another-wrap" style="display:none;">
+                  <button type="button" id="book-another-btn" class="btn btn-outline-primary py-3 px-5 font-weight-bold w-100" style="text-align:center;">Book Another Room</button>
                 </div>
               </div>
             </form>
@@ -190,29 +193,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Services -->
-    <section class="section services-section bg-light">
-      <div class="container">
-        <div class="row justify-content-center text-center mb-5">
-          <div class="col-md-7">
-            <h2 class="heading" data-ct-key="services_heading">{{ ct.services_heading|default:"Our Premium Services" }}</h2>
-            <p data-ct-key="services_description">{{ ct.services_description }}</p>
-          </div>
-        </div>
-
-        <div class="row justify-content-center">
-          {% for service in hotel_services %}
-          <div class="col-md-6 col-lg-4 mb-4">
-            <div class="service service-card text-center bg-white p-4">
-              <h3 class="mb-3" data-db-source="hotel_services">{{ service.name_of_service }}</h3>
-              <p data-db-source="hotel_services">{{ service.service_description }}</p>
-            </div>
-          </div>
-          {% endfor %}
         </div>
       </div>
     </section>
@@ -267,12 +247,47 @@
     $('#checkin_date, #checkout_date').on('change input', updateTotal);
     $('#room_type').on('change', updateTotal);
 
+    // Block non-digit keypresses on phone; allow + only as the first character
+    $('#phone').on('keypress', function(e) {
+      var ch = String.fromCharCode(e.which);
+      if (ch === '+' && this.value.length === 0) return;
+      if (!/[0-9]/.test(ch)) e.preventDefault();
+    });
+    // Strip pasted non-digit/non-leading-plus characters
+    $('#phone').on('paste', function() {
+      var el = this;
+      setTimeout(function() {
+        var v = el.value;
+        var prefix = v.startsWith('+') ? '+' : '';
+        el.value = prefix + v.replace(/[^0-9]/g, '');
+      }, 0);
+    });
+
+    $('#book-another-btn').on('click', function() {
+      var form         = $('#reservation-form');
+      var submitButton = form.find('input[type="submit"]');
+      var formMessages = $('#form-messages');
+      form[0].reset();
+      updateTotal();
+      formMessages.hide().removeClass('alert alert-success alert-danger').text('');
+      submitButton.val('Reserve Now').prop('disabled', false);
+      $('#book-another-wrap').hide();
+      $('html, body').animate({ scrollTop: form.offset().top - 100 }, 300);
+    });
+
     $('#reservation-form').on('submit', function(e) {
       e.preventDefault();
 
       var form         = $(this);
       var submitButton = form.find('input[type="submit"]');
       var formMessages = $('#form-messages');
+
+      var phoneVal = $('#phone').val();
+      if (!/^\+?[0-9]+$/.test(phoneVal)) {
+        formMessages.removeClass('alert-success').addClass('alert alert-danger');
+        formMessages.text('Phone number may only contain digits and an optional leading +.');
+        return;
+      }
 
       submitButton.prop('disabled', true);
       submitButton.val('Submitting...');
@@ -304,7 +319,11 @@
           formMessages.text(response.message + ' Booking ID: ' + response.booking_id + '. Total for ' + totalDays + ' ' + nightLabel + ': ₫' + formatted);
           formMessages.show();
           form[0].reset();
+          updateTotal();
           $('html, body').animate({ scrollTop: formMessages.offset().top - 100 }, 400);
+          submitButton.val('Successful');
+          submitButton.prop('disabled', true);
+          $('#book-another-wrap').show();
         },
         error: function(xhr) {
           var errorMsg = 'An error occurred. Please try again.';
@@ -312,11 +331,10 @@
           formMessages.removeClass('alert-success').addClass('alert alert-danger');
           formMessages.text(errorMsg).show();
           $('html, body').animate({ scrollTop: formMessages.offset().top - 100 }, 400);
-        },
-        complete: function() {
           submitButton.prop('disabled', false);
           submitButton.val('Reserve Now');
-        }
+        },
+        complete: function() {}
       });
     });
   });

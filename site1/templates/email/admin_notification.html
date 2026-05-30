@@ -4,28 +4,62 @@
 {% block subject %}{{ event_type|prettify_event }} — Booking #{{ payload.booking_id }}{% endblock %}
 {% block header_title %}Thien Tai Hotel{% endblock %}
 {% block header_subtitle %}
-  <div style="margin-top:6px;font-size:13px;color:#1a1a1a;">{{ event_type|prettify_event }}</div>
+  <div style="margin-top:6px;font-size:13px;color:#1a1a1a;">{{ event_type|prettify_event }} &middot; #{{ payload.booking_id }}</div>
 {% endblock %}
 
 {% block body %}
   <p style="margin:0 0 16px 0;">A new <strong>{{ event_type|prettify_event }}</strong> was recorded.</p>
 
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:16px 0;border-collapse:collapse;">
-    {% for key, value in payload.items %}
-      {% if key != 'booking' and key != 'hotel' %}
-        <tr>
-          <td style="padding:6px 12px 6px 0;color:#6b7280;width:160px;vertical-align:top;">{{ key|prettify_key }}</td>
-          <td style="padding:6px 0;vertical-align:top;word-break:break-word;">{{ value|format_date_value }}</td>
-        </tr>
-      {% endif %}
-    {% endfor %}
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;width:140px;">Booking ID</td>
+      <td style="padding:8px 0;"><strong>#{{ payload.booking_id }}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Guest Name</td>
+      <td style="padding:8px 0;">{{ payload.guest_name }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Room type</td>
+      <td style="padding:8px 0;">{{ payload.booking.room_type }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Check-in</td>
+      <td style="padding:8px 0;">{{ payload.booking.check_in|vietnam_date }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Check-out</td>
+      <td style="padding:8px 0;">{{ payload.booking.check_out|vietnam_date }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Guests</td>
+      <td style="padding:8px 0;">{{ payload.booking.adults }} adult{{ payload.booking.adults|pluralize }}{% if payload.booking.children %}, {{ payload.booking.children }} child{{ payload.booking.children|pluralize:"ren" }}{% endif %}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Rate / night</td>
+      <td style="padding:8px 0;">{{ payload.booking.booked_rate|vnd }} VND</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Total</td>
+      <td style="padding:8px 0;"><strong>{{ payload.booking.total_price|vnd }} VND</strong></td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Status</td>
+      <td style="padding:8px 0;text-transform:capitalize;">{{ payload.booking.status }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Email</td>
+      <td style="padding:8px 0;"><a href="mailto:{{ payload.email }}" style="color:#d49040;">{{ payload.email }}</a></td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Phone</td>
+      <td style="padding:8px 0;">{{ payload.phone }}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 0;color:#6b7280;">Booked at</td>
+      <td style="padding:8px 0;">{{ payload.booking.booking_date|vietnam_time }}</td>
+    </tr>
   </table>
-
-  {% if payload.booking %}
-    <p style="margin:18px 0 0 0;color:#6b7280;font-size:12px;">
-      Recorded at {{ payload.booking.booking_date|vietnam_time }}.
-    </p>
-  {% endif %}
 {% endblock %}
 
 {% block footer_extra %}You are receiving this as the notification address for Thien Tai Hotel's booking system.{% endblock %}

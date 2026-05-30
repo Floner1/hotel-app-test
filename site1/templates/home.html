@@ -207,7 +207,7 @@
           <div class="col-md-12 text-center">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="hero-admin-wrapper">
-              <h1 class="heading" style="font-size: 76px; white-space: nowrap;">Welcome to {{ hotel_name|default:"Thien Tai Hotel" }}</h1>
+              <h1 class="heading tt-fade-in" style="font-size: 76px; white-space: nowrap;">Welcome to {{ hotel_name|default:"Thien Tai Hotel" }}</h1>
               <div class="hero-admin-btn-area">
                 <button class="admin-upload-btn" onclick="openImageUpload('hero', '{% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %}')">
                   <i class="fa fa-upload"></i> Change Hero Image
@@ -215,7 +215,7 @@
               </div>
             </div>
             {% else %}
-            <h1 class="heading" style="font-size: 76px; white-space: nowrap;">Welcome to {{ hotel_name|default:"Thien Tai Hotel" }}</h1>
+            <h1 class="heading tt-fade-in" style="font-size: 76px; white-space: nowrap;">Welcome to {{ hotel_name|default:"Thien Tai Hotel" }}</h1>
             {% endif %}
           </div>
         </div>
@@ -365,18 +365,11 @@
     </section>
 
     <!-- CTA -->
-    <section class="section bg-image overlay" style="background-image: url('{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/slider-7.jpg' %}{% endif %}');">
-      {% if request.user.is_authenticated and request.user.is_staff %}
-      <div class="admin-image-container" style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;">
-        <div class="admin-image-overlay" style="z-index:10;">
-          <button class="admin-upload-btn" onclick="openImageUpload('reserve-bg', '{% if db_images.reserve_bg %}{% url 'serve_image' 'reserve-bg' %}{% else %}{% static 'images/slider-7.jpg' %}{% endif %}')"><i class="fa fa-upload"></i> Change Background</button>
-        </div>
-      </div>
-      {% endif %}
-      <div class="container" style="position:relative;z-index:5;">
+    <section class="section bg-image overlay" style="background-image: url('{% static 'images/slider-5.jpg' %}');">
+      <div class="container">
         <div class="row align-items-center">
           <div class="col-12 col-md-6 text-center mb-4 mb-md-0 text-md-left">
-            <h2 class="text-white font-weight-bold" data-ct-key="reserve_heading">{{ ct.reserve_heading|linebreaksbr }}</h2>
+            <h2 class="text-white font-weight-bold">Book directly. No agency fees.</h2>
           </div>
           <div class="col-12 col-md-6 text-center text-md-right">
             <a href="{% url 'reservation' %}" class="btn btn-outline-white-primary py-3 text-white px-5">Reserve a Room</a>

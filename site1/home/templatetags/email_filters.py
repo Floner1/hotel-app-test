@@ -14,6 +14,22 @@ def static_url(path):
     static = getattr(settings, 'STATIC_URL', '/static/').strip('/')
     return f"{base}/{static}/{path.lstrip('/')}"
 
+
+@register.simple_tag
+def inline_image(path):
+    """Embed a static image as a base64 data URL so it renders in email clients
+    regardless of whether the server is publicly accessible."""
+    import base64
+    import mimetypes
+    from django.contrib.staticfiles import finders
+    found = finders.find(path)
+    if not found:
+        return ''
+    mime, _ = mimetypes.guess_type(found)
+    with open(found, 'rb') as f:
+        data = base64.b64encode(f.read()).decode()
+    return f"data:{mime or 'image/png'};base64,{data}"
+
 VN_TZ = timezone(timedelta(hours=7))
 
 
