@@ -50,7 +50,7 @@
         <label for="name">Internal name</label>
         <input type="text" id="name" name="name" maxlength="225" required
                value="{% if form_values %}{{ form_values.name }}{% elif campaign %}{{ campaign.name }}{% endif %}">
-        <div class="hint">For your reference only — recipients never see this.</div>
+        <div class="hint">For your reference only. Recipients never see this.</div>
       </div>
 
       <div class="form-group" style="margin-top:1.25rem;">
@@ -62,7 +62,7 @@
       <div class="form-group" style="margin-top:1.25rem;">
         <label for="body_html">HTML body</label>
         <textarea id="body_html" name="body_html" required>{% if form_values %}{{ form_values.body_html }}{% elif campaign %}{{ campaign.body_html }}{% endif %}</textarea>
-        <div class="hint">Wrapped automatically in the branded email shell. Use clean HTML — tables for layout, inline styles.</div>
+        <div class="hint">Wrapped automatically in the branded email shell. Use clean HTML with tables for layout and inline styles.</div>
       </div>
 
       <div class="form-group" style="margin-top:1.25rem;">

@@ -155,7 +155,7 @@
     document.getElementById('aeDbConfirmTitle').textContent = 'Database Record';
     document.getElementById('aeDbConfirmMsg').innerHTML =
       'This text is loaded from the <strong>' + source + '</strong> database table.<br>' +
-      'Editing here saves a display override only &mdash; the source record is not changed.<br>' +
+      'Editing here saves a display override only. The source record is not changed.<br>' +
       'To permanently update it, use the admin panel.';
     overlay.classList.add('ae-show');
   }

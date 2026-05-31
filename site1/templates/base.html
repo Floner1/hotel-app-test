@@ -40,6 +40,9 @@
     {% include "_navbar.html" %}
   {% endblock %}
 
+  {% if request.resolver_match.url_name == 'home' %}
+  {% include "_discount_popup.html" %}
+  {% endif %}
 
     {% block content %}{% endblock %}
 
@@ -86,35 +89,85 @@
 
     <script>
       $(document).ready(function() {
+        var $popup      = $('#discount-popup');
+        var $step1      = $('#dp-step-1');
+        var $step2      = $('#dp-step-2');
+        var $stepAlready = $('#dp-step-already');
+        var $dpForm     = $('#dp-form');
+        var $dpSubmit   = $('#dp-submit');
+        var $dpError    = $('#dp-error');
+
+        function showPopup() {
+          if (!$popup.length) return;
+          sessionStorage.setItem('ttDiscountPopupSeen', '1');
+          $popup.fadeIn(200);
+          $('body').addClass('dp-open');
+        }
+
+        function hidePopup() {
+          $popup.fadeOut(180);
+          $('body').removeClass('dp-open');
+        }
+
+        // Auto-show once per browser session on the home page
+        if ($popup.length && !sessionStorage.getItem('ttDiscountPopupSeen')) {
+          showPopup();
+        }
+
+        // Footer form: open popup instead of direct submit
         $('#newsletter-form').on('submit', function(e) {
           e.preventDefault();
+          var email = $(this).find('input[name="email"]').val().trim();
+          if (email) { $('#dp-email').val(email); }
+          showPopup();
+        });
 
-          var form = $(this);
-          var submitButton = form.find('button[type="submit"]');
-          var email = form.find('input[name="email"]').val();
+        // Close on backdrop click
+        $popup.on('click', function(e) {
+          if (e.target === this) hidePopup();
+        });
+        $('#dp-close').on('click', hidePopup);
+        $('#dp-close-success, #dp-close-already').on('click', hidePopup);
+        $(document).on('keydown', function(e) {
+          if (e.key === 'Escape' && $popup.is(':visible')) hidePopup();
+        });
 
-          submitButton.prop('disabled', true);
+        // Popup form submit
+        $dpForm.on('submit', function(e) {
+          e.preventDefault();
+          var email = $('#dp-email').val().trim();
+          if (!email) return;
+          $dpSubmit.prop('disabled', true).text('...');
+          $dpError.hide();
 
           $.ajax({
             url: '{% url "newsletter_signup" %}',
             type: 'POST',
             headers: {'X-Requested-With': 'XMLHttpRequest'},
             data: {
-              'email': email,
-              'csrfmiddlewaretoken': '{{ csrf_token }}'
+              email: email,
+              source: 'popup',
+              csrfmiddlewaretoken: '{{ csrf_token }}'
             },
             success: function(data) {
-              var isError = (data.status !== 'ok');
-              showToast(data.message || 'Subscribed!', isError);
+              if (data.status === 'ok') {
+                if (data.already) {
+                  $('#dp-code-display-already').text(data.code || '');
+                  $step1.hide(); $stepAlready.show();
+                } else {
+                  $('#dp-code-display').text(data.code || '');
+                  $step1.hide(); $step2.show();
+                }
+              } else {
+                $dpError.text(data.message || 'Something went wrong.').show();
+                $dpSubmit.prop('disabled', false).text('CLAIM MY DISCOUNT');
+              }
             },
             error: function(xhr) {
               var msg = 'Something went wrong. Please try again.';
               if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-              showToast(msg, true);
-            },
-            complete: function() {
-              form.find('input[name="email"]').val('');
-              submitButton.prop('disabled', false);
+              $dpError.text(msg).show();
+              $dpSubmit.prop('disabled', false).text('CLAIM MY DISCOUNT');
             }
           });
         });

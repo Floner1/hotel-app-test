@@ -85,6 +85,7 @@ class EmailQueue(models.Model):
         ('contact_receipt', 'Contact Form Receipt'),
         ('admin_notification', 'Admin Notification'),
         ('campaign', 'Marketing Campaign'),
+        ('discount_welcome', 'Discount Welcome'),
         ('other', 'Other'),
     ]
 

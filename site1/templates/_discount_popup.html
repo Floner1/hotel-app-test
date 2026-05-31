@@ -1,0 +1,45 @@
+<div id="discount-popup" class="dp-backdrop" role="dialog" aria-modal="true" aria-label="Newsletter discount offer" style="display:none;">
+  <div class="dp-card">
+    <button class="dp-close" id="dp-close" aria-label="Close">&times;</button>
+
+    <!-- Step 1: email capture -->
+    <div id="dp-step-1">
+      <div class="dp-accent-bar"></div>
+      <h2 class="dp-headline">YOUR FIRST<br>BOOKING.<br>10% OFF.</h2>
+      <p class="dp-body">Subscribe and receive an exclusive discount code for your first stay at Thien Tai Hotel.</p>
+      <form id="dp-form" novalidate>
+        <label for="dp-email" class="sr-only">Email address</label>
+        <input type="email" id="dp-email" name="email" class="dp-input" placeholder="Email address" autocomplete="email" required>
+        <div id="dp-error" class="dp-error" style="display:none;" role="alert"></div>
+        <button type="submit" id="dp-submit" class="dp-btn">CLAIM MY DISCOUNT</button>
+      </form>
+      <p class="dp-footnote">One code per email address. Unsubscribe any time.</p>
+    </div>
+
+    <!-- Step 2: success with code -->
+    <div id="dp-step-2" style="display:none;">
+      <div class="dp-accent-bar"></div>
+      <h2 class="dp-headline">CHECK YOUR<br>INBOX.</h2>
+      <p class="dp-body">Your discount code is on its way. Enter it when you make a reservation. The code is tied to this email address.</p>
+      <div class="dp-code-chip">
+        <span class="dp-code-label">Your code</span>
+        <span class="dp-code-value" id="dp-code-display"></span>
+      </div>
+      <p class="dp-footnote">Single-use &middot; Valid for reservations made with your email address.</p>
+      <button type="button" class="dp-btn dp-btn--outline" id="dp-close-success">Close</button>
+    </div>
+
+    <!-- Step 3: already subscribed -->
+    <div id="dp-step-already" style="display:none;">
+      <div class="dp-accent-bar"></div>
+      <h2 class="dp-headline dp-headline--sm">ALREADY<br>SUBSCRIBED.</h2>
+      <p class="dp-body">You already have a discount code for this email address.</p>
+      <div class="dp-code-chip">
+        <span class="dp-code-label">Your code</span>
+        <span class="dp-code-value" id="dp-code-display-already"></span>
+      </div>
+      <p class="dp-footnote">Single-use &middot; Valid for reservations made with your email address.</p>
+      <button type="button" class="dp-btn dp-btn--outline" id="dp-close-already">Close</button>
+    </div>
+  </div>
+</div>

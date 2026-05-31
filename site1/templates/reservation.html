@@ -157,6 +157,19 @@
                 </div>
               </div>
 
+              <div class="row">
+                <div class="col-md-12 form-group">
+                  <label for="discount_code">Discount code</label>
+                  <div class="discount-field-wrap">
+                    <input type="text" id="discount_code" name="discount_code" class="form-control"
+                           placeholder="Optional, e.g. TT10-XXXXXX" autocomplete="off"
+                           maxlength="20" style="text-transform:uppercase;">
+                    <div id="discount-feedback" class="discount-feedback" style="display:none;" role="alert"></div>
+                  </div>
+                  <small class="form-text text-muted">Enter the code you received for the email address you are booking with.</small>
+                </div>
+              </div>
+
               <div class="reservation-total" id="reservation-total" aria-live="polite">
                 <div class="reservation-total__row">
                   <span class="reservation-total__label">Nights</span>
@@ -247,6 +260,36 @@
     $('#checkin_date, #checkout_date').on('change input', updateTotal);
     $('#room_type').on('change', updateTotal);
 
+    // Discount code inline validation on blur
+    var discountValidateTimer;
+    $('#discount_code').on('blur', function() {
+      var code  = $(this).val().trim().toUpperCase();
+      var email = $('#email').val().trim();
+      var $fb   = $('#discount-feedback');
+      if (!code) { $fb.hide(); return; }
+      if (!email) { $fb.removeClass('discount-feedback--ok').addClass('discount-feedback--err').text('Enter your email address first.').show(); return; }
+      clearTimeout(discountValidateTimer);
+      discountValidateTimer = setTimeout(function() {
+        $.ajax({
+          url: '{% url "validate_discount_code" %}',
+          type: 'POST',
+          headers: {'X-Requested-With': 'XMLHttpRequest'},
+          data: { code: code, email: email, csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val() },
+          success: function(data) {
+            if (data.valid) {
+              $fb.removeClass('discount-feedback--err').addClass('discount-feedback--ok')
+                 .text('Code valid. ' + data.discount_percent + '% off will be applied.').show();
+            } else {
+              $fb.removeClass('discount-feedback--ok').addClass('discount-feedback--err')
+                 .text(data.message || 'Invalid code.').show();
+            }
+          },
+          error: function() { $fb.hide(); }
+        });
+      }, 300);
+    });
+    $('#discount_code').on('input', function() { $('#discount-feedback').hide(); });
+
     // Block non-digit keypresses on phone; allow + only as the first character
     $('#phone').on('keypress', function(e) {
       var ch = String.fromCharCode(e.which);
@@ -296,6 +339,7 @@
         'name':             $('#name').val(),
         'phone':            $('#phone').val(),
         'email':            $('#email').val(),
+        'discount_code':    $('#discount_code').val().trim().toUpperCase(),
         'checkin_date':     formatDateForSubmit($('#checkin_date').val()),
         'checkout_date':    formatDateForSubmit($('#checkout_date').val()),
         'adults':           $('#adults').val(),

@@ -1,0 +1,63 @@
+{% extends "email/base_email.html" %}
+
+{% block subject %}Your 10% discount code from Thien Tai Hotel{% endblock %}
+
+{% block header_title %}Your exclusive discount{% endblock %}
+
+{% block header_subtitle %}
+<div style="font-size:14px;color:#1a1a1a;margin-top:6px;font-weight:400;">
+  Thank you for subscribing to Thien Tai Hotel
+</div>
+{% endblock %}
+
+{% block body %}
+<p style="margin:0 0 16px 0;font-size:15px;color:#1a1a1a;line-height:1.6;">
+  Thank you for signing up. As a welcome gift, here is a <strong>10% discount</strong> on your first booking at Thien Tai Hotel.
+</p>
+<p style="margin:0 0 8px 0;font-size:14px;color:#6b7280;line-height:1.6;">
+  Enter this code when you make a reservation:
+</p>
+{% endblock %}
+
+{% block extra %}
+<tr>
+  <td style="padding:0 32px 32px 32px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr>
+        <td style="border:1px dashed #d49040;background-color:#f9fafb;border-radius:8px;padding:20px;text-align:center;">
+          <div style="font-size:12px;color:#6b7280;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;">
+            Your discount code
+          </div>
+          <div style="font-size:26px;font-weight:700;color:#1a1a1a;font-family:Courier New,Courier,monospace;letter-spacing:2px;">
+            {{ discount.code }}
+          </div>
+          <div style="font-size:12px;color:#6b7280;margin-top:10px;line-height:1.5;">
+            Single-use &middot; Valid for reservations made with <strong style="color:#1a1a1a;">{{ subscriber.email }}</strong>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding:0 32px 32px 32px;">
+    <p style="margin:0 0 16px 0;font-size:14px;color:#6b7280;line-height:1.6;">
+      To use your code, visit our reservation page and enter it in the discount code field. The code must be used with the email address shown above.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="background-color:#ffba5a;border-radius:8px;">
+          <a href="/" style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:600;color:#1a1a1a;text-decoration:none;letter-spacing:0.3px;">
+            Book now
+          </a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+{% endblock %}
+
+{% block footer_extra %}
+  You received this email because you subscribed to updates from Thien Tai Hotel.
+  This code is single-use and tied to your email address.
+{% endblock %}

@@ -16,6 +16,7 @@ from data.repos.repositories import (
     ReservationRepository,
     RoomRepository,
     EmailRepository,
+    DiscountRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,25 @@ class HotelService:
         except Exception:
             logger.exception("Error loading room types")
             return []
+
+
+class DiscountService:
+    """Business logic for newsletter discount codes."""
+
+    @classmethod
+    def issue_for_subscriber(cls, subscriber, email):
+        """Return (discount, code_created). Never raises."""
+        return DiscountRepository.get_or_issue_for_email(email, subscriber)
+
+    @staticmethod
+    def validate(discount, booking_email):
+        """Raise ValidationError if the discount cannot be applied."""
+        if discount is None:
+            raise ValidationError('Discount code not found.')
+        if discount.status != 'active':
+            raise ValidationError('This code has already been used.')
+        if (discount.email or '').lower() != (booking_email or '').lower().strip():
+            raise ValidationError('This code was issued to a different email address.')
 
 
 class ReservationService:
@@ -181,6 +201,24 @@ class ReservationService:
 
             total_cost = (rate * total_days).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
+            # Discount code validation (optional field)
+            discount_code_input = (reservation_data.get('discount_code') or '').strip()
+            applied_discount = None
+            if discount_code_input:
+                from data.models import DiscountCode as _DiscountCode
+                disc = (
+                    _DiscountCode.objects
+                    .select_for_update()
+                    .filter(code__iexact=discount_code_input)
+                    .first()
+                )
+                booking_email = (reservation_data.get('email') or '').strip().lower()
+                DiscountService.validate(disc, booking_email)
+                total_cost = (
+                    total_cost * Decimal(100 - disc.discount_percent) / Decimal(100)
+                ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                applied_discount = disc
+
             hotel_record = BookingHotel.objects.order_by('hotel_id').first()
             if hotel_record is None:
                 raise ValidationError('Hotel information is not configured. Please contact the administrator.')
@@ -219,6 +257,9 @@ class ReservationService:
             }
 
             booking = ReservationRepository.create(booking_data)
+
+            if applied_discount:
+                DiscountRepository.redeem(applied_discount, booking)
 
             # Auto-assign an available room so it immediately appears on the Room Dashboard
             try:
@@ -573,6 +614,26 @@ class EmailService:
             context={'event_type': event_type, 'payload': payload},
             related_type=event_type,
             related_id=payload.get('booking_id') if isinstance(payload, dict) else None,
+        )
+
+    @classmethod
+    def queue_welcome_discount(cls, subscriber, discount):
+        """Send the welcome-discount email. Never raises."""
+        unsubscribe_url = cls._build_unsubscribe_url(subscriber.unsubscribe_token)
+        cls._send(
+            to_email=subscriber.email,
+            to_name=subscriber.name,
+            subject='Your 10% discount code is inside — Thien Tai Hotel',
+            template_name='email/welcome_discount.html',
+            email_type='discount_welcome',
+            context={
+                'subscriber': subscriber,
+                'discount': discount,
+                'unsubscribe_url': unsubscribe_url,
+            },
+            user=subscriber.user,
+            related_type='subscriber',
+            related_id=subscriber.id,
         )
 
     @classmethod

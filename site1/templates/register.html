@@ -118,13 +118,31 @@
     content: " *";
     color: #dc3545;
   }
+
+  .site-header { display: none !important; }
+  .page-title-bar { margin-top: 0 !important; }
+
+  .page-title-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .page-title-logo {
+    height: 56px;
+    width: auto;
+    flex-shrink: 0;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
     <section class="page-title-bar">
       <div class="container">
-        <h1>Create Account</h1>
+        <div class="page-title-inner">
+          <a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="{{ hotel_name|default:'Thiên Tài Hotel' }}" class="page-title-logo"></a>
+          <h1>Create Account</h1>
+        </div>
         <ul class="custom-breadcrumbs">
           <li><a href="{% url 'home' %}">Home</a></li>
           <li>&bullet;</li>

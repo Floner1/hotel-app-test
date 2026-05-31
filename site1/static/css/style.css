@@ -1329,3 +1329,213 @@ textarea.form-control {
   align-items: center;
 }
 
+
+/* ─── Discount popup ──────────────────────────────────────────── */
+
+.dp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+body.dp-open {
+  overflow: hidden;
+}
+
+.dp-card {
+  position: relative;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+  animation: tt-appear 0.3s var(--ease) both;
+}
+
+.dp-accent-bar {
+  position: absolute;
+  top: 0;
+  left: var(--space-md);
+  right: var(--space-md);
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.dp-close {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease),
+              background var(--duration-fast) var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dp-close:hover {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.dp-headline {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: var(--text-h2);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-sm);
+}
+
+.dp-headline--sm {
+  font-size: var(--text-h3);
+}
+
+.dp-body {
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-body);
+  margin: 0 0 var(--space-md);
+}
+
+.dp-input {
+  display: block;
+  width: 100%;
+  padding: 0.65rem var(--space-sm);
+  font-size: var(--text-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease);
+  margin-bottom: var(--space-sm);
+}
+
+.dp-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.dp-error {
+  font-size: var(--text-caption);
+  color: #dc3545;
+  margin-bottom: var(--space-sm);
+}
+
+.dp-btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem var(--space-md);
+  background: var(--color-primary);
+  color: var(--color-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform var(--duration-base) var(--ease),
+              box-shadow var(--duration-base) var(--ease);
+  margin-bottom: var(--space-sm);
+}
+
+.dp-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.dp-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.dp-btn--outline {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.dp-btn--outline:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: none;
+  transform: none;
+}
+
+.dp-code-chip {
+  border: 1px dashed var(--color-accent);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  text-align: center;
+  margin-bottom: var(--space-sm);
+}
+
+.dp-code-label {
+  display: block;
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.dp-code-value {
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  font-size: var(--text-h3);
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.1em;
+}
+
+.dp-footnote {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: var(--line-height-body);
+  margin: 0 0 var(--space-sm);
+}
+
+
+/* ─── Reservation discount field ─────────────────────────────── */
+
+.discount-field-wrap {
+  position: relative;
+}
+
+.discount-feedback {
+  font-size: var(--text-caption);
+  margin-top: 0.35rem;
+  padding: 0.35rem var(--space-sm);
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+
+.discount-feedback--ok {
+  color: #1a6e38;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+}
+
+.discount-feedback--err {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+}
+

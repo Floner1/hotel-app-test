@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django_ratelimit.decorators import ratelimit
-from backend.services.services import HotelService, ReservationService, RoomService, EmailService
+from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService
 from data.models import User, CustomerBookingInfo
 from django.db.models import Sum
 from datetime import date, datetime
@@ -187,7 +187,8 @@ def get_reservation(request):
                 'children': request.POST.get('children', 0),
                 'room_type': request.POST.get('room_type'),
                 'notes': request.POST.get('notes', ''),
-                'user': request.user,  # Link booking to logged-in user
+                'user': request.user,
+                'discount_code': request.POST.get('discount_code', '').strip().upper(),
             }
 
             # Allow staff/admin to override the per-night rate
@@ -272,19 +273,23 @@ def get_rooms(request):
 @ratelimit(key='ip', rate='3/m', method='POST', block=True)
 def newsletter_signup(request):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        from django.core.validators import validate_email
-        from django.core.exceptions import ValidationError
+        from django.core.validators import validate_email as _validate_email
+        from django.core.exceptions import ValidationError as _VE
         from data.repos.repositories import EmailRepository
-        email = request.POST.get('email', '').strip()
+        email = request.POST.get('email', '').strip().lower()
         try:
-            validate_email(email)
-        except ValidationError:
+            _validate_email(email)
+        except _VE:
             return JsonResponse({'status': 'error', 'message': 'Please provide a valid email address.'}, status=400)
 
         user = request.user if request.user.is_authenticated else None
+        source = request.POST.get('source', 'footer_signup')
+        if source not in ('footer_signup', 'popup'):
+            source = 'footer_signup'
+
         try:
-            subscriber, created = EmailRepository.create_subscriber(
-                email=email, user=user, source='footer_signup'
+            subscriber, sub_created = EmailRepository.create_subscriber(
+                email=email, user=user, source=source
             )
         except Exception:
             logger.exception('Newsletter signup persist failed for %s', email)
@@ -296,9 +301,55 @@ def newsletter_signup(request):
         if subscriber is None:
             return JsonResponse({'status': 'error', 'message': 'Please provide a valid email address.'}, status=400)
 
-        msg = 'Thank you for subscribing!' if created else 'You are already subscribed — thank you!'
+        try:
+            discount, code_created = DiscountService.issue_for_subscriber(subscriber, email)
+        except Exception:
+            logger.exception('Discount issue failed for %s', email)
+            discount, code_created = None, False
+
+        if discount and code_created:
+            try:
+                EmailService.queue_welcome_discount(subscriber, discount)
+            except Exception:
+                logger.exception('queue_welcome_discount failed for %s', email)
+
+        if discount:
+            if code_created:
+                msg = 'Subscribed! Your 10% discount code is on its way to your inbox.'
+            else:
+                msg = 'You are already subscribed. Here is your existing discount code.'
+            return JsonResponse({
+                'status': 'ok',
+                'message': msg,
+                'code': discount.code,
+                'already': not code_created,
+            })
+
+        msg = 'Thank you for subscribing!' if sub_created else 'You are already subscribed — thank you!'
         return JsonResponse({'status': 'ok', 'message': msg})
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+def validate_discount_code(request):
+    """AJAX endpoint: check whether a code is valid for a given email (no redemption)."""
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        from data.repos.repositories import DiscountRepository
+        code = request.POST.get('code', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        if not code or not email:
+            return JsonResponse({'valid': False, 'message': 'Code and email are required.'}, status=400)
+        disc = DiscountRepository.get_by_code(code)
+        try:
+            DiscountService.validate(disc, email)
+        except ValidationError as exc:
+            return JsonResponse({'valid': False, 'message': exc.message})
+        return JsonResponse({
+            'valid': True,
+            'discount_percent': disc.discount_percent,
+            'message': f'{disc.discount_percent}% discount applied.',
+        })
+    return JsonResponse({'valid': False, 'message': 'Invalid request.'}, status=400)
 
 
 def unsubscribe_view(request, token):

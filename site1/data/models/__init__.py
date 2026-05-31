@@ -12,6 +12,7 @@ from .hotel import (
 from .images import ImagesRef
 from .site_content import SiteContent
 from .email import EmailSubscriber, EmailCampaign, EmailQueue
+from .discount import DiscountCode
 
 __all__ = [
     'User',
@@ -27,4 +28,5 @@ __all__ = [
     'EmailSubscriber',
     'EmailCampaign',
     'EmailQueue',
+    'DiscountCode',
 ]

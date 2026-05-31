@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.conf import settings
 
 from data.models.hotel import Hotel, Room, RoomAssignment
-from data.models import CustomerBookingInfo, EmailQueue, EmailSubscriber, EmailCampaign
+from data.models import CustomerBookingInfo, EmailQueue, EmailSubscriber, EmailCampaign, DiscountCode
 from django.db.models import Q, Exists, OuterRef
 from django.utils import timezone
 
@@ -423,6 +423,52 @@ class EmailRepository:
     @staticmethod
     def active_subscribers():
         return EmailSubscriber.objects.filter(status='subscribed').order_by('email')
+
+
+class DiscountRepository:
+    """Data access for discount_codes table."""
+
+    _CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+
+    @classmethod
+    def _generate_unique_code(cls):
+        for _ in range(5):
+            suffix = ''.join(secrets.choice(cls._CODE_ALPHABET) for __ in range(6))
+            code = f'TT10-{suffix}'
+            if not DiscountCode.objects.filter(code=code).exists():
+                return code
+        raise RuntimeError('Could not generate a unique discount code after 5 attempts.')
+
+    @classmethod
+    def get_or_issue_for_email(cls, email, subscriber=None):
+        """Return (discount, created). Idempotent: existing row returned unchanged."""
+        email = (email or '').strip().lower()
+        existing = DiscountCode.objects.filter(email__iexact=email).first()
+        if existing:
+            return existing, False
+        now = timezone.now()
+        code = cls._generate_unique_code()
+        discount = DiscountCode.objects.create(
+            code=code,
+            email=email,
+            subscriber=subscriber,
+            discount_percent=10,
+            status='active',
+            issued_at=now,
+            created_at=now,
+        )
+        return discount, True
+
+    @staticmethod
+    def get_by_code(code):
+        return DiscountCode.objects.filter(code__iexact=(code or '').strip()).first()
+
+    @staticmethod
+    def redeem(discount, booking):
+        discount.status = 'redeemed'
+        discount.redeemed_at = timezone.now()
+        discount.redeemed_booking = booking
+        discount.save(update_fields=['status', 'redeemed_at', 'redeemed_booking_id'])
 
     # ---------------- email_campaigns ----------------
 
