@@ -45,7 +45,19 @@
       "Bash(powershell -Command \"\\(Get-Item 'd:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\\\\site1\\\\static\\\\images\\\\LOGO-THIEN-TAI.png'\\).Length\")",
       "Bash(Select-String -Path \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\\\\site1\\\\templates\\\\*.html\" -Pattern \"Our Premium Services|Rooms &amp; Suites|Rooms & Suites|Welcome!|Room Rates|Find Us\")",
       "Bash(Select-Object Filename, LineNumber, Line)",
-      "Read(//d/School work/hotel booking webapp project/hotel-app-test/site1/templates/**)"
+      "Read(//d/School work/hotel booking webapp project/hotel-app-test/site1/templates/**)",
+      "Bash(git rm *)",
+      "Bash(git -C \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\" remote get-url origin)",
+      "Bash(git -C \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\" ls-files site1/static/images/LOGO-THIEN-TAI.png)",
+      "Bash(git -C \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\" status)",
+      "Bash(git -C \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\" log --oneline -3)",
+      "Bash(git -C \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\" add site1/templates/email/base_email.html)",
+      "Bash(git -C \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\" commit -m \"Fix email logo by using GitHub raw URL instead of base64 inline\")",
+      "Bash(git -C \"d:\\\\School work\\\\hotel booking webapp project\\\\hotel-app-test\" push origin main)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)"
     ]
   }
 }

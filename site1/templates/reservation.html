@@ -383,4 +383,16 @@
     });
   });
 </script>
+<script>
+  // Pre-fill from booking widget GET params
+  $(document).ready(function () {
+    var params = new URLSearchParams(window.location.search);
+    var ci    = params.get('checkin_date');
+    var co    = params.get('checkout_date');
+    var adults = params.get('adults');
+    if (ci)    { $('#checkin_date').val(ci).trigger('change input'); }
+    if (co)    { $('#checkout_date').val(co).trigger('change input'); }
+    if (adults){ $('#adults').val(adults).trigger('change'); }
+  });
+</script>
 {% endblock %}

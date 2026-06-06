@@ -102,6 +102,13 @@ Define these tokens at the top of the main CSS file as custom properties. Every 
 
 ---
 
+## Git Workflow
+
+- Always commit directly to `main` — do not create feature branches
+- Never use `git push --force` or rebase published commits
+
+---
+
 ## How to Work
 
 Go file by file. For each file you change:

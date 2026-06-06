@@ -197,13 +197,317 @@
     justify-content: flex-end;
     gap: 10px;
   }
+
+  /* ─── Hero overlay: gradient so image reads clearly at top ── */
+  .site-hero.overlay:before {
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.06) 0%,
+      rgba(0,0,0,0.22) 50%,
+      rgba(0,0,0,0.64) 100%
+    ) !important;
+  }
+
+  /* ─── Center title in hero ───────────────────────────────── */
+  .site-hero-inner {
+    align-items: center !important;
+    padding-top: 0;
+    padding-bottom: 220px;
+  }
+
+  @media (max-width: 767px) {
+    .site-hero-inner { padding-bottom: 180px; }
+    .site-hero-inner .heading { font-size: 2.25rem !important; white-space: normal !important; }
+  }
+
+  /* ─── Mouse scroll indicator ─────────────────────────────── */
+  .site-hero .mouse { bottom: 20px; }
+
+  /* ─── Booking Widget ─────────────────────────────────────── */
+  .bw-container {
+    position: absolute;
+    bottom: 28%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 94%;
+    max-width: 1120px;
+    z-index: 20;
+  }
+
+  .bw-card {
+    display: flex;
+    align-items: stretch;
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  .bw-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 26px 40px;
+    position: relative;
+    min-width: 0;
+  }
+
+  .bw-field + .bw-field::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    bottom: 18px;
+    width: 1px;
+    background: rgba(255,255,255,0.12);
+  }
+
+  .bw-label {
+    display: block;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    font-family: "Roboto", sans-serif;
+    font-weight: 500;
+    margin-bottom: 7px;
+  }
+
+  .bw-val {
+    color: rgba(255,255,255,0.88);
+    font-family: "Playfair Display", serif;
+    font-size: 1.05rem;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bw-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: rgba(255,255,255,0.9);
+    font-family: "Roboto", sans-serif;
+    font-size: 1.05rem;
+    padding: 0;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .bw-input::placeholder { color: rgba(255,255,255,0.3); }
+
+  .bw-select {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: rgba(255,255,255,0.9);
+    font-family: "Roboto", sans-serif;
+    font-size: 1.05rem;
+    padding: 0;
+    width: 100%;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .bw-select option { background: #111; color: #fff; }
+
+  .bw-btn {
+    flex-shrink: 0;
+    padding: 0 44px;
+    background: var(--color-primary);
+    color: #111;
+    border: none;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-family: "Roboto", sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--duration-base) var(--ease),
+                opacity var(--duration-fast) var(--ease);
+    white-space: nowrap;
+  }
+
+  .bw-btn:hover { background: var(--color-accent); }
+  .bw-btn:active { opacity: 0.82; }
+  .bw-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .bw-field-invalid .bw-input,
+  .bw-field-invalid .bw-label { color: #ff6b6b !important; }
+
+  @media (max-width: 767px) {
+    .bw-container { bottom: 16%; }
+    .bw-card { flex-direction: column; }
+    .bw-field + .bw-field::before {
+      top: 0; left: 16px; right: 16px;
+      width: auto; height: 1px; bottom: auto;
+    }
+    .bw-field { padding: 20px 24px; }
+    .bw-btn { padding: 20px 36px; width: 100%; text-align: center; }
+  }
+
+  /* ─── Custom dropdown shared ─────────────────────────────── */
+  .bw-dropdown { position: relative; }
+
+  .bw-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .bw-dropdown-val {
+    color: rgba(255,255,255,0.9);
+    font-family: "Roboto", sans-serif;
+    font-size: 1.05rem;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  #bw-room-dropdown { flex: 1.6; }
+
+  .bw-chevron {
+    flex-shrink: 0;
+    color: rgba(255,255,255,0.32);
+    transition: transform var(--duration-base) var(--ease), color var(--duration-fast) var(--ease);
+  }
+
+  .bw-dropdown.open .bw-chevron {
+    transform: rotate(180deg);
+    color: rgba(255,255,255,0.65);
+  }
+
+  .bw-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: -1px;
+    right: -1px;
+    background: rgba(12, 12, 12, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: opacity var(--duration-base) var(--ease), transform var(--duration-base) var(--ease);
+    z-index: 100;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+  }
+
+  .bw-dropdown.open .bw-dropdown-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  /* ─── Room type scrollable list ──────────────────────────── */
+  .bw-dropdown-scroll {
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.16) transparent;
+  }
+
+  .bw-dropdown-scroll::-webkit-scrollbar { width: 4px; }
+  .bw-dropdown-scroll::-webkit-scrollbar-track { background: transparent; }
+  .bw-dropdown-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 2px; }
+
+  .bw-dropdown-item {
+    padding: 13px 22px;
+    color: rgba(255,255,255,0.62);
+    font-family: "Roboto", sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .bw-dropdown-item:last-child { border-bottom: none; }
+  .bw-dropdown-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+  .bw-dropdown-item.selected { color: var(--color-primary); font-weight: 500; }
+
+  /* ─── Guests counter panel ────────────────────────────────── */
+  .bw-guests-inner { padding: 4px 0; }
+
+  .bw-guests-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .bw-guests-row:last-child { border-bottom: none; }
+
+  .bw-guests-type {
+    display: block;
+    color: rgba(255,255,255,0.88);
+    font-family: "Roboto", sans-serif;
+    font-size: 0.9rem;
+  }
+
+  .bw-guests-note {
+    display: block;
+    color: rgba(255,255,255,0.32);
+    font-family: "Roboto", sans-serif;
+    font-size: 0.73rem;
+    margin-top: 3px;
+  }
+
+  .bw-counter { display: flex; align-items: center; gap: 16px; }
+
+  .bw-counter-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.72);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--duration-fast) var(--ease),
+                border-color var(--duration-fast) var(--ease),
+                color var(--duration-fast) var(--ease);
+    padding: 0;
+    line-height: 1;
+  }
+
+  .bw-counter-btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.38);
+    color: #fff;
+  }
+
+  .bw-counter-btn:disabled { opacity: 0.22; cursor: not-allowed; }
+
+  .bw-counter-val {
+    color: rgba(255,255,255,0.9);
+    font-family: "Roboto", sans-serif;
+    font-size: 0.95rem;
+    min-width: 18px;
+    text-align: center;
+    font-weight: 500;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
     <section class="site-hero overlay" style="background-image: url({% if db_images.hero %}{% url 'serve_image' 'hero' %}{% else %}{% static 'images/hero_4.jpg' %}{% endif %})">
       <div class="container">
-        <div class="row site-hero-inner justify-content-center align-items-center">
+        <div class="row site-hero-inner justify-content-center">
           <div class="col-md-12 text-center">
             {% if request.user.is_authenticated and request.user.is_staff %}
             <div class="hero-admin-wrapper">
@@ -219,6 +523,72 @@
             {% endif %}
           </div>
         </div>
+      </div>
+
+      <!-- Booking Widget -->
+      <div class="bw-container">
+        <form class="bw-card" method="get" action="{% url 'reservation' %}" id="bw-form">
+          <div class="bw-field bw-dropdown" id="bw-room-dropdown">
+            <span class="bw-label">Room Type</span>
+            <div class="bw-dropdown-trigger" id="bw-room-trigger">
+              <span class="bw-dropdown-val" id="bw-room-display">Any room</span>
+              <svg class="bw-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <input type="hidden" name="room_type" id="bw-room-input" value="">
+            <div class="bw-dropdown-panel" id="bw-room-panel">
+              <div class="bw-dropdown-scroll">
+                <div class="bw-dropdown-item selected" data-value="">Any room</div>
+                {% for rt in room_types %}
+                <div class="bw-dropdown-item" data-value="{{ rt.canonical }}">{{ rt.display }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="bw-field bw-dropdown" id="bw-guests-dropdown">
+            <span class="bw-label">Guests</span>
+            <div class="bw-dropdown-trigger" id="bw-guests-trigger">
+              <span class="bw-dropdown-val" id="bw-guests-display">2 Adults</span>
+              <svg class="bw-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <input type="hidden" name="adults" id="bw-adults-input" value="2">
+            <input type="hidden" name="children" id="bw-children-input" value="0">
+            <div class="bw-dropdown-panel" id="bw-guests-panel">
+              <div class="bw-guests-inner">
+                <div class="bw-guests-row">
+                  <div>
+                    <span class="bw-guests-type">Adults</span>
+                    <span class="bw-guests-note">Age 13+</span>
+                  </div>
+                  <div class="bw-counter">
+                    <button class="bw-counter-btn" id="bw-adults-minus" type="button">&#8722;</button>
+                    <span class="bw-counter-val" id="bw-adults-val">2</span>
+                    <button class="bw-counter-btn" id="bw-adults-plus" type="button">&#43;</button>
+                  </div>
+                </div>
+                <div class="bw-guests-row">
+                  <div>
+                    <span class="bw-guests-type">Children</span>
+                    <span class="bw-guests-note">Age 0&ndash;12</span>
+                  </div>
+                  <div class="bw-counter">
+                    <button class="bw-counter-btn" id="bw-children-minus" type="button">&#8722;</button>
+                    <span class="bw-counter-val" id="bw-children-val">0</span>
+                    <button class="bw-counter-btn" id="bw-children-plus" type="button">&#43;</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bw-field" id="bw-checkin-field">
+            <span class="bw-label">Check In</span>
+            <input type="text" id="bw-checkin" name="checkin_date" class="bw-input" placeholder="Select date" readonly autocomplete="off">
+          </div>
+          <div class="bw-field" id="bw-checkout-field">
+            <span class="bw-label">Check Out</span>
+            <input type="text" id="bw-checkout" name="checkout_date" class="bw-input" placeholder="Select date" readonly autocomplete="off">
+          </div>
+          <button type="submit" class="bw-btn" id="bw-submit">Check Rates</button>
+        </form>
       </div>
 
       <a class="mouse smoothscroll" href="#next">
@@ -380,6 +750,118 @@
 {% endblock %}
 
 {% block extra_js %}
+    <script>
+    $(document).ready(function () {
+      // ─── Booking widget datepicker ──────────────────────────
+      var today = new Date();
+
+      $('#bw-checkin').datepicker({
+        format: 'mm/dd/yyyy',
+        startDate: today,
+        autoclose: true,
+        todayHighlight: true,
+        orientation: 'top auto'
+      }).on('changeDate', function (e) {
+        // Set check-out min date to day after check-in
+        var next = new Date(e.date);
+        next.setDate(next.getDate() + 1);
+        var $co = $('#bw-checkout');
+        $co.datepicker('setStartDate', next);
+        // Auto-advance to check-out if not yet set
+        if (!$co.val()) {
+          $co.datepicker('show');
+        }
+        $('#bw-checkin-field').removeClass('bw-field-invalid');
+      });
+
+      $('#bw-checkout').datepicker({
+        format: 'mm/dd/yyyy',
+        startDate: today,
+        autoclose: true,
+        todayHighlight: true,
+        orientation: 'top auto'
+      }).on('changeDate', function () {
+        $('#bw-checkout-field').removeClass('bw-field-invalid');
+      });
+
+      // ─── Form validation + loading state ───────────────────
+      $('#bw-form').on('submit', function (e) {
+        var ci = $('#bw-checkin').val();
+        var co = $('#bw-checkout').val();
+        var valid = true;
+
+        if (!ci) {
+          $('#bw-checkin-field').addClass('bw-field-invalid');
+          valid = false;
+        }
+        if (!co) {
+          $('#bw-checkout-field').addClass('bw-field-invalid');
+          valid = false;
+        }
+
+        if (!valid) {
+          e.preventDefault();
+          return false;
+        }
+
+        var $btn = $('#bw-submit');
+        $btn.text('Loading…').prop('disabled', true);
+      });
+
+      // ─── Room type custom dropdown ──────────────────────────
+      $('#bw-room-trigger').on('click', function (e) {
+        e.stopPropagation();
+        var isOpen = $('#bw-room-dropdown').hasClass('open');
+        closeAllBwDropdowns();
+        if (!isOpen) $('#bw-room-dropdown').addClass('open');
+      });
+
+      $('#bw-room-panel').on('click', '.bw-dropdown-item', function () {
+        var $item = $(this);
+        $('#bw-room-display').text($item.text());
+        $('#bw-room-input').val($item.data('value'));
+        $('#bw-room-panel .bw-dropdown-item').removeClass('selected');
+        $item.addClass('selected');
+        $('#bw-room-dropdown').removeClass('open');
+      });
+
+      // ─── Guests counter dropdown ────────────────────────────
+      var bwAdults = 2, bwChildren = 0, BW_MAX = 4;
+
+      function updateGuestsDisplay() {
+        var parts = [];
+        if (bwAdults > 0) parts.push(bwAdults + (bwAdults === 1 ? ' Adult' : ' Adults'));
+        if (bwChildren > 0) parts.push(bwChildren + (bwChildren === 1 ? ' Child' : ' Children'));
+        $('#bw-guests-display').text(parts.join(', ') || 'Select guests');
+        $('#bw-adults-input').val(bwAdults);
+        $('#bw-children-input').val(bwChildren);
+        $('#bw-adults-val').text(bwAdults);
+        $('#bw-children-val').text(bwChildren);
+        $('#bw-adults-minus').prop('disabled', bwAdults <= 1);
+        $('#bw-adults-plus').prop('disabled', bwAdults + bwChildren >= BW_MAX);
+        $('#bw-children-minus').prop('disabled', bwChildren <= 0);
+        $('#bw-children-plus').prop('disabled', bwAdults + bwChildren >= BW_MAX);
+      }
+
+      $('#bw-guests-trigger').on('click', function (e) {
+        e.stopPropagation();
+        var isOpen = $('#bw-guests-dropdown').hasClass('open');
+        closeAllBwDropdowns();
+        if (!isOpen) $('#bw-guests-dropdown').addClass('open');
+      });
+
+      $('#bw-adults-minus').on('click', function (e) { e.stopPropagation(); if (bwAdults > 1) { bwAdults--; updateGuestsDisplay(); } });
+      $('#bw-adults-plus').on('click', function (e) { e.stopPropagation(); if (bwAdults + bwChildren < BW_MAX) { bwAdults++; updateGuestsDisplay(); } });
+      $('#bw-children-minus').on('click', function (e) { e.stopPropagation(); if (bwChildren > 0) { bwChildren--; updateGuestsDisplay(); } });
+      $('#bw-children-plus').on('click', function (e) { e.stopPropagation(); if (bwAdults + bwChildren < BW_MAX) { bwChildren++; updateGuestsDisplay(); } });
+
+      function closeAllBwDropdowns() { $('.bw-dropdown').removeClass('open'); }
+      $(document).on('click', function () { closeAllBwDropdowns(); });
+
+      updateGuestsDisplay();
+    });
+    </script>
+
     {% if request.user.is_authenticated and request.user.is_staff %}
 
     <!-- Admin Image Upload Modal -->
