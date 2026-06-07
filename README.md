@@ -1,246 +1,128 @@
 # Thien Tai hotel booking system
 
-A Django-based hotel booking web application with a SQL Server backend, featuring role-based access control, interactive UI components, and booking management.
+A Django app for managing hotel reservations at Thien Tai Hotel. SQL Server backend, Bootstrap 4 frontend, role-based access control.
 
 ## Quick start
 
 ```bash
-# Navigate to project directory
 cd site1
-
-# Start the development server
 python manage.py runserver
 ```
 
 Visit: http://127.0.0.1:8000/
 
-## Documentation
-
-- **[PROJECT_STRUCTURE.md](site1/PROJECT_STRUCTURE.md)** - Complete project architecture and file organization
-- **[QUICK_REFERENCE.md](site1/QUICK_REFERENCE.md)** - Quick reference for common tasks
-- **[UI_FEATURES.md](site1/UI_FEATURES.md)** - UI components and animations documentation
-- **[DEPLOYMENT.md](site1/DEPLOYMENT.md)** - Production deployment guide
-
 ## Technologies
 
-- **Backend:** Django 5.2.4 with Python 3.x
-- **Database:** SQL Server (MSSQLSERVER01) with Windows Authentication
-- **Frontend:** HTML5, CSS3, Bootstrap 4, JavaScript (jQuery)
-- **Architecture:** Three-layer architecture (Presentation, Application, Data)
-- **Authentication:** Custom user model with role-based access control (RBAC)
+- Django 5.2.4, Python 3.x
+- SQL Server via mssql-django (Windows Authentication)
+- Bootstrap 4, jQuery
+- Three-layer architecture: Presentation, Application, Data
 
-## Key features
+## What it does
 
-### User management
-- **Role-based access control** - Admin, staff, and customer roles
-- **Secure authentication** - PBKDF2-SHA256 password hashing (1,000,000 iterations)
-- **Protected login** - Mandatory authentication for booking
-- **User-linked bookings** - Reservations tied to user accounts
+### Booking flow
 
-### Booking system
-- **Online reservations** - Booking form with date validation
-- **Pending approval** - All bookings require admin/staff confirmation
-- **Admin dashboard** - Booking management interface
-- **Status tracking** - Pending, confirmed, cancelled, completed states
+The homepage has a booking widget fixed to the bottom of the hero image. Guests fill in check-in date, check-out date, guest count, and room type, then click through to the reservation form. The form pre-fills those values from the URL.
 
-### UI/UX
-- **Infinite scroll galleries** - Horizontal scrolling for photos and rooms
-- **Room rate menu** - Expandable tabs with room images, descriptions, and pricing
-- **Responsive design** - Mobile-optimized layouts
-- **Design tokens** - CSS custom properties for consistent color, spacing, radius, and type scale
+On the reservation form there's an "Any room" option. Pick it and the system randomly selects an available room type and shows a confirmation modal before submitting. A discount code field lets guests apply a code they received by email. The running total updates live when a valid code is entered.
 
-### Database security
-- **Database-level RBAC** - Triggers enforce role permissions
-- **Session context** - User tracking at database level
-- **Role escalation protection** - Prevents unauthorized role changes
-- **Booking ownership** - Customers can only modify their own bookings
-- **Immutable audit log** - Append-only change tracking
+All reservations require login. Customers see only their own bookings.
+
+### Newsletter and discounts
+
+The footer has a newsletter signup form that submits by AJAX and shows feedback inline (no page reload). On the home page, a slide-in popup offers 10% off a booking in exchange for a newsletter signup. It appears once per browser session for guests who aren't logged in.
+
+Each email address gets one discount code. The code is emailed immediately after signup, then validated at booking time. Codes are single-use and tied to the subscriber's email address.
+
+### Admin
+
+- Booking management dashboard with status tracking: pending, confirmed, cancelled, completed
+- Email campaign editor and subscriber list
+- Email log showing every outbound message
+- Room dashboard
+- User account management
+
+### Security
+
+Database-level triggers enforce RBAC. A session context column tracks which user is acting. Bookings can only be modified by their owner (or staff). The audit log is append-only.
 
 ## Project structure
 
 ```
 hotel-app-test/
-├── README.md                    # This file
-└── site1/                       # Django project root
-    ├── manage.py                # Django management script
-    ├── .env                     # Environment variables (database config)
-    │
-    ├── site1/                   # Project configuration
-    │   ├── settings.py          # Django settings
-    │   ├── urls.py              # Main URL routing
-    │   └── wsgi.py              # WSGI deployment config
-    │
-    ├── home/                    # Presentation layer
-    │   ├── views.py             # View functions
-    │   ├── urls.py              # URL patterns
-    │   └── auth_backend.py      # Custom authentication
-    │
-    ├── backend/                 # Application layer
-    │   └── services/
-    │       └── services.py      # Business logic (HotelService, ReservationService)
-    │
-    ├── data/                    # Data layer
-    │   ├── models/
-    │   │   └── hotel.py         # Database models
-    │   └── repos/
-    │       └── repositories.py  # Data access
-    │
-    ├── templates/               # HTML templates
-    │   ├── home.html            # Homepage with infinite scroll
-    │   ├── rooms.html           # Rooms page with Great Offers menu
-    │   ├── reservation.html     # Booking form
-    │   ├── about.html           # About page with photo gallery
-    │   ├── contact.html         # Contact page
-    │   └── admin_reservations.html  # Admin dashboard
-    │
-    ├── static/                  # Static assets
-    │   ├── css/                 # Stylesheets
-    │   ├── js/                  # JavaScript
-    │   └── images/              # Images
-    │
-    └── staticfiles/             # Collected static files (auto-generated)
+├── CLAUDE.md
+├── README.md
+├── tables v10 for hotel.sql    ← current SQL schema — apply manually to SQL Server
+├── docs/
+│   └── plans/
+│       └── newsletter-discount-plan.md
+└── site1/
+    ├── manage.py
+    ├── site1/                  ← Django config (settings, urls, wsgi)
+    ├── home/                   ← views and URL routing
+    ├── backend/services/       ← business logic layer
+    ├── data/                   ← models and repositories
+    ├── templates/              ← all HTML templates
+    └── static/                 ← CSS, JS, images
 ```
+
+## Database tables
+
+- `users`: accounts and roles
+- `hotel_info`: hotel details
+- `room_price`: room types and nightly rates
+- `booking_info`: guest reservations
+- `hotel_services`: services list
+- `customer_requests`: modification requests from guests
+- `audit_log`: append-only change history
+- `email_subscribers`: newsletter subscribers
+- `discount_codes`: single-use codes, one per email address
+- `email_queue`: outbound email log
+
+No Django migration files. The schema is applied by running the latest `tables vN for hotel.sql` file directly against SQL Server.
 
 ## Common commands
 
 ```bash
-# Navigate to project directory first
 cd site1
 
-# Database migrations
-python manage.py makemigrations
-python manage.py migrate
+# Start dev server
+python manage.py runserver
 
-# Create admin user
-python manage.py createsuperuser
-
-# Collect static files for production
+# Collect static files
 python manage.py collectstatic --noinput
 
-# Run Django shell for testing
+# Django shell
 python manage.py shell
-
-# Start development server
-python manage.py runserver
 ```
 
-## Database information
+## Database connection
 
-**Connection details:**
 - **Server:** DESKTOP-NS6H7CH\MSSQLSERVER01
 - **Database:** hotelbooking
-- **Authentication:** Windows Authentication
+- **Auth:** Windows Authentication
 - **Driver:** SQL Server Native Client 11.0
-
-**Main tables:**
-- `users` - User accounts with RBAC
-- `hotel_info` - Hotel details (Thien Tai Hotel)
-- `room_price` - Room types and pricing
-- `booking_info` - Customer reservations
-- `hotel_services` - Available services
-- `customer_requests` - Booking modification requests
-- `audit_log` - Change history tracking
-
-**Security features:**
-- Database-level triggers for access control
-- Session context for user tracking
-- Role escalation prevention
-- Booking ownership enforcement
-- Immutable audit logging
-
-## UI features
-
-### Infinite scroll galleries
-- Horizontal animation (22s duration)
-- Gradient fade-out edges
-- Responsive sizing (280px desktop, 200px mobile)
-
-### Service cards
-- White backgrounds, subtle shadow
-- Hover lift: max translateY(-4px), box-shadow capped at 8px spread
-- Responsive grid layout
-
-### Room rates menu (rooms.html)
-- Hover-expandable dropdown tabs
-- Room images, descriptions, and per-night pricing
-- Database-driven content
-- Responsive design
-
-### Design system
-- CSS custom properties in `style.css :root`
-- 1 primary color, 1 accent, 2 radius values, 3 spacing levels, 1 type scale, 1 easing curve
-- All transitions use `cubic-bezier(0.25, 0.1, 0.25, 1)`
-
-## Troubleshooting
-
-### Site won't load
-```bash
-# Ensure SQL Server is running
-# Then run migrations
-cd site1
-python manage.py migrate
-python manage.py collectstatic --noinput
-```
-
-### Static files not loading
-```bash
-cd site1
-python manage.py collectstatic --noinput
-```
-
-### Database connection issues
-- Verify SQL Server service is running
-- Check `.env` file for correct database credentials
-- Ensure Windows Authentication is enabled
-
-### Login issues
-- Verify user exists in `users` table
-- Check password hash with `check_password()` method
-- Ensure `SESSION_CONTEXT` is set properly
 
 ## User roles
 
-### Admin
-- Full system access
-- Manage all bookings and users
-- Modify hotel configuration
-- Access audit logs
+- **Admin**: full access to all bookings, users, hotel config, and audit log
+- **Staff**: view and manage bookings, confirm or cancel reservations
+- **Customer**: make reservations (login required), view own bookings, request modifications
 
-### Staff
-- View and manage bookings
-- Confirm/cancel reservations
-- Limited configuration access
+## Troubleshooting
 
-### Customer
-- Make reservations (requires login)
-- View own bookings only
-- Request booking modifications
-- Cannot access admin features
+**Site won't load**
 
-## Additional resources
+```bash
+cd site1
+python manage.py migrate
+python manage.py collectstatic --noinput
+```
 
-For detailed information, see the documentation files in the `site1/` directory:
-- Architecture details
-- UI component specifications
-- Deployment instructions
-- Database schema
-- Security implementation
+Confirm SQL Server is running first.
 
-## Recent updates
+**Static files missing:** run `collectstatic`.
 
-**Latest update (February 2026):**
-- Implemented infinite scroll photo galleries
-- Added Great Offers expandable menu
-- Redesigned Premium Services cards
-- Enhanced responsive design
-- Improved animations and transitions
+**Database errors:** check that SQL Server is running and that `.env` has the correct connection string. Windows Authentication means the process user needs access to the `hotelbooking` database.
 
-**Security enhancements:**
-- Database-level RBAC enforcement
-- Session context tracking
-- Audit log protection
-- Booking ownership validation
-
----
-
-Built for Thien Tai Hotel
+**Discount codes not issuing:** the `discount_codes` table must exist. Run `tables v10 for hotel.sql` against the database if you haven't already.

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Council Report — 2026-06-06</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a1a; line-height: 1.6; }
+  .header { background: #111; color: #fff; padding: 40px 48px; }
+  .header h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #ffba5a; margin-bottom: 12px; }
+  .header p { font-size: 1rem; color: rgba(255,255,255,0.75); max-width: 760px; line-height: 1.7; }
+  .meta { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-top: 16px; letter-spacing: 0.05em; }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+  .verdict { background: #fff; border-radius: 8px; padding: 36px 40px; margin-bottom: 32px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #ffba5a; }
+  .verdict h2 { font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; color: #6b7280; margin-bottom: 20px; }
+  .verdict-section { margin-bottom: 24px; }
+  .verdict-section h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #111; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+  .verdict-section p { font-size: 0.95rem; color: #374151; }
+  .recommendation { background: #fffbf0; border: 1px solid #ffba5a; border-radius: 6px; padding: 20px 24px; margin-top: 16px; }
+  .recommendation p { font-size: 0.95rem; font-weight: 600; color: #111; }
+  .one-thing { background: #111; color: #fff; border-radius: 6px; padding: 20px 24px; margin-top: 12px; }
+  .one-thing p { font-size: 0.9rem; color: rgba(255,255,255,0.85); }
+  .one-thing strong { color: #ffba5a; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 32px; }
+  .advisor-cell { background: #fff; padding: 16px 14px; text-align: center; }
+  .advisor-cell .name { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 8px; }
+  .advisor-cell .vote { font-size: 1.3rem; }
+  .advisor-cell .label { font-size: 0.7rem; color: #374151; margin-top: 4px; font-weight: 600; }
+  .contrarian { border-top: 3px solid #ef4444; }
+  .firstprinciples { border-top: 3px solid #f59e0b; }
+  .expansionist { border-top: 3px solid #10b981; }
+  .outsider { border-top: 3px solid #6366f1; }
+  .executor { border-top: 3px solid #3b82f6; }
+  details { background: #fff; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
+  summary { padding: 16px 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #111; user-select: none; }
+  summary:hover { background: #f9fafb; }
+  .detail-body { padding: 0 20px 20px; font-size: 0.9rem; color: #374151; line-height: 1.7; border-top: 1px solid #f3f4f6; margin-top: 4px; }
+  .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #9ca3af; margin: 32px 0 12px; }
+  .blind-spot { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 14px 18px; margin-bottom: 8px; font-size: 0.88rem; color: #374151; }
+  .blind-spot strong { color: #c2410c; }
+  footer { text-align: center; padding: 32px; font-size: 0.75rem; color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>LLM Council Report</h1>
+  <p>Should the hotel homepage booking widget use native <code>input[type=date]</code> or a custom date picker (Flatpickr) for the dark card design?</p>
+  <div class="meta">2026-06-06 &nbsp;·&nbsp; 5 advisors &nbsp;·&nbsp; 5 peer reviewers &nbsp;·&nbsp; 1 chairman</div>
+</div>
+
+<div class="container">
+
+  <div class="section-label">Advisor Positions</div>
+  <div class="grid">
+    <div class="advisor-cell contrarian">
+      <div class="name">The Contrarian</div>
+      <div class="vote">⚠️</div>
+      <div class="label">Question the premise — text input is enough</div>
+    </div>
+    <div class="advisor-cell firstprinciples">
+      <div class="name">First Principles</div>
+      <div class="vote">🤔</div>
+      <div class="label">Native inputs win on correctness</div>
+    </div>
+    <div class="advisor-cell expansionist">
+      <div class="name">The Expansionist</div>
+      <div class="vote">✅</div>
+      <div class="label">Flatpickr + range mode for conversion</div>
+    </div>
+    <div class="advisor-cell outsider">
+      <div class="name">The Outsider</div>
+      <div class="vote">✅</div>
+      <div class="label">Reference design = requirement, not aspiration</div>
+    </div>
+    <div class="advisor-cell executor">
+      <div class="name">The Executor</div>
+      <div class="vote">✅</div>
+      <div class="label">Flatpickr — concrete steps, ship Monday</div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h2>Chairman's Verdict</h2>
+
+    <div class="verdict-section">
+      <h3>Where the Council Agrees</h3>
+      <p>All five advisors reject native <code>input[type=date]</code> as viable. iOS Safari renders a drum-roll picker, Android Chrome opens a full modal, and CSS cannot override the calendar popup cross-browser. Flatpickr is the answer. The Contrarian's text-input detour is clever but misreads the trust context of a hotel booking widget.</p>
+    </div>
+
+    <div class="verdict-section">
+      <h3>Where the Council Clashes</h3>
+      <p>The Expansionist pushes range-picker mode (single drag). The Executor ships two separate fields. Range mode changes GET parameters — <code>/reservation/</code> expects <code>checkin_date</code> and <code>checkout_date</code> as distinct keys. Separate fields is the safe default. The First Principles Thinker's "minimum surface area" argument is sound engineering applied to the wrong tradeoff — "the popup will differ by device — that's a feature" is a rationalization, not a principle.</p>
+    </div>
+
+    <div class="verdict-section">
+      <h3>Blind Spots the Council Caught</h3>
+    </div>
+
+    <div class="blind-spot"><strong>Date format contract.</strong> Flatpickr's <code>dateFormat</code> must match what <code>/reservation/</code> expects. Confirmed: <code>MM/DD/YYYY</code>.</div>
+    <div class="blind-spot"><strong>Hidden input name attributes.</strong> The visible styled field must not be the submitted input. Hidden input carries the <code>name</code> attribute.</div>
+    <div class="blind-spot"><strong>Design token compliance.</strong> <code>.flatpickr-calendar</code> must use <code>var(--radius-md)</code>, <code>var(--ease)</code>, colour tokens — no hardcoded values.</div>
+    <div class="blind-spot"><strong>Check existing codebase.</strong> None of the advisors checked whether a datepicker already existed. <strong>bootstrap-datepicker is already loaded globally</strong> — no Flatpickr needed.</div>
+    <div class="blind-spot"><strong>Keyboard / ARIA.</strong> Verify keyboard navigation and <code>aria-label</code> on trigger fields before shipping.</div>
+
+    <div class="verdict-section" style="margin-top:24px;">
+      <h3>The Recommendation</h3>
+      <div class="recommendation">
+        <p>Use the existing bootstrap-datepicker (already in base.html) with two separate date fields, not range mode. <code>format: 'mm/dd/yyyy'</code>. Link check-out's <code>startDate</code> to check-in's <code>changeDate</code> callback. Style with design tokens only.</p>
+      </div>
+    </div>
+
+    <div class="verdict-section" style="margin-top:16px;">
+      <h3>The One Thing to Do First</h3>
+      <div class="one-thing">
+        <p><strong>Confirm GET param names and date format from <code>/reservation/</code> before writing initialisation code.</strong> Confirmed: <code>checkin_date</code>, <code>checkout_date</code>, format <code>MM/DD/YYYY</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Advisor Responses (click to expand)</div>
+
+  <details>
+    <summary>🔴 The Contrarian</summary>
+    <div class="detail-body">
+      <p>Option B has a fatal flaw that everyone ignores until production: jQuery UI is a dependency you cannot easily kill later, and Flatpickr, while leaner, still adds a JavaScript bundle you are now responsible for maintaining. But Option A has a worse flaw: it is a lie. You cannot reliably style <code>input[type=date]</code> to match <code>rgba(18,18,18,0.95)</code>. The calendar popups are OS-rendered.</p>
+      <p style="margin-top:12px">So the real question is: does this booking widget actually need a calendar panel at all? A plain text input with format validation handles the functional requirement at zero cost. The widget submits GET params to <code>/reservation/</code> — it is a pre-fill shortcut, not a booking system. Treat it that way.</p>
+      <p style="margin-top:12px">If forced to pick between A and B as stated: Flatpickr, because it is themeable and maintained.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>🟡 The First Principles Thinker</summary>
+    <div class="detail-body">
+      <p>Strip away the surface question. What does a booking widget need to do? Prevent invalid input, submit clean parameters. Native <code>input[type=date]</code> gives OS-level validation and zero JavaScript dependency. The styling gap is real but overstated — you cannot restyle the calendar popup, but you can style the field itself.</p>
+      <p style="margin-top:12px">The right question is not "which looks closer to the reference design?" but "what is the minimum surface area of code that correctly solves the problem?" The answer is native inputs. If stakeholders require pixel-perfect calendar UI, Flatpickr is justifiable. If they require a working booking form, native inputs win on every dimension that actually matters.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>🟢 The Expansionist</summary>
+    <div class="detail-body">
+      <p>Go with B, and go bigger. Flatpickr is a conversion surface, not just a styling fix. Once you own the calendar panel, you can show unavailable dates greyed out, highlight best-value windows, auto-calculate nights and estimated price. None of that is possible with native inputs.</p>
+      <p style="margin-top:12px">Flatpickr is 16kb, has zero dependencies, and the <code>rangePicker</code> mode collapses check-in and check-out into one elegant interaction. The reference design is telling you what the product vision already wants. Native date inputs will fight that vision every time a new browser ships.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>🟣 The Outsider</summary>
+    <div class="detail-body">
+      <p>You already answered it yourself. "The reference design shows styled dropdown-style fields." That is not a preference — it is a requirement. Native <code>input[type=date]</code> on mobile renders the OS date picker: drum-roll on iOS, full modal on Android Chrome. Neither matches your dark card.</p>
+      <p style="margin-top:12px">Flatpickr is 16kb minified, works with Bootstrap 4, and lets you set a custom dark theme in about 20 lines of CSS. If you go with native inputs and they render inconsistently, guests will see it immediately. That is a trust problem on a booking form.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>🔵 The Executor</summary>
+    <div class="detail-body">
+      <p>Go with Flatpickr. Ship it Monday. Concrete steps: (1) CDN link in base template. (2) Initialize both date fields with <code>allowInput: false</code>, <code>minDate: "today"</code>, and link check-out's <code>minDate</code> to check-in's <code>onChange</code>. (3) Override <code>.flatpickr-calendar</code> in style.css using existing design tokens. (4) Wrap fields in <code>d-flex flex-column flex-md-row</code>. (5) GET params pass through — <code>/reservation/</code> gets <code>checkin</code>, <code>checkout</code>, <code>guests</code> with zero backend changes.</p>
+      <p style="margin-top:12px">The only reason to pick native is if you have zero time and accept an inconsistent UI.</p>
+    </div>
+  </details>
+
+  <div class="section-label">Peer Review Highlights</div>
+
+  <details>
+    <summary>Reviewer consensus (5/5 agreed)</summary>
+    <div class="detail-body">
+      <p><strong>Strongest response:</strong> The Executor — all five reviewers agreed. Only response with concrete implementation steps, exact config options, and direct GET param handling.</p>
+      <p style="margin-top:12px"><strong>Biggest blind spot:</strong> The First Principles Thinker (4/5 reviewers) — argues cross-browser inconsistency is "a feature, not a bug" on a trust-critical booking surface. Dismisses the reference design as "aspiration, not specification" — a bad-faith reframe of stated requirements.</p>
+      <p style="margin-top:12px"><strong>Universal miss:</strong> None of the five advisors checked whether a datepicker was already loaded in the project. Bootstrap-datepicker was already present in base.html — no new library required.</p>
+    </div>
+  </details>
+
+</div>
+
+<footer>LLM Council · 2026-06-06 · hotel-app-test</footer>
+</body>
+</html>

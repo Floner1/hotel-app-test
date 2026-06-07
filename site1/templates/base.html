@@ -40,9 +40,7 @@
     {% include "_navbar.html" %}
   {% endblock %}
 
-  {% if request.resolver_match.url_name == 'home' %}
   {% include "_discount_popup.html" %}
-  {% endif %}
 
     {% block content %}{% endblock %}
 
@@ -109,17 +107,41 @@
           $('body').removeClass('dp-open');
         }
 
-        // Auto-show once per browser session on the home page
-        if ($popup.length && !sessionStorage.getItem('ttDiscountPopupSeen')) {
+        // Auto-show once per browser session on the home page only
+        var isHomePage = {% if request.resolver_match.url_name == 'home' %}true{% else %}false{% endif %};
+        if ($popup.length && isHomePage && !sessionStorage.getItem('ttDiscountPopupSeen')) {
           showPopup();
         }
 
-        // Footer form: open popup instead of direct submit
+        // Footer form: submit directly and show inline feedback
         $('#newsletter-form').on('submit', function(e) {
           e.preventDefault();
           var email = $(this).find('input[name="email"]').val().trim();
-          if (email) { $('#dp-email').val(email); }
-          showPopup();
+          if (!email) return;
+          var $btn = $('#newsletter-submit');
+          var $feedback = $('#newsletter-feedback');
+          $btn.prop('disabled', true).text('...');
+          $feedback.hide();
+          $.ajax({
+            url: '{% url "newsletter_signup" %}',
+            type: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            data: { email: email, source: 'footer', csrfmiddlewaretoken: '{{ csrf_token }}' },
+            success: function(data) {
+              if (data.status === 'ok') {
+                $('#newsletter-form').hide();
+                $feedback.text(data.already ? 'You\'re already subscribed.' : 'Done! Check your inbox for your discount code.').css('color', 'var(--color-accent)').show();
+              } else {
+                $feedback.text(data.message || 'Something went wrong.').css('color', '#f87171').show();
+                $btn.prop('disabled', false).text('Subscribe');
+              }
+            },
+            error: function(xhr) {
+              var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Something went wrong. Please try again.';
+              $feedback.text(msg).css('color', '#f87171').show();
+              $btn.prop('disabled', false).text('Subscribe');
+            }
+          });
         });
 
         // Close on backdrop click
@@ -152,10 +174,8 @@
             success: function(data) {
               if (data.status === 'ok') {
                 if (data.already) {
-                  $('#dp-code-display-already').text(data.code || '');
                   $step1.hide(); $stepAlready.show();
                 } else {
-                  $('#dp-code-display').text(data.code || '');
                   $step1.hide(); $step2.show();
                 }
               } else {

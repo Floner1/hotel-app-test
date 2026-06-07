@@ -237,12 +237,11 @@
   .bw-card {
     display: flex;
     align-items: stretch;
-    background: rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: var(--radius-md);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   }
 
   .bw-field {
@@ -250,9 +249,10 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 26px 40px;
+    padding: 22px 28px;
     position: relative;
     min-width: 0;
+    background: transparent;
   }
 
   .bw-field + .bw-field::before {
@@ -262,24 +262,24 @@
     top: 18px;
     bottom: 18px;
     width: 1px;
-    background: rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.1);
   }
 
   .bw-label {
     display: block;
-    font-size: 0.65rem;
+    font-size: 0.72rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.45);
-    font-family: "Roboto", sans-serif;
-    font-weight: 500;
+    color: #374151;
+    font-family: "Playfair Display", serif;
+    font-weight: 600;
     margin-bottom: 7px;
   }
 
   .bw-val {
-    color: rgba(255,255,255,0.88);
+    color: #111827;
     font-family: "Playfair Display", serif;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     font-style: italic;
     white-space: nowrap;
     overflow: hidden;
@@ -290,21 +290,21 @@
     background: transparent;
     border: none;
     outline: none;
-    color: rgba(255,255,255,0.9);
+    color: #111827;
     font-family: "Roboto", sans-serif;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     padding: 0;
     width: 100%;
     cursor: pointer;
   }
 
-  .bw-input::placeholder { color: rgba(255,255,255,0.3); }
+  .bw-input::placeholder { color: #6b7280; }
 
   .bw-select {
     background: transparent;
     border: none;
     outline: none;
-    color: rgba(255,255,255,0.9);
+    color: #1a1a1a;
     font-family: "Roboto", sans-serif;
     font-size: 1.05rem;
     padding: 0;
@@ -314,7 +314,7 @@
     appearance: none;
   }
 
-  .bw-select option { background: #111; color: #fff; }
+  .bw-select option { background: #fff; color: #1a1a1a; }
 
   .bw-btn {
     flex-shrink: 0;
@@ -339,21 +339,19 @@
   .bw-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
   .bw-field-invalid .bw-input,
-  .bw-field-invalid .bw-label { color: #ff6b6b !important; }
+  .bw-field-invalid .bw-label { color: #dc2626 !important; }
 
   @media (max-width: 767px) {
     .bw-container { bottom: 16%; }
     .bw-card { flex-direction: column; }
-    .bw-field + .bw-field::before {
-      top: 0; left: 16px; right: 16px;
-      width: auto; height: 1px; bottom: auto;
-    }
     .bw-field { padding: 20px 24px; }
-    .bw-btn { padding: 20px 36px; width: 100%; text-align: center; }
+    .bw-btn { padding: 20px 36px; width: 100%; text-align: center; border-radius: 0 0 var(--radius-md) var(--radius-md); }
+    .bw-field + .bw-field::before { top: 0; left: 16px; right: 16px; width: auto; height: 1px; bottom: auto; }
   }
 
   /* ─── Custom dropdown shared ─────────────────────────────── */
   .bw-dropdown { position: relative; }
+
 
   .bw-dropdown-trigger {
     display: flex;
@@ -364,36 +362,35 @@
   }
 
   .bw-dropdown-val {
-    color: rgba(255,255,255,0.9);
+    color: #111827;
     font-family: "Roboto", sans-serif;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  #bw-room-dropdown { flex: 1.6; }
+  #bw-room-dropdown { flex: 2.4; }
 
   .bw-chevron {
     flex-shrink: 0;
-    color: rgba(255,255,255,0.32);
+    color: #6b7280;
     transition: transform var(--duration-base) var(--ease), color var(--duration-fast) var(--ease);
   }
 
   .bw-dropdown.open .bw-chevron {
     transform: rotate(180deg);
-    color: rgba(255,255,255,0.65);
+    color: #111827;
   }
 
   .bw-dropdown-panel {
     position: absolute;
-    top: calc(100% + 10px);
-    left: -1px;
-    right: -1px;
-    background: rgba(12, 12, 12, 0.96);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255,255,255,0.11);
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
     border-radius: var(--radius-md);
     overflow: hidden;
     opacity: 0;
@@ -401,7 +398,7 @@
     transform: translateY(-8px);
     transition: opacity var(--duration-base) var(--ease), transform var(--duration-base) var(--ease);
     z-index: 100;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   }
 
   .bw-dropdown.open .bw-dropdown-panel {
@@ -412,29 +409,23 @@
 
   /* ─── Room type scrollable list ──────────────────────────── */
   .bw-dropdown-scroll {
-    max-height: 220px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.16) transparent;
+    overflow-y: visible;
   }
-
-  .bw-dropdown-scroll::-webkit-scrollbar { width: 4px; }
-  .bw-dropdown-scroll::-webkit-scrollbar-track { background: transparent; }
-  .bw-dropdown-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 2px; }
 
   .bw-dropdown-item {
     padding: 13px 22px;
-    color: rgba(255,255,255,0.62);
+    color: #374151;
     font-family: "Roboto", sans-serif;
     font-size: 0.9rem;
     cursor: pointer;
     transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid #f3f4f6;
   }
 
   .bw-dropdown-item:last-child { border-bottom: none; }
-  .bw-dropdown-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+  .bw-dropdown-item:hover { background: var(--color-primary); color: #111; }
   .bw-dropdown-item.selected { color: var(--color-primary); font-weight: 500; }
+  .bw-dropdown-item.selected:hover { color: #111; }
 
   /* ─── Guests counter panel ────────────────────────────────── */
   .bw-guests-inner { padding: 4px 0; }
@@ -444,21 +435,21 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 22px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid #f3f4f6;
   }
 
   .bw-guests-row:last-child { border-bottom: none; }
 
   .bw-guests-type {
     display: block;
-    color: rgba(255,255,255,0.88);
+    color: #111827;
     font-family: "Roboto", sans-serif;
     font-size: 0.9rem;
   }
 
   .bw-guests-note {
     display: block;
-    color: rgba(255,255,255,0.32);
+    color: #9ca3af;
     font-family: "Roboto", sans-serif;
     font-size: 0.73rem;
     margin-top: 3px;
@@ -469,10 +460,10 @@
   .bw-counter-btn {
     width: 30px;
     height: 30px;
-    border: 1px solid rgba(255,255,255,0.18);
+    border: 1px solid #d1d5db;
     border-radius: 50%;
     background: transparent;
-    color: rgba(255,255,255,0.72);
+    color: #374151;
     font-size: 1rem;
     cursor: pointer;
     display: flex;
@@ -486,20 +477,50 @@
   }
 
   .bw-counter-btn:hover:not(:disabled) {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.38);
-    color: #fff;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #111;
   }
 
-  .bw-counter-btn:disabled { opacity: 0.22; cursor: not-allowed; }
+  .bw-counter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .bw-counter-val {
-    color: rgba(255,255,255,0.9);
+    color: #111827;
     font-family: "Roboto", sans-serif;
     font-size: 0.95rem;
     min-width: 18px;
     text-align: center;
     font-weight: 500;
+  }
+
+  /* ─── Datepicker sizing ───────────────────────────────────── */
+  .datepicker {
+    font-size: 0.82rem;
+    padding: 6px;
+  }
+
+  .datepicker table {
+    width: 100%;
+  }
+
+  .datepicker td,
+  .datepicker th {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .datepicker .datepicker-switch,
+  .datepicker .prev,
+  .datepicker .next {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
+  .datepicker-dropdown {
+    min-width: 0;
   }
 </style>
 {% endblock %}
@@ -760,7 +781,7 @@
         startDate: today,
         autoclose: true,
         todayHighlight: true,
-        orientation: 'top auto'
+        orientation: 'top left'
       }).on('changeDate', function (e) {
         // Set check-out min date to day after check-in
         var next = new Date(e.date);
@@ -779,7 +800,7 @@
         startDate: today,
         autoclose: true,
         todayHighlight: true,
-        orientation: 'top auto'
+        orientation: 'top left'
       }).on('changeDate', function () {
         $('#bw-checkout-field').removeClass('bw-field-invalid');
       });
@@ -859,6 +880,7 @@
       $(document).on('click', function () { closeAllBwDropdowns(); });
 
       updateGuestsDisplay();
+
     });
     </script>
 

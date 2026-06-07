@@ -336,12 +336,11 @@ def validate_discount_code(request):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         from data.repos.repositories import DiscountRepository
         code = request.POST.get('code', '').strip()
-        email = request.POST.get('email', '').strip().lower()
-        if not code or not email:
-            return JsonResponse({'valid': False, 'message': 'Code and email are required.'}, status=400)
+        if not code:
+            return JsonResponse({'valid': False, 'message': 'Code is required.'}, status=400)
         disc = DiscountRepository.get_by_code(code)
         try:
-            DiscountService.validate(disc, email)
+            DiscountService.validate(disc)
         except ValidationError as exc:
             return JsonResponse({'valid': False, 'message': exc.message})
         return JsonResponse({

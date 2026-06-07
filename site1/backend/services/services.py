@@ -93,14 +93,12 @@ class DiscountService:
         return DiscountRepository.get_or_issue_for_email(email, subscriber)
 
     @staticmethod
-    def validate(discount, booking_email):
+    def validate(discount):
         """Raise ValidationError if the discount cannot be applied."""
         if discount is None:
             raise ValidationError('Discount code not found.')
         if discount.status != 'active':
             raise ValidationError('This code has already been used.')
-        if (discount.email or '').lower() != (booking_email or '').lower().strip():
-            raise ValidationError('This code was issued to a different email address.')
 
 
 class ReservationService:
@@ -212,8 +210,7 @@ class ReservationService:
                     .filter(code__iexact=discount_code_input)
                     .first()
                 )
-                booking_email = (reservation_data.get('email') or '').strip().lower()
-                DiscountService.validate(disc, booking_email)
+                DiscountService.validate(disc)
                 total_cost = (
                     total_cost * Decimal(100 - disc.discount_percent) / Decimal(100)
                 ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -623,7 +620,7 @@ class EmailService:
         cls._send(
             to_email=subscriber.email,
             to_name=subscriber.name,
-            subject='Your 10% discount code is inside — Thien Tai Hotel',
+            subject='Your 10% discount code is inside | Thien Tai Hotel',
             template_name='email/welcome_discount.html',
             email_type='discount_welcome',
             context={

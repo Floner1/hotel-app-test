@@ -142,15 +142,16 @@
                     <div class="icon"><i class="fa fa-angle-down" aria-hidden="true"></i></div>
                     <select name="room_type" id="room_type" class="form-control" required>
                       <option value="" data-price="0">Select a room type</option>
+                      <option value="any" data-price="0">Any room (we'll pick for you)</option>
                       {% for room in room_types %}
-                      <option value="{{ room.canonical }}" data-price="{{ room.price|default:0 }}">{{ room.display }}{% if room.price %} — &#8363;{{ room.price|floatformat:0|intcomma }}/night{% endif %}</option>
+                      <option value="{{ room.canonical }}" data-price="{{ room.price|default:0 }}">{{ room.display }}{% if room.price %} (&#8363;{{ room.price|floatformat:0|intcomma }}/night){% endif %}</option>
                       {% endfor %}
                     </select>
                   </div>
                 </div>
               </div>
 
-              <div class="row mb-4">
+              <div class="row">
                 <div class="col-md-12 form-group">
                   <label  for="notes">Notes</label>
                   <textarea name="notes" id="notes" class="form-control" cols="30" rows="6"></textarea>
@@ -166,7 +167,6 @@
                            maxlength="20" style="text-transform:uppercase;">
                     <div id="discount-feedback" class="discount-feedback" style="display:none;" role="alert"></div>
                   </div>
-                  <small class="form-text text-muted">Enter the code you received for the email address you are booking with.</small>
                 </div>
               </div>
 
@@ -178,6 +178,10 @@
                 <div class="reservation-total__row">
                   <span class="reservation-total__label">Rate per night</span>
                   <span class="reservation-total__value" id="total-rate">—</span>
+                </div>
+                <div class="reservation-total__row" id="discount-row">
+                  <span class="reservation-total__label">Discount</span>
+                  <span class="reservation-total__value" id="total-discount" style="color:var(--color-primary);">—</span>
                 </div>
                 <div class="reservation-total__row reservation-total__row--grand">
                   <span class="reservation-total__label">Estimated total</span>
@@ -191,7 +195,7 @@
                   <input type="submit" value="Reserve Now" class="btn btn-primary text-white py-3 px-5 font-weight-bold w-100">
                 </div>
                 <div class="col-md-6 form-group" id="book-another-wrap" style="display:none;">
-                  <button type="button" id="book-another-btn" class="btn btn-outline-primary py-3 px-5 font-weight-bold w-100" style="text-align:center;">Book Another Room</button>
+                  <button type="button" id="book-another-btn" class="btn btn-outline-primary py-3 px-5 font-weight-bold w-100" style="display:flex;align-items:center;justify-content:center;">Book Another Room</button>
                 </div>
               </div>
             </form>
@@ -209,6 +213,19 @@
         </div>
       </div>
     </section>
+
+<!-- Any room confirmation modal -->
+<div id="any-room-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:2rem 2.5rem; max-width:460px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <h3 style="margin:0 0 0.75rem; font-weight:600; font-size:var(--text-h3); color:var(--color-text);">Room selected for you</h3>
+    <p style="color:var(--color-text); margin:0 0 0.25rem;">We picked <strong id="any-room-name"></strong> at <strong id="any-room-price" style="color:var(--color-primary);"></strong>.</p>
+    <p style="color:var(--color-text-muted); font-size:var(--text-caption); margin:0.5rem 0 1.5rem;">Confirm to proceed, or cancel to choose a room yourself.</p>
+    <div style="display:flex; gap:0.75rem; align-items:stretch;">
+      <button id="any-room-confirm" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem;">Confirm booking</button>
+      <button id="any-room-cancel" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 
@@ -240,6 +257,8 @@
       return isNaN(date.getTime()) ? null : date;
     }
 
+    var discountPercent = 0;
+
     function updateTotal() {
       var ci = parseDate($('#checkin_date').val());
       var co = parseDate($('#checkout_date').val());
@@ -250,10 +269,15 @@
         nights = Math.round((co - ci) / 86400000);
       }
 
-      var total = nights * price;
+      var subtotal = nights * price;
+      var discountAmount = (discountPercent > 0 && subtotal > 0) ? Math.round(subtotal * discountPercent / 100) : 0;
+      var total = subtotal - discountAmount;
 
       $('#total-nights').text(nights > 0 ? nights : '—');
       $('#total-rate').text(price > 0 ? '₫' + price.toLocaleString('vi-VN') : '—');
+
+      $('#total-discount').text(discountAmount > 0 ? '-₫' + discountAmount.toLocaleString('vi-VN') + ' (' + discountPercent + '%)' : '—');
+
       $('#total-amount').text(total > 0 ? '₫' + total.toLocaleString('vi-VN') : '—');
     }
 
@@ -263,32 +287,33 @@
     // Discount code inline validation on blur
     var discountValidateTimer;
     $('#discount_code').on('blur', function() {
-      var code  = $(this).val().trim().toUpperCase();
-      var email = $('#email').val().trim();
-      var $fb   = $('#discount-feedback');
+      var code = $(this).val().trim().toUpperCase();
+      var $fb  = $('#discount-feedback');
       if (!code) { $fb.hide(); return; }
-      if (!email) { $fb.removeClass('discount-feedback--ok').addClass('discount-feedback--err').text('Enter your email address first.').show(); return; }
       clearTimeout(discountValidateTimer);
       discountValidateTimer = setTimeout(function() {
         $.ajax({
           url: '{% url "validate_discount_code" %}',
           type: 'POST',
           headers: {'X-Requested-With': 'XMLHttpRequest'},
-          data: { code: code, email: email, csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val() },
+          data: { code: code, csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val() },
           success: function(data) {
             if (data.valid) {
+              discountPercent = parseFloat(data.discount_percent) || 0;
               $fb.removeClass('discount-feedback--err').addClass('discount-feedback--ok')
                  .text('Code valid. ' + data.discount_percent + '% off will be applied.').show();
             } else {
+              discountPercent = 0;
               $fb.removeClass('discount-feedback--ok').addClass('discount-feedback--err')
                  .text(data.message || 'Invalid code.').show();
             }
+            updateTotal();
           },
-          error: function() { $fb.hide(); }
+          error: function() { discountPercent = 0; updateTotal(); $fb.hide(); }
         });
       }, 300);
     });
-    $('#discount_code').on('input', function() { $('#discount-feedback').hide(); });
+    $('#discount_code').on('input', function() { discountPercent = 0; updateTotal(); $('#discount-feedback').hide(); });
 
     // Block non-digit keypresses on phone; allow + only as the first character
     $('#phone').on('keypress', function(e) {
@@ -318,6 +343,54 @@
       $('html, body').animate({ scrollTop: form.offset().top - 100 }, 300);
     });
 
+    // Build room list for "any room" random selection
+    var anyRoomOptions = [];
+    $('#room_type option').each(function() {
+      var v = $(this).val();
+      if (v && v !== 'any') {
+        anyRoomOptions.push({
+          canonical: v,
+          display: $(this).text().replace(/\s*\(.*?\)$/, '').trim(),
+          price: parseFloat($(this).data('price')) || 0
+        });
+      }
+    });
+
+    var _pendingFormData = null;
+
+    function runAjaxSubmit(formData) {
+      var $btn = $('#reservation-form').find('input[type="submit"]');
+      var $msg = $('#form-messages');
+      $.ajax({
+        url:  '{% url "reservation" %}',
+        type: 'POST',
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        data: formData,
+        success: function(response) {
+          $msg.removeClass('alert-danger').addClass('alert alert-success');
+          var totalDays  = response.total_days || 0;
+          var totalCost  = response.total_cost_amount || 0;
+          var nightLabel = totalDays === 1 ? 'night' : 'nights';
+          var formatted  = Number(totalCost).toLocaleString('vi-VN');
+          $msg.text(response.message + ' Booking ID: ' + response.booking_id + '. Total for ' + totalDays + ' ' + nightLabel + ': ₫' + formatted);
+          $msg.show();
+          $('#reservation-form')[0].reset();
+          updateTotal();
+          $('html, body').animate({ scrollTop: $msg.offset().top - 100 }, 400);
+          $btn.val('Successful').prop('disabled', true);
+          $('#book-another-wrap').show();
+        },
+        error: function(xhr) {
+          var errorMsg = 'An error occurred. Please try again.';
+          if (xhr.responseJSON && xhr.responseJSON.message) errorMsg = xhr.responseJSON.message;
+          $msg.removeClass('alert-success').addClass('alert alert-danger');
+          $msg.text(errorMsg).show();
+          $('html, body').animate({ scrollTop: $msg.offset().top - 100 }, 400);
+          $btn.prop('disabled', false).val('Reserve Now');
+        }
+      });
+    }
+
     $('#reservation-form').on('submit', function(e) {
       e.preventDefault();
 
@@ -329,6 +402,7 @@
       if (!/^\+?[0-9]+$/.test(phoneVal)) {
         formMessages.removeClass('alert-success').addClass('alert alert-danger');
         formMessages.text('Phone number may only contain digits and an optional leading +.');
+        formMessages.show();
         return;
       }
 
@@ -349,37 +423,32 @@
         'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
       };
 
-      $.ajax({
-        url:  '{% url "reservation" %}',
-        type: 'POST',
-        headers: {'X-Requested-With': 'XMLHttpRequest'},
-        data: formData,
-        success: function(response) {
-          formMessages.removeClass('alert-danger').addClass('alert alert-success');
-          var totalDays  = response.total_days || 0;
-          var totalCost  = response.total_cost_amount || 0;
-          var nightLabel = totalDays === 1 ? 'night' : 'nights';
-          var formatted  = Number(totalCost).toLocaleString('vi-VN');
-          formMessages.text(response.message + ' Booking ID: ' + response.booking_id + '. Total for ' + totalDays + ' ' + nightLabel + ': ₫' + formatted);
-          formMessages.show();
-          form[0].reset();
-          updateTotal();
-          $('html, body').animate({ scrollTop: formMessages.offset().top - 100 }, 400);
-          submitButton.val('Successful');
-          submitButton.prop('disabled', true);
-          $('#book-another-wrap').show();
-        },
-        error: function(xhr) {
-          var errorMsg = 'An error occurred. Please try again.';
-          if (xhr.responseJSON && xhr.responseJSON.message) errorMsg = xhr.responseJSON.message;
-          formMessages.removeClass('alert-success').addClass('alert alert-danger');
-          formMessages.text(errorMsg).show();
-          $('html, body').animate({ scrollTop: formMessages.offset().top - 100 }, 400);
-          submitButton.prop('disabled', false);
-          submitButton.val('Reserve Now');
-        },
-        complete: function() {}
-      });
+      if (formData.room_type === 'any') {
+        var picked = anyRoomOptions[Math.floor(Math.random() * anyRoomOptions.length)];
+        var priceStr = picked.price > 0 ? '₫' + picked.price.toLocaleString('vi-VN') + '/night' : 'contact for rate';
+        $('#any-room-name').text(picked.display);
+        $('#any-room-price').text(priceStr);
+        formData.room_type = picked.canonical;
+        _pendingFormData = formData;
+        $('#any-room-modal').css('display', 'flex');
+        submitButton.prop('disabled', false).val('Reserve Now');
+        return;
+      }
+
+      runAjaxSubmit(formData);
+    });
+
+    $('#any-room-confirm').on('click', function() {
+      $('#any-room-modal').css('display', 'none');
+      var $btn = $('#reservation-form').find('input[type="submit"]');
+      $btn.prop('disabled', true).val('Submitting...');
+      runAjaxSubmit(_pendingFormData);
+      _pendingFormData = null;
+    });
+
+    $('#any-room-cancel').on('click', function() {
+      _pendingFormData = null;
+      $('#any-room-modal').css('display', 'none');
     });
   });
 </script>
@@ -387,12 +456,14 @@
   // Pre-fill from booking widget GET params
   $(document).ready(function () {
     var params = new URLSearchParams(window.location.search);
-    var ci    = params.get('checkin_date');
-    var co    = params.get('checkout_date');
-    var adults = params.get('adults');
-    if (ci)    { $('#checkin_date').val(ci).trigger('change input'); }
-    if (co)    { $('#checkout_date').val(co).trigger('change input'); }
-    if (adults){ $('#adults').val(adults).trigger('change'); }
+    var ci       = params.get('checkin_date');
+    var co       = params.get('checkout_date');
+    var adults   = params.get('adults');
+    var roomType = params.get('room_type');
+    if (ci)       { $('#checkin_date').val(ci).trigger('change input'); }
+    if (co)       { $('#checkout_date').val(co).trigger('change input'); }
+    if (adults)   { $('#adults').val(adults).trigger('change'); }
+    if (roomType) { $('#room_type').val(roomType).trigger('change'); }
   });
 </script>
 {% endblock %}
