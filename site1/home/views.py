@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService
 from data.models import User, CustomerBookingInfo
+from data.repos.repositories import DiscountRepository
 from django.db.models import Sum
 from datetime import date, datetime
 import logging
@@ -196,9 +197,24 @@ def get_reservation(request):
             if custom_price and request.user.is_staff:
                 reservation_data['custom_rate'] = custom_price
             
+            # Milestone check: intercept before booking if this is a loyalty milestone
+            # and the guest hasn't yet decided whether to redeem it.
+            milestone_decision = request.POST.get('milestone_decision', '')
+            email_val = (reservation_data.get('email') or '').strip().lower()
+            if not milestone_decision and email_val:
+                existing_count = CustomerBookingInfo.objects.filter(email__iexact=email_val).count()
+                if (existing_count + 1) % 3 == 0:
+                    return JsonResponse({
+                        'status': 'milestone_check',
+                        'booking_number': existing_count + 1,
+                    })
+
+            if milestone_decision == 'redeem':
+                reservation_data['milestone_discount_percent'] = 10
+
             # Create reservation using the service
             booking = ReservationService.create_reservation(reservation_data)
-            
+
             # Audit log
             log_booking_create(request.user, booking, request)
 
@@ -216,7 +232,8 @@ def get_reservation(request):
                 'message': 'Reservation submitted successfully!',
                 'booking_id': booking.booking_id,
                 'total_days': total_days,
-                'total_cost_amount': str(booking.total_price)
+                'total_cost_amount': str(booking.total_price),
+                'milestone_applied': milestone_decision == 'redeem',
             })
             
         except ValidationError as e:

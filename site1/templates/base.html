@@ -194,6 +194,39 @@
       });
     </script>
 
+    <script>
+      $(document).ready(function() {
+        $('#footer-contact-address').on('click', function() {
+          $('#footer-maps-modal').css('display', 'flex');
+        });
+        $('#footer-maps-yes').on('click', function() {
+          $('#footer-maps-modal').css('display', 'none');
+        });
+        $('#footer-maps-no').on('click', function() {
+          $('#footer-maps-modal').css('display', 'none');
+        });
+
+        $('#footer-contact-phone').on('click', function() {
+          var phone = $(this).text().trim();
+          var $copied = $('#footer-phone-copied');
+          navigator.clipboard.writeText(phone).then(function() {
+            $copied.addClass('visible');
+            setTimeout(function() { $copied.removeClass('visible'); }, 2000);
+          });
+        });
+
+        $('#footer-contact-email').on('click', function() {
+          $('#footer-gmail-modal').css('display', 'flex');
+        });
+        $('#footer-gmail-yes').on('click', function() {
+          $('#footer-gmail-modal').css('display', 'none');
+        });
+        $('#footer-gmail-no').on('click', function() {
+          $('#footer-gmail-modal').css('display', 'none');
+        });
+      });
+    </script>
+
     <!-- Button Feedback State Script -->
     <script>
       $(function(){

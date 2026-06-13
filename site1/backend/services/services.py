@@ -216,6 +216,13 @@ class ReservationService:
                 ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 applied_discount = disc
 
+            # Milestone loyalty discount (applied when guest opts in on 3rd/6th/9th booking)
+            milestone_pct = int(reservation_data.get('milestone_discount_percent', 0) or 0)
+            if milestone_pct > 0 and not applied_discount:
+                total_cost = (
+                    total_cost * Decimal(100 - milestone_pct) / Decimal(100)
+                ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
             hotel_record = BookingHotel.objects.order_by('hotel_id').first()
             if hotel_record is None:
                 raise ValidationError('Hotel information is not configured. Please contact the administrator.')

@@ -26,32 +26,58 @@
           <li><a href="{% url 'reservation' %}">Reservation</a></li>
         </ul>
       </div>
+    </div>
 
-<div class="site-footer__col">
+    <div class="site-footer__lower">
+      <div class="site-footer__col site-footer__reach-col">
         <h4 class="site-footer__heading">Reach Us</h4>
         <ul>
-          {% if hotel.phone %}<li><a href="tel:{{ hotel.phone }}">{{ hotel.phone }}</a></li>{% endif %}
-          {% if hotel.email %}<li><a href="mailto:{{ hotel.email }}">{{ hotel.email }}</a></li>{% endif %}
-          {% if hotel.hotel_address %}<li class="site-footer__address">{{ hotel.hotel_address }}</li>{% endif %}
+          {% if hotel.phone %}<li><span style="position:relative; display:inline-block;"><span class="footer-clickable" id="footer-contact-phone" title="Copy to clipboard">{{ hotel.phone }}</span><span id="footer-phone-copied">Copied!</span></span></li>{% endif %}
+          {% if hotel.email %}<li><span class="footer-clickable" id="footer-contact-email" title="Send email via Gmail">{{ hotel.email }}</span></li>{% endif %}
+          {% if hotel.hotel_address %}<li class="site-footer__address"><span class="footer-clickable footer-address-clickable" id="footer-contact-address" title="Open in Google Maps">{{ hotel.hotel_address }}</span></li>{% endif %}
         </ul>
+      </div>
+
+      <div class="site-footer__newsletter">
+        <p class="site-footer__newsletter-label">Hotel Newsletter</p>
+        <p class="site-footer__newsletter-copy">Sign up and get 10% off your next booking. Occasional updates on availability and seasonal rates.</p>
+        <form id="newsletter-form" class="site-footer__newsletter-form">
+          <label for="footer-newsletter-email" class="sr-only">Email address</label>
+          <input type="email" id="footer-newsletter-email" class="form-control" name="email" placeholder="Email address" required>
+          <button type="submit" id="newsletter-submit" class="btn no-load">Subscribe</button>
+        </form>
+        <p id="newsletter-feedback" style="display:none; margin-top:0.5rem; font-size:0.875rem;"></p>
       </div>
     </div>
 
     <div class="site-footer__rule"></div>
-
-    <div class="site-footer__newsletter">
-      <p class="site-footer__newsletter-label">Hotel Newsletter</p>
-      <p class="site-footer__newsletter-copy">Sign up and get 10% off your next booking. Occasional updates on availability and seasonal rates.</p>
-      <form id="newsletter-form" class="site-footer__newsletter-form">
-        <label for="footer-newsletter-email" class="sr-only">Email address</label>
-        <input type="email" id="footer-newsletter-email" class="form-control" name="email" placeholder="Email address" required>
-        <button type="submit" id="newsletter-submit" class="btn no-load">Subscribe</button>
-      </form>
-      <p id="newsletter-feedback" style="display:none; margin-top:0.5rem; font-size:0.875rem;"></p>
-    </div>
 
     <div class="site-footer__bottom">
       <p>&copy; {% now "Y" %} {{ hotel_name }}. All rights reserved.</p>
     </div>
   </div>
 </footer>
+
+<!-- Footer Google Maps modal -->
+<div id="footer-maps-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:2rem 2.5rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <h3 style="margin:0 0 0.6rem; font-weight:600; font-size:var(--text-h3); color:var(--color-text);">Open Google Maps?</h3>
+    <p style="color:var(--color-text-muted); font-size:var(--text-caption); margin:0 0 1.5rem;">You will be taken to Google Maps to view the hotel location.</p>
+    <div style="display:flex; gap:0.75rem;">
+      <a id="footer-maps-yes" href="https://www.google.com/maps/search/?api=1&query={{ hotel.hotel_address|urlencode }}" target="_blank" rel="noopener" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem; display:flex; align-items:center; justify-content:center;">Yes, open Maps</a>
+      <button id="footer-maps-no" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer Gmail modal -->
+<div id="footer-gmail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:2rem 2.5rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <h3 style="margin:0 0 0.6rem; font-weight:600; font-size:var(--text-h3); color:var(--color-text);">Send us an email?</h3>
+    <p style="color:var(--color-text-muted); font-size:var(--text-caption); margin:0 0 1.5rem;">Gmail will open with our email address pre-filled as the recipient.</p>
+    <div style="display:flex; gap:0.75rem;">
+      <a id="footer-gmail-yes" href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to={{ hotel.email }}" target="_blank" rel="noopener" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem; display:flex; align-items:center; justify-content:center;">Yes, open Gmail</a>
+      <button id="footer-gmail-no" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
+    </div>
+  </div>
+</div>

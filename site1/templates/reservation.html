@@ -10,10 +10,6 @@
 <style>
   .reservation-total {
     margin: 0 0 1.5rem;
-    padding: 1rem 1.25rem;
-    background: var(--color-bg-alt);
-    border: 1px solid #e5e7eb;
-    border-radius: var(--radius-md);
   }
   .reservation-total__row {
     display: flex;
@@ -44,6 +40,43 @@
 
   .required-mark {
     color: #dc3545;
+  }
+
+  #reservation-form label {
+    font-size: 1.125rem;
+  }
+  #reservation-form .form-control,
+  #reservation-form select.form-control {
+    font-size: 1.0625rem;
+  }
+  .reservation-total__row {
+    font-size: 1rem;
+  }
+  .reservation-total__note {
+    font-size: 0.875rem;
+  }
+
+  .contact-info p span.d-block {
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: 0.04em;
+  }
+  .contact-clickable {
+    cursor: pointer;
+    transition: color var(--duration-base) var(--ease);
+  }
+  .contact-clickable:hover {
+    color: var(--color-primary);
+  }
+  #phone-copied {
+    font-size: 1rem;
+    color: var(--color-primary);
+    margin-left: 0.5rem;
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease);
+  }
+  #phone-copied.visible {
+    opacity: 1;
   }
 </style>
 {% endblock %}
@@ -204,15 +237,44 @@
           <div class="col-md-5">
             <div class="row">
               <div class="col-md-10 ml-auto contact-info">
-                <p><span class="d-block">Address:</span> <span>{{ hotel.hotel_address }}</span></p>
-                <p><span class="d-block">Phone:</span> <span>{{ hotel.phone }}</span></p>
-                <p><span class="d-block">Email:</span> <span>{{ hotel.email }}</span></p>
+                <p><span class="d-block">Address:</span> <span id="contact-address" class="contact-clickable" data-address="{{ hotel.hotel_address }}" title="Open in Google Maps">{{ hotel.hotel_address }}</span></p>
+                <p><span class="d-block">Phone:</span> <span id="contact-phone" class="contact-clickable" title="Copy to clipboard">{{ hotel.phone }}</span><span id="phone-copied">Copied!</span></p>
+                <p><span class="d-block">Email:</span> <span id="contact-email" class="contact-clickable" data-email="{{ hotel.email }}" title="Send email via Gmail">{{ hotel.email }}</span></p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
+
+<!-- Milestone loyalty modal -->
+<div id="milestone-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:10000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:3rem 3.5rem; max-width:620px; width:92%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <p style="font-size:0.9375rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-primary); margin:0 0 0.6rem;">Loyalty Reward</p>
+    <h3 style="margin:0 0 0.6rem; font-weight:700; font-size:var(--text-h2); color:var(--color-text);">You've earned 10% off this booking</h3>
+    <p id="milestone-booking-line" style="color:var(--color-text-muted); font-size:1.0625rem; margin:0 0 1.5rem;"></p>
+
+    <div style="background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-sm); padding:1.25rem 1.5rem; margin-bottom:1.75rem;">
+      <div style="display:flex; justify-content:space-between; font-size:1.0625rem; color:var(--color-text-muted); margin-bottom:0.5rem;">
+        <span>Original total</span>
+        <span id="milestone-orig"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:1.0625rem; color:var(--color-text-muted); margin-bottom:0.75rem;">
+        <span>10% discount</span>
+        <span id="milestone-saving" style="color:var(--color-primary);"></span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:1.25rem; font-weight:700; border-top:1px solid var(--color-border); padding-top:0.75rem;">
+        <span>New total</span>
+        <span id="milestone-new" style="color:var(--color-primary);"></span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem;">
+      <button id="milestone-yes" type="button" class="btn btn-primary text-white" style="flex:1; padding:0.85rem 1rem; font-size:1.0625rem;">Yes, apply discount</button>
+      <button id="milestone-no" type="button" class="btn btn-outline-secondary" style="flex:1; padding:0.85rem 1rem; font-size:1.0625rem;">No thanks</button>
+    </div>
+  </div>
+</div>
 
 <!-- Any room confirmation modal -->
 <div id="any-room-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
@@ -223,6 +285,30 @@
     <div style="display:flex; gap:0.75rem; align-items:stretch;">
       <button id="any-room-confirm" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem;">Confirm booking</button>
       <button id="any-room-cancel" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Maps confirmation modal -->
+<div id="maps-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:2rem 2.5rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <h3 style="margin:0 0 0.6rem; font-weight:600; font-size:var(--text-h3); color:var(--color-text);">Open Google Maps?</h3>
+    <p style="color:var(--color-text-muted); font-size:var(--text-caption); margin:0 0 1.5rem;">You will be taken to Google Maps to view the hotel location.</p>
+    <div style="display:flex; gap:0.75rem;">
+      <a id="maps-yes" href="https://www.google.com/maps/search/?api=1&query={{ hotel.hotel_address|urlencode }}" target="_blank" rel="noopener" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem; display:flex; align-items:center; justify-content:center;">Yes, open Maps</a>
+      <button id="maps-no" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gmail confirmation modal -->
+<div id="gmail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:2rem 2.5rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <h3 style="margin:0 0 0.6rem; font-weight:600; font-size:var(--text-h3); color:var(--color-text);">Send us an email?</h3>
+    <p style="color:var(--color-text-muted); font-size:var(--text-caption); margin:0 0 1.5rem;">Gmail will open with our email address pre-filled as the recipient.</p>
+    <div style="display:flex; gap:0.75rem;">
+      <a id="gmail-yes" href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to={{ hotel.email }}" target="_blank" rel="noopener" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem; display:flex; align-items:center; justify-content:center;">Yes, open Gmail</a>
+      <button id="gmail-no" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
     </div>
   </div>
 </div>
@@ -258,6 +344,16 @@
     }
 
     var discountPercent = 0;
+    var submittedSuccessfully = false;
+
+    function resetAfterEdit() {
+      if (!submittedSuccessfully) return;
+      submittedSuccessfully = false;
+      $('#reservation-form').find('input[type="submit"]').val('Reserve Now').prop('disabled', false);
+      $('#book-another-wrap').hide();
+    }
+    $('#reservation-form').find('input[type="text"], input[type="email"], textarea').on('input', resetAfterEdit);
+    $('#adults, #children, #room_type').on('change', resetAfterEdit);
 
     function updateTotal() {
       var ci = parseDate($('#checkin_date').val());
@@ -332,6 +428,7 @@
     });
 
     $('#book-another-btn').on('click', function() {
+      submittedSuccessfully = false;
       var form         = $('#reservation-form');
       var submitButton = form.find('input[type="submit"]');
       var formMessages = $('#form-messages');
@@ -367,18 +464,47 @@
         headers: {'X-Requested-With': 'XMLHttpRequest'},
         data: formData,
         success: function(response) {
+          if (response.status === 'milestone_check') {
+            // Pause submission and ask guest whether to redeem their loyalty discount
+            var count   = response.booking_number || 3;
+            var suffix  = count % 10 === 1 && count % 100 !== 11 ? 'st'
+                        : count % 10 === 2 && count % 100 !== 12 ? 'nd'
+                        : count % 10 === 3 && count % 100 !== 13 ? 'rd' : 'th';
+            var price   = parseFloat($('#room_type option:selected').data('price')) || 0;
+            var ci      = parseDate($('#checkin_date').val());
+            var co      = parseDate($('#checkout_date').val());
+            var nights  = (ci && co && co > ci) ? Math.round((co - ci) / 86400000) : 1;
+            if (nights === 0) nights = 1;
+            var orig    = nights * price;
+            var saving  = Math.round(orig * 0.10);
+            var newAmt  = orig - saving;
+            $('#milestone-booking-line').text(
+              'This is your ' + count + suffix + ' booking. As a thank you, you can apply a 10% loyalty discount right now.'
+            );
+            $('#milestone-orig').text('₫' + orig.toLocaleString('vi-VN'));
+            $('#milestone-saving').text('-₫' + saving.toLocaleString('vi-VN'));
+            $('#milestone-new').text('₫' + newAmt.toLocaleString('vi-VN'));
+            _pendingFormData = formData;
+            $('#milestone-modal').css('display', 'flex');
+            $btn.prop('disabled', false).val('Reserve Now');
+            return;
+          }
+
           $msg.removeClass('alert-danger').addClass('alert alert-success');
           var totalDays  = response.total_days || 0;
           var totalCost  = response.total_cost_amount || 0;
           var nightLabel = totalDays === 1 ? 'night' : 'nights';
           var formatted  = Number(totalCost).toLocaleString('vi-VN');
-          $msg.text(response.message + ' Booking ID: ' + response.booking_id + '. Total for ' + totalDays + ' ' + nightLabel + ': ₫' + formatted);
+          var successMsg = response.message + ' Booking ID: ' + response.booking_id + '. Total for ' + totalDays + ' ' + nightLabel + ': ₫' + formatted;
+          if (response.milestone_applied) successMsg += ' (10% loyalty discount applied)';
+          $msg.text(successMsg);
           $msg.show();
           $('#reservation-form')[0].reset();
           updateTotal();
           $('html, body').animate({ scrollTop: $msg.offset().top - 100 }, 400);
           $btn.val('Successful').prop('disabled', true);
           $('#book-another-wrap').show();
+          submittedSuccessfully = true;
         },
         error: function(xhr) {
           var errorMsg = 'An error occurred. Please try again.';
@@ -438,6 +564,27 @@
       runAjaxSubmit(formData);
     });
 
+    $('#milestone-yes').on('click', function() {
+      $('#milestone-modal').css('display', 'none');
+      if (_pendingFormData) {
+        var $btn = $('#reservation-form').find('input[type="submit"]');
+        $btn.prop('disabled', true).val('Submitting...');
+        _pendingFormData.milestone_decision = 'redeem';
+        runAjaxSubmit(_pendingFormData);
+        _pendingFormData = null;
+      }
+    });
+    $('#milestone-no').on('click', function() {
+      $('#milestone-modal').css('display', 'none');
+      if (_pendingFormData) {
+        var $btn = $('#reservation-form').find('input[type="submit"]');
+        $btn.prop('disabled', true).val('Submitting...');
+        _pendingFormData.milestone_decision = 'skip';
+        runAjaxSubmit(_pendingFormData);
+        _pendingFormData = null;
+      }
+    });
+
     $('#any-room-confirm').on('click', function() {
       $('#any-room-modal').css('display', 'none');
       var $btn = $('#reservation-form').find('input[type="submit"]');
@@ -449,6 +596,38 @@
     $('#any-room-cancel').on('click', function() {
       _pendingFormData = null;
       $('#any-room-modal').css('display', 'none');
+    });
+
+    // Address → Google Maps
+    $('#contact-address').on('click', function() {
+      $('#maps-modal').css('display', 'flex');
+    });
+    $('#maps-yes').on('click', function() {
+      $('#maps-modal').css('display', 'none');
+    });
+    $('#maps-no').on('click', function() {
+      $('#maps-modal').css('display', 'none');
+    });
+
+    // Phone → copy to clipboard
+    $('#contact-phone').on('click', function() {
+      var phone = $(this).text().trim();
+      var $copied = $('#phone-copied');
+      navigator.clipboard.writeText(phone).then(function() {
+        $copied.addClass('visible');
+        setTimeout(function() { $copied.removeClass('visible'); }, 2000);
+      });
+    });
+
+    // Email → Gmail
+    $('#contact-email').on('click', function() {
+      $('#gmail-modal').css('display', 'flex');
+    });
+    $('#gmail-yes').on('click', function() {
+      $('#gmail-modal').css('display', 'none');
+    });
+    $('#gmail-no').on('click', function() {
+      $('#gmail-modal').css('display', 'none');
     });
   });
 </script>

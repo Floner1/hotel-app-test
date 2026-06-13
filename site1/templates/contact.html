@@ -5,6 +5,33 @@
 
 {% block page_id %}contact{% endblock %}
 
+{% block extra_css %}
+<style>
+  .contact-info p span.d-block {
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: 0.04em;
+  }
+  .contact-clickable {
+    cursor: pointer;
+    transition: color var(--duration-base) var(--ease);
+  }
+  .contact-clickable:hover {
+    color: var(--color-primary);
+  }
+  #phone-copied {
+    font-size: 1rem;
+    color: var(--color-primary);
+    margin-left: 0.5rem;
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease);
+  }
+  #phone-copied.visible {
+    opacity: 1;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
     <section class="site-hero inner-page overlay" style="background-image: url({% static 'images/slider-1.jpg' %})">
       <div class="container">
@@ -69,9 +96,9 @@
           <div class="col-md-5">
             <div class="row">
               <div class="col-md-10 ml-auto contact-info">
-                <p><span class="d-block">Address:</span> <span>{{ hotel.hotel_address }}</span></p>
-                <p><span class="d-block">Phone:</span> <span>{{ hotel.phone }}</span></p>
-                <p><span class="d-block">Email:</span> <span>{{ hotel.email }}</span></p>
+                <p><span class="d-block">Address:</span> <span id="contact-address" class="contact-clickable" title="Open in Google Maps">{{ hotel.hotel_address }}</span></p>
+                <p><span class="d-block">Phone:</span> <span id="contact-phone" class="contact-clickable" title="Copy to clipboard">{{ hotel.phone }}</span><span id="phone-copied">Copied!</span></p>
+                <p><span class="d-block">Email:</span> <span id="contact-email" class="contact-clickable" title="Send email via Gmail">{{ hotel.email }}</span></p>
               </div>
             </div>
           </div>
@@ -106,4 +133,64 @@
         </div>
       </div>
     </section>
+
+<!-- Google Maps confirmation modal -->
+<div id="maps-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:2rem 2.5rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <h3 style="margin:0 0 0.6rem; font-weight:600; font-size:var(--text-h3); color:var(--color-text);">Open Google Maps?</h3>
+    <p style="color:var(--color-text-muted); font-size:var(--text-caption); margin:0 0 1.5rem;">You will be taken to Google Maps to view the hotel location.</p>
+    <div style="display:flex; gap:0.75rem;">
+      <a id="maps-yes" href="https://www.google.com/maps/search/?api=1&query={{ hotel.hotel_address|urlencode }}" target="_blank" rel="noopener" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem; display:flex; align-items:center; justify-content:center;">Yes, open Maps</a>
+      <button id="maps-no" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gmail confirmation modal -->
+<div id="gmail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:var(--radius-md); padding:2rem 2.5rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.22);">
+    <h3 style="margin:0 0 0.6rem; font-weight:600; font-size:var(--text-h3); color:var(--color-text);">Send us an email?</h3>
+    <p style="color:var(--color-text-muted); font-size:var(--text-caption); margin:0 0 1.5rem;">Gmail will open with our email address pre-filled as the recipient.</p>
+    <div style="display:flex; gap:0.75rem;">
+      <a id="gmail-yes" href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to={{ hotel.email }}" target="_blank" rel="noopener" class="btn btn-primary text-white" style="flex:1; padding:0.6rem 1rem; display:flex; align-items:center; justify-content:center;">Yes, open Gmail</a>
+      <button id="gmail-no" class="btn btn-outline-secondary" style="flex:1; padding:0.6rem 1rem;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function() {
+    $('#contact-address').on('click', function() {
+      $('#maps-modal').css('display', 'flex');
+    });
+    $('#maps-yes').on('click', function() {
+      $('#maps-modal').css('display', 'none');
+    });
+    $('#maps-no').on('click', function() {
+      $('#maps-modal').css('display', 'none');
+    });
+
+    $('#contact-phone').on('click', function() {
+      var phone = $(this).text().trim();
+      var $copied = $('#phone-copied');
+      navigator.clipboard.writeText(phone).then(function() {
+        $copied.addClass('visible');
+        setTimeout(function() { $copied.removeClass('visible'); }, 2000);
+      });
+    });
+
+    $('#contact-email').on('click', function() {
+      $('#gmail-modal').css('display', 'flex');
+    });
+    $('#gmail-yes').on('click', function() {
+      $('#gmail-modal').css('display', 'none');
+    });
+    $('#gmail-no').on('click', function() {
+      $('#gmail-modal').css('display', 'none');
+    });
+  });
+</script>
 {% endblock %}

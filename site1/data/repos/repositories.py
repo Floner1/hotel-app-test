@@ -470,6 +470,43 @@ class DiscountRepository:
         discount.redeemed_booking = booking
         discount.save(update_fields=['status', 'redeemed_at', 'redeemed_booking_id'])
 
+    @classmethod
+    def issue_milestone_for_email(cls, email):
+        """
+        Issue or rotate a 10% milestone voucher for this email.
+        Returns (discount, issued): issued=True when a fresh/rotated code was created.
+        If an active unused code already exists, returns (existing, False).
+        Rotates the existing row rather than creating a second one to respect
+        the email uniqueness constraint on the discount_codes table.
+        """
+        email = (email or '').strip().lower()
+        if not email:
+            return None, False
+        now = timezone.now()
+        existing = DiscountCode.objects.filter(email__iexact=email).first()
+        if existing:
+            if existing.status == 'active':
+                return existing, False
+            new_code = cls._generate_unique_code()
+            existing.code = new_code
+            existing.status = 'active'
+            existing.issued_at = now
+            existing.redeemed_at = None
+            existing.redeemed_booking = None
+            existing.save(update_fields=['code', 'status', 'issued_at', 'redeemed_at', 'redeemed_booking_id'])
+            return existing, True
+        code = cls._generate_unique_code()
+        discount = DiscountCode.objects.create(
+            code=code,
+            email=email,
+            subscriber=None,
+            discount_percent=10,
+            status='active',
+            issued_at=now,
+            created_at=now,
+        )
+        return discount, True
+
     # ---------------- email_campaigns ----------------
 
     @staticmethod
