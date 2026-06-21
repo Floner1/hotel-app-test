@@ -9,2103 +9,1460 @@
 
 {% block extra_css %}
 <style>
-/* Dashboard Specific Styles */
-      body {
-        background-color: #f5f7fa;
-        font-family: 'Roboto', sans-serif;
-      }
-
-      .dashboard-header {
-        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
-        color: white;
-        padding: 2rem 0;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      }
-
-      .dashboard-header h1 {
-        margin: 0;
-        font-size: 2rem;
-        font-weight: 600;
-      }
-
-      .dashboard-header p {
-        margin: 0.5rem 0 0 0;
-        opacity: 0.9;
-      }
-
-      .stats-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      .stats-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      }
-
-      .stats-card .icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        margin-bottom: 1rem;
-      }
-
-      .stats-card.total .icon {
-        background: var(--color-bg-alt);
-        color: var(--color-muted);
-      }
-
-      .stats-card.pending .icon {
-        background: #fff7e6;
-        color: var(--color-accent);
-      }
-
-      .stats-card.confirmed .icon {
-        background: #e8f5ec;
-        color: #28a745;
-      }
-
-      .stats-card.revenue .icon {
-        background: #fff4e0;
-        color: var(--color-primary);
-      }
-
-      .stats-card.checkout .icon {
-        background: #fdecea;
-        color: #dc3545;
-      }
-
-      .stats-card.active .icon {
-        background: #fff4e0;
-        color: var(--color-primary);
-      }
-
-      .stats-card.info .icon {
-        background: var(--color-bg-alt);
-        color: var(--color-muted);
-      }
-
-      .stats-card.warning .icon {
-        background: #fff7e6;
-        color: var(--color-accent);
-      }
-
-      .stats-card h3 {
-        font-size: 0.875rem;
-        color: #8b92a7;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin: 0;
-        font-weight: 600;
-      }
-
-      .stats-card .value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin: 0.5rem 0 0 0;
-      }
-
-      .filter-section {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      }
-
-      .filter-section h5 {
-        margin-bottom: 1rem;
-        color: #2c3e50;
-        font-weight: 600;
-      }
-
-      .search-box {
-        position: relative;
-        margin-bottom: 1rem;
-      }
-
-      .search-box input {
-        width: 100%;
-        padding: 0.75rem 1rem 0.75rem 3rem;
-        border: 2px solid #e8ecf1;
-        border-radius: 8px;
-        font-size: 0.95rem;
-        transition: all 0.3s;
-      }
-
-      .search-box input:focus {
-        outline: none;
-        border-color: #ffba5a;
-        box-shadow: 0 0 0 3px rgba(255, 186, 90, 0.1);
-      }
-
-      .search-box i {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #8b92a7;
-      }
-
-      .filter-buttons {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-
-      .filter-btn {
-        padding: 0.5rem 1rem;
-        border: 2px solid #e8ecf1;
-        background: white;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s;
-        font-size: 0.875rem;
-        font-weight: 500;
-      }
-
-      .filter-btn:hover {
-        border-color: #ffba5a;
-        color: #ffba5a;
-      }
-
-      .filter-btn.active {
-        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
-        color: white;
-        border-color: transparent;
-      }
-
-      .btn-add-reservation {
-        padding: 0.5rem 1.25rem;
-        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
-        color: white;
-        border-radius: 8px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        transition: all 0.3s;
-        border: 2px solid transparent;
-        cursor: pointer;
-      }
-
-      .btn-add-reservation:hover {
-        background: linear-gradient(135deg, #ffa527 0%, #ffba5a 100%);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 186, 90, 0.4);
-      }
-
-      .btn-add-reservation i {
-        font-size: 1rem;
-      }
-
-      .reservations-table {
-        background: white;
-        border-radius: 12px;
-        overflow: visible;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        margin-bottom: 2rem;
-      }
-
-      .table-header {
-        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 12px 12px 0 0;
-      }
-
-      .table-header h5 {
-        margin: 0;
-        font-weight: 600;
-      }
-
-      .table-responsive {
-        overflow-x: visible;
-        border-radius: 0 0 12px 12px;
-      }
-
-      .table {
-        margin: 0;
-        width: 100%;
-        table-layout: auto;
-      }
-
-      .table thead th {
-        background-color: #f8f9fa;
-        border: none;
-        padding: 0.75rem 0.5rem;
-        font-weight: 600;
-        color: #2c3e50;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        white-space: nowrap;
-        cursor: pointer;
-        user-select: none;
-        position: relative;
-        transition: all 0.2s;
-      }
-
-      .table thead th:hover {
-        background-color: #e9ecef;
-        color: #ffba5a;
-      }
-
-      .table thead th.sortable::after {
-        content: '⇅';
-        margin-left: 0.5rem;
-        opacity: 0.3;
-        font-size: 0.9rem;
-      }
-
-      .table thead th.sortable.asc::after {
-        content: '↑';
-        opacity: 1;
-        color: #ffba5a;
-      }
-
-      .table thead th.sortable.desc::after {
-        content: '↓';
-        opacity: 1;
-        color: #ffba5a;
-      }
-
-      .table thead th:last-child {
-        cursor: default;
-      }
-
-      .table thead th:last-child:hover {
-        background-color: #f8f9fa;
-        color: #2c3e50;
-      }
-
-      .table tbody td {
-        padding: 0.75rem 0.5rem;
-        vertical-align: middle;
-        border-bottom: 1px solid #f0f2f5;
-        font-size: 0.813rem;
-      }
-
-      .table tbody tr {
-        transition: background-color 0.2s;
-      }
-
-      .table tbody tr:hover {
-        background-color: #f8f9fa;
-      }
-
-      .badge {
-        padding: 0.4rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .badge-upcoming {
-        background-color: #e3f2fd;
-        color: #1976d2;
-      }
-
-      .badge-today {
-        background-color: #fff3e0;
-        color: #f57c00;
-      }
-
-      .badge-past {
-        background-color: #f3e5f5;
-        color: #7b1fa2;
-      }
-
-      .badge-cancelled {
-        background-color: #ffebee;
-        color: #c62828;
-      }
-
-      .action-buttons {
-        display: flex;
-        gap: 0.3rem;
-        flex-wrap: nowrap;
-        justify-content: flex-start;
-      }
-
-      .btn-action {
-        padding: 0.4rem 0.6rem;
-        border-radius: 6px;
-        font-size: 0.7rem;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.25rem;
-        white-space: nowrap;
-        text-align: center;
-        line-height: 1;
-      }
-
-      .btn-action i {
-        font-size: 0.75rem;
-        display: inline-block;
-      }
-
-      .btn-view {
-        background-color: #ffba5a;
-        color: white;
-      }
-
-      .btn-view:hover {
-        background-color: #5568d3;
-      }
-
-      .btn-edit {
-        background-color: #43e97b;
-        color: white;
-      }
-
-      .btn-edit:hover {
-        background-color: #38d669;
-      }
-
-      .btn-delete {
-        background-color: #f5576c;
-        color: white;
-        min-width: 35px;
-        padding: 0.4rem 0.5rem;
-      }
-
-      .btn-delete:hover {
-        background-color: #e24555;
-      }
-
-      .btn-delete i {
-        margin: 0;
-        display: inline-block;
-        font-size: 0.813rem;
-      }
-
-      .pagination-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem;
-        background: white;
-        border-top: 1px solid #f0f2f5;
-        border-radius: 0 0 12px 12px;
-      }
-
-      .pagination {
-        margin: 0;
-        display: flex;
-        list-style: none;
-        padding: 0;
-      }
-
-      .page-link {
-        border: 2px solid #e8ecf1;
-        color: #ffba5a;
-        padding: 0.5rem 0.75rem;
-        margin: 0 0.25rem;
-        border-radius: 6px;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 38px;
-        min-height: 38px;
-      }
-
-      .page-link:hover {
-        background-color: #ffba5a;
-        color: white;
-        border-color: #ffba5a;
-        text-decoration: none;
-      }
-
-      .page-item.active .page-link {
-        background-color: #ffba5a;
-        border-color: #ffba5a;
-        color: white;
-      }
-
-      .page-item.disabled .page-link,
-      .page-item.disabled span.page-link {
-        opacity: 0.5;
-        cursor: not-allowed;
-        pointer-events: none;
-      }
-
-      .page-item.disabled .page-link:hover,
-      .page-item.disabled span.page-link:hover {
-        background-color: transparent;
-        color: #ffba5a;
-      }
-
-      .page-link i {
-        font-size: 0.875rem;
-      }
-
-      .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: #8b92a7;
-      }
-
-      .empty-state i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.3;
-      }
-
-      .empty-state h4 {
-        margin-bottom: 0.5rem;
-        color: #2c3e50;
-      }
-
-      @media (max-width: 768px) {
-        .stats-card {
-          margin-bottom: 1rem;
-        }
-
-        .dashboard-header h1 {
-          font-size: 1.5rem;
-        }
-
-        .table-responsive {
-          border-radius: 0;
-          margin: 0 -1rem;
-        }
-
-        .reservations-table {
-          border-radius: 0;
-        }
-
-        .action-buttons {
-          flex-direction: column;
-          gap: 0.3rem;
-        }
-
-        .btn-action {
-          width: 100%;
-          justify-content: center;
-        }
-
-        .filter-buttons {
-          width: 100%;
-        }
-
-        .filter-btn {
-          flex: 1;
-        }
-
-        .btn-add-reservation {
-          width: 100%;
-          justify-content: center;
-          margin-top: 0.5rem;
-        }
-
-        .pagination-container {
-          flex-direction: column;
-          gap: 1rem;
-          text-align: center;
-        }
-
-        .export-btn {
-          width: 100%;
-          justify-content: center;
-        }
-      }
-
-      .customer-info {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        gap: 0.5rem;
-        max-width: 180px;
-      }
-
-      .customer-avatar {
-        width: 35px;
-        height: 35px;
-        min-width: 35px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-
-      .customer-details {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-
-      .customer-name {
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.125rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-size: 0.813rem;
-      }
-
-      .customer-email {
-        font-size: 0.7rem;
-        color: #8b92a7;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .export-btn {
-        padding: 0.75rem 1.5rem;
-        background: white;
-        border: 2px solid #ffba5a;
-        color: #ffba5a;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        gap: 0.5rem;
-      }
-
-      .export-btn:hover {
-        background: #ffba5a;
-        color: white;
-      }
-      
-      /* Toast Notification Styles */
-      .toast-notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        min-width: 350px;
-        max-width: 500px;
-        background-color: #28a745;
-        color: white;
-        padding: 18px 25px;
-        border-radius: 10px;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-        z-index: 9999;
-        display: none;
-        animation: slideInRight 0.4s ease-out;
-        font-family: 'Roboto', sans-serif;
-      }
-      
-      .toast-notification.show {
-        display: block;
-      }
-      
-      /* Success (2xx) - Green */
-      .toast-notification.success {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-      }
-      
-      /* Warning (4xx) - Yellow/Orange */
-      .toast-notification.warning {
-        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-      }
-      
-      /* Error (5xx) - Red */
-      .toast-notification.error {
-        background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
-      }
-      
-      .toast-notification .toast-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      
-      .toast-notification .toast-icon {
-        font-size: 22px;
-        font-weight: bold;
-      }
-      
-      .toast-notification .toast-status-code {
-        display: inline-block;
-        background: rgba(255, 255, 255, 0.25);
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 14px;
-        margin-right: 8px;
-      }
-      
-      .toast-notification .toast-message {
-        flex: 1;
-        line-height: 1.4;
-      }
-      
-      @keyframes slideInRight {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
+  body { background-color: #f5f7fa; font-family: 'Roboto', sans-serif; }
+
+  /* ── Header ── */
+  .dashboard-header {
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white;
+    padding: 1.5rem 0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .dashboard-header h1 { margin: 0; font-size: 1.75rem; font-weight: 600; }
+  .dashboard-header p { margin: 0.25rem 0 0; opacity: 0.9; font-size: 0.9rem; }
+
+  /* ── 3-column grid ── */
+  .dashboard-body {
+    display: grid;
+    grid-template-columns: 340px 1fr 300px;
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    align-items: start;
+  }
+
+  /* ── Filter sidebar ── */
+  .filter-sidebar {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    position: sticky;
+    top: 16px;
+  }
+
+  .filter-sidebar-body { padding: 0.875rem 1.125rem; }
+
+  .clear-filters-btn {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    background: none;
+    border: 2px solid #e8ecf1;
+    border-radius: 6px;
+    color: #8b92a7;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .clear-filters-btn:hover { border-color: #ffba5a; color: #ffba5a; background: #fffbf5; }
+
+  .filter-group {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .filter-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  .filter-group-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-family: 'Playfair Display', times, serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8b92a7;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Search box */
+  .sidebar-search { position: relative; }
+  .sidebar-search i {
+    position: absolute;
+    left: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8b92a7;
+    font-size: 0.75rem;
+  }
+  .sidebar-search .sidebar-input { padding-left: 1.9rem; }
+
+  /* Period buttons */
+  .period-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+  }
+  .period-btn {
+    padding: 0.4rem 0.4rem;
+    border: 2px solid #e8ecf1;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.775rem;
+    font-weight: 500;
+    text-align: center;
+    color: #5a6c7d;
+  }
+  .period-btn:hover { border-color: #ffba5a; color: #ffba5a; }
+  .period-btn.active {
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white;
+    border-color: transparent;
+  }
+
+  /* Status checkboxes */
+  .status-check-list { display: flex; flex-direction: column; gap: 0.375rem; }
+  .status-check-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #2c3e50;
+    cursor: pointer;
+    user-select: none;
+  }
+  .status-check-item input[type="checkbox"] {
+    accent-color: #ffba5a;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Generic sidebar input */
+  .sidebar-input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 2px solid #e8ecf1;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: #2c3e50;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  .sidebar-input:focus {
+    outline: none;
+    border-color: #ffba5a;
+    box-shadow: 0 0 0 3px rgba(255,186,90,0.1);
+  }
+  .sidebar-input[type="date"] {
+    font-size: 0.68rem;
+    min-width: 0;
+    width: 100%;
+  }
+  .sidebar-input-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+  .sidebar-input-pair > div { min-width: 0; }
+  .sidebar-input-pair .mini-label {
+    font-size: 0.68rem;
+    color: #8b92a7;
+    margin-bottom: 0.2rem;
+  }
+
+  /* Add reservation button */
+  .btn-add-reservation {
+    width: 100%;
+    padding: 0.55rem 1rem;
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white;
+    border-radius: 8px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-decoration: none;
+  }
+  .btn-add-reservation:hover {
+    background: linear-gradient(135deg, #ffa527 0%, #ffba5a 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255,186,90,0.4);
+  }
+
+  /* ── Stats sidebar ── */
+  .stats-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    position: sticky;
+    top: 16px;
+  }
+  .stats-card-sm {
+    background: white;
+    border-radius: 10px;
+    padding: 0.75rem 0.875rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stats-card-sm:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.11); }
+  .stats-card-sm .icon-sm {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  .stats-card-sm .stat-info h3 {
+    font-size: 0.63rem;
+    font-family: 'Playfair Display', times, serif;
+    color: #8b92a7;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 0.15rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .stats-card-sm .stat-info .value-sm {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+    line-height: 1;
+  }
+
+  /* ── Table area (middle) ── */
+  .table-area { min-width: 0; }
+
+  .reservations-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .table-header {
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    color: white;
+    padding: 0.875rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .table-header h5 { margin: 0; font-weight: 600; font-size: 0.9rem; }
+  .table-responsive { overflow-x: auto; }
+
+  .table { margin: 0; width: 100%; table-layout: auto; }
+  .table thead th {
+    background-color: #f8f9fa;
+    border: none;
+    padding: 0.75rem 0.75rem;
+    font-weight: 600;
+    font-family: 'Playfair Display', times, serif;
+    color: #2c3e50;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+  }
+  .table thead th:hover { background-color: #e9ecef; color: #ffba5a; }
+  .table thead th.sortable::after { content: '⇅'; margin-left: 0.4rem; opacity: 0.3; font-size: 0.85rem; }
+  .table thead th.sortable.asc::after { content: '↑'; opacity: 1; color: #ffba5a; }
+  .table thead th.sortable.desc::after { content: '↓'; opacity: 1; color: #ffba5a; }
+  .table thead th:last-child { cursor: default; }
+  .table thead th:last-child:hover { background-color: #f8f9fa; color: #2c3e50; }
+
+  .table tbody td {
+    padding: 0.75rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f2f5;
+    font-size: 0.875rem;
+  }
+  .table tbody tr { transition: background-color 0.2s; }
+  .table tbody tr:hover { background-color: #f8f9fa; }
+
+  /* ── Badges ── */
+  .badge {
+    padding: 0.35rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  .badge-upcoming { background-color: #e3f2fd; color: #1976d2; }
+  .badge-today    { background-color: #fff3e0; color: #f57c00; }
+  .badge-past     { background-color: #f3e5f5; color: #7b1fa2; }
+  .badge-cancelled{ background-color: #ffebee; color: #c62828; }
+
+  /* ── Action buttons ── */
+  .action-buttons { display: flex; gap: 0.3rem; flex-wrap: nowrap; }
+  .btn-action {
+    padding: 0.35rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+  .btn-action i { font-size: 0.72rem; }
+  .btn-view  { background-color: #ffba5a; color: white; }
+  .btn-view:hover  { background-color: #5568d3; }
+  .btn-edit  { background-color: #43e97b; color: white; }
+  .btn-edit:hover  { background-color: #38d669; }
+  .btn-delete{ background-color: #f5576c; color: white; }
+  .btn-delete:hover{ background-color: #e24555; }
+
+  /* ── Customer info ── */
+  .customer-info {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 220px;
+  }
+  .customer-avatar {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+  .customer-details { display: flex; flex-direction: column; overflow: hidden; }
+  .customer-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.78rem;
+  }
+  .customer-email {
+    font-size: 0.67rem;
+    color: #8b92a7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Pagination ── */
+  .pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: white;
+    border-top: 1px solid #f0f2f5;
+    font-size: 0.8rem;
+  }
+  .pagination { margin: 0; display: flex; list-style: none; padding: 0; }
+  .page-link {
+    border: 2px solid #e8ecf1;
+    color: #ffba5a;
+    padding: 0.4rem 0.65rem;
+    margin: 0 0.2rem;
+    border-radius: 6px;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    min-height: 34px;
+    font-size: 0.8rem;
+  }
+  .page-link:hover { background-color: #ffba5a; color: white; border-color: #ffba5a; text-decoration: none; }
+  .page-item.active .page-link { background-color: #ffba5a; border-color: #ffba5a; color: white; }
+  .page-item.disabled .page-link { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+  .page-item.disabled .page-link:hover { background-color: transparent; color: #ffba5a; }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 3rem 2rem; color: #8b92a7; }
+  .empty-state i { font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.3; display: block; }
+  .empty-state h4 { margin-bottom: 0.5rem; color: #2c3e50; }
+
+  /* ── Export / nav buttons ── */
+  .export-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.7);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    text-decoration: none;
+  }
+  .export-btn:hover { background: rgba(255,255,255,0.3); color: white; border-color: white; }
+
+  /* ── Toast ── */
+  .toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 320px;
+    max-width: 480px;
+    background-color: #28a745;
+    color: white;
+    padding: 16px 22px;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    z-index: 9999;
+    display: none;
+    animation: slideInRight 0.35s ease-out;
+    font-family: 'Roboto', sans-serif;
+  }
+  .toast-notification.show { display: block; }
+  .toast-notification.success { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+  .toast-notification.warning { background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); }
+  .toast-notification.error   { background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); }
+  .toast-notification .toast-content { display: flex; align-items: center; gap: 10px; }
+  .toast-notification .toast-icon { font-size: 20px; font-weight: bold; }
+  .toast-notification .toast-status-code {
+    display: inline-block;
+    background: rgba(255,255,255,0.25);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 700;
+    font-size: 13px;
+    margin-right: 6px;
+  }
+  .toast-notification .toast-message { flex: 1; line-height: 1.4; font-size: 0.9rem; }
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1400px) {
+    .dashboard-body { grid-template-columns: 310px 1fr 270px; padding: 1rem; gap: 1rem; }
+  }
+  @media (max-width: 900px) {
+    .dashboard-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+    .stats-sidebar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      position: static;
+      order: -1;
+    }
+    .filter-sidebar { position: static; }
+  }
+  @media (max-width: 600px) {
+    .stats-sidebar { grid-template-columns: repeat(2, 1fr); }
+    .dashboard-body { padding: 0.75rem; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Toast Notification -->
-    <div id="toast-notification" class="toast-notification">
-      <div class="toast-content">
-        <span class="toast-icon">✓</span>
-        <span class="toast-message"></span>
-      </div>
-    </div>
-    
-    <!-- Dashboard Header -->
+<div id="toast-notification" class="toast-notification">
+  <div class="toast-content">
+    <span class="toast-icon">✓</span>
+    <span class="toast-message"></span>
+  </div>
+</div>
+
+<!-- Dashboard Header -->
 <div class="dashboard-header">
-  <div class="container">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
-      <div style="display:flex; align-items:center; gap:20px;">
-        <a href="{% url 'home' %}" title="Go to Home" style="display:inline-flex; align-items:center; text-decoration:none; flex-shrink:0;">
-          <img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel" style="height:52px; width:auto; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.18); transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+  <div class="container-fluid" style="padding: 0 1.5rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="{% url 'home' %}" style="display:inline-flex; align-items:center; text-decoration:none; flex-shrink:0;">
+          <img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="Thien Tai Hotel" style="height:46px; width:auto; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.18); transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
         </a>
         <div>
-          <h1><i class="fa fa-dashboard"></i> Reservations Dashboard</h1> 
-          <p>{{ hotel.hotel_name }} - Employee Portal</p>
+          <h1><i class="fa fa-dashboard"></i> Reservations Dashboard</h1>
+          <p>{{ hotel.hotel_name }} &middot; Employee Portal</p>
         </div>
       </div>
-      <div style="display:flex; justify-content:flex-end; align-items:center; gap:15px; flex-wrap:wrap;">
-        <a href="{% url 'room_dashboard' %}" class="export-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; text-align:center;">
-          Room Dashboard
-        </a>
-        <a href="{% url 'manage_accounts' %}" class="export-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; text-align:center;">
-          Manage Accounts
-        </a>   
-        <button class="export-btn" style="display:inline-flex; align-items:center; justify-content:center; text-align:center;">
-          Export CSV
-        </button>   
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <a href="{% url 'room_dashboard' %}" class="export-btn">Room Dashboard</a>
+        <a href="{% url 'manage_accounts' %}" class="export-btn">Manage Accounts</a>
+        <button class="export-btn" id="exportCsvBtn"><i class="fa fa-download"></i> Export CSV</button>
       </div>
     </div>
   </div>
 </div>
 
-    <div class="container">
-      <!-- Statistics Cards - Row 1 -->
-      <div class="row">
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card total">
-            <div class="icon">
-              <i class="fa fa-calendar"></i>
-            </div>
-            <h3>Total Reservations</h3>
-            <p class="value">{{ total_reservations }}</p>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card pending">
-            <div class="icon">
-              <i class="fa fa-sign-in"></i>
-            </div>
-            <h3>Check-ins Today</h3>
-            <p class="value">{{ today_checkins }}</p>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card checkout">
-            <div class="icon">
-              <i class="fa fa-sign-out"></i>
-            </div>
-            <h3>Check-outs Today</h3>
-            <p class="value">{{ today_checkouts }}</p>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card revenue">
-            <div class="icon">
-              <i class="fa fa-money"></i>
-            </div>
-            <h3>Total Revenue</h3>
-            <p class="value">₫{{ total_revenue|floatformat:0|intcomma|default:"0" }}</p>
-          </div>
-        </div>
+<!-- 3-column dashboard body -->
+<div class="dashboard-body">
+
+  <!-- ── LEFT: Filter Sidebar ── -->
+  <aside class="filter-sidebar">
+    <div class="filter-sidebar-body">
+
+      <!-- Add Reservation -->
+      <div class="filter-group">
+        <button class="btn-add-reservation" onclick="openAddModal()">
+          <i class="fa fa-plus-circle"></i> Add Reservation
+        </button>
       </div>
-      
-      <!-- Statistics Cards - Row 2 -->
-      <div class="row">
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card confirmed">
-            <div class="icon">
-              <i class="fa fa-calendar-check-o"></i>
-            </div>
-            <h3>Upcoming</h3>
-            <p class="value">{{ upcoming_reservations }}</p>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card active">
-            <div class="icon">
-              <i class="fa fa-bed"></i>
-            </div>
-            <h3>Currently Checked In</h3>
-            <p class="value">{{ currently_checked_in }}</p>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card info">
-            <div class="icon">
-              <i class="fa fa-users"></i>
-            </div>
-            <h3>Total Guests Today</h3>
-            <p class="value">{{ today_checkins|add:currently_checked_in }}</p>
-          </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-          <div class="stats-card warning">
-            <div class="icon">
-              <i class="fa fa-clock-o"></i>
-            </div>
-            <h3>Pending Check-out</h3>
-            <p class="value">{{ currently_checked_in|add:today_checkouts }}</p>
-          </div>
+
+      <!-- Search -->
+      <div class="filter-group">
+        <div class="filter-group-label">Search</div>
+        <div class="sidebar-search">
+          <i class="fa fa-search"></i>
+          <input type="text" id="searchInput" class="sidebar-input" placeholder="Name, email, or ID...">
         </div>
       </div>
 
-      <!-- Filter Section -->
-      <div class="filter-section">
-        <h5><i class="fa fa-filter"></i> Filter & Search</h5>
-        <div class="row">
-          <div class="col-md-6">
-            <div class="search-box">
-              <i class="fa fa-search"></i>
-              <input type="text" id="searchInput" placeholder="Search by name, email, or booking ID...">
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="filter-buttons">
-              <button class="filter-btn active" data-filter="all">All</button>
-              <button class="filter-btn" data-filter="checkin-today">Check-in Today</button>
-              <button class="filter-btn" data-filter="checkout-today">Check-out Today</button>
-              <button class="filter-btn" data-filter="upcoming">Upcoming</button>
-              <button class="filter-btn" data-filter="past">Past</button>
-              <button class="btn-add-reservation" onclick="openAddModal()">
-                <i class="fa fa-plus-circle"></i> Add Reservation
-              </button>
-            </div>
-          </div>
+      <!-- Time Period -->
+      <div class="filter-group">
+        <div class="filter-group-label">Time Period</div>
+        <div class="period-buttons">
+          <button class="period-btn active" data-filter="today">Today</button>
+          <button class="period-btn" data-filter="all">All</button>
+          <button class="period-btn" data-filter="upcoming">Upcoming</button>
+          <button class="period-btn" data-filter="past">Past</button>
         </div>
       </div>
 
-      <!-- Reservations Table -->
-      <div class="reservations-table">
-        <div class="table-header">
-          <h5><i class="fa fa-list"></i> Recent Reservations</h5>
+      <!-- Status -->
+      <div class="filter-group">
+        <div class="filter-group-label">Status</div>
+        <div class="status-check-list">
+          <label class="status-check-item">
+            <input type="checkbox" class="status-filter-cb" value="checking in" checked>
+            <span>Checking In</span>
+          </label>
+          <label class="status-check-item">
+            <input type="checkbox" class="status-filter-cb" value="checking out" checked>
+            <span>Checking Out</span>
+          </label>
+          <label class="status-check-item">
+            <input type="checkbox" class="status-filter-cb" value="staying" checked>
+            <span>Staying</span>
+          </label>
+          <label class="status-check-item">
+            <input type="checkbox" class="status-filter-cb" value="upcoming" checked>
+            <span>Upcoming</span>
+          </label>
+          <label class="status-check-item">
+            <input type="checkbox" class="status-filter-cb" value="completed" checked>
+            <span>Completed</span>
+          </label>
         </div>
-        
-        <div class="table-responsive">
-          {% if reservations %}
-          <table class="table">
-            <thead>
-              <tr>
-                <th class="sortable" data-column="0" data-type="number">Booking ID</th>
-                <th class="sortable" data-column="1" data-type="text">Customer</th>
-                <th class="sortable" data-column="2" data-type="text">Room Type</th>
-                <th class="sortable" data-column="3" data-type="date">Check-in</th>
-                <th class="sortable" data-column="4" data-type="date">Check-out</th>
-                <th class="sortable" data-column="5" data-type="number">Guests</th>
-                <th class="sortable" data-column="6" data-type="number">Total Cost</th>
-                <th class="sortable" data-column="7" data-type="text">Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for booking in reservations %}
-              <tr data-booking-id="{{ booking.booking_id }}">
-                <td style="text-align: center;"><strong>#{{ booking.booking_id }}</strong></td>
-                <td>
-                  <div class="customer-info">
-                    <div class="customer-avatar">
-                      {{ booking.guest_name|slice:":1"|upper }}
-                    </div>
-                    <div class="customer-details">
-                      <span class="customer-name">{{ booking.guest_name }}</span>
-                      <span class="customer-email">{{ booking.email|default:"No email" }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ booking.room_type }}">{{ booking.room_type|title }}</td>
-                <td style="white-space: nowrap;">{{ booking.check_in|date:"M j, Y" }}</td>
-                <td style="white-space: nowrap;">{{ booking.check_out|date:"M j, Y" }}</td>
-                <td style="white-space: nowrap;">
-                  <i class="fa fa-user"></i> {{ booking.adults }}{% if booking.children %} <i class="fa fa-child"></i> {{ booking.children }}{% endif %}
-                </td>
-                <td><strong>₫{{ booking.total_price|floatformat:0|intcomma }}</strong></td>
-                <td>
-                  {% if booking.check_in == today %}
-                    <span class="badge badge-today">Checking In</span>
-                  {% elif booking.check_out == today %}
-                    <span class="badge badge-today">Checking Out</span>
-                  {% elif booking.check_in < today and booking.check_out > today %}
-                    <span class="badge badge-upcoming">Staying</span>
-                  {% elif booking.check_in > today %}
-                    <span class="badge badge-upcoming">Upcoming</span>
-                  {% else %}
-                    <span class="badge badge-past">Completed</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <div class="action-buttons">
-                    <button class="btn-action btn-view" onclick="viewBooking({{ booking.booking_id }})">
-                      <i class="fa fa-eye"></i> View
-                    </button>
-                    <button class="btn-action btn-edit" onclick="editBooking({{ booking.booking_id }})">
-                      <i class="fa fa-edit"></i> Edit
-                    </button>
-                    <button class="btn-action btn-delete" onclick="deleteBooking({{ booking.booking_id }})">
-                      <i class="fa fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <div class="empty-state">
-            <i class="fa fa-inbox"></i>
-            <h4>No Reservations Found</h4>
-            <p>There are no reservations matching your criteria.</p>
-          </div>
-          {% endif %}
-        </div>
+      </div>
 
-        {% if reservations %}
-        <div class="pagination-container">
+      <!-- Room Type -->
+      <div class="filter-group">
+        <div class="filter-group-label">Room Type</div>
+        <select id="sidebarRoomType" class="sidebar-input">
+          <option value="">All types</option>
+          {% for room in room_types %}
+          <option value="{{ room.canonical }}">{{ room.display }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Check-in Range -->
+      <div class="filter-group">
+        <div class="filter-group-label">Check-in Range</div>
+        <div class="sidebar-input-pair">
           <div>
-            Showing <strong>{{ reservations.start_index }}-{{ reservations.end_index }}</strong> of <strong>{{ reservations.paginator.count }}</strong> reservations
+            <div class="mini-label">From</div>
+            <input type="date" id="ci-from" class="sidebar-input">
           </div>
-          <nav>
-            <ul class="pagination">
-              <!-- Previous Button -->
-              <li class="page-item {% if not reservations.has_previous %}disabled{% endif %}">
-                {% if reservations.has_previous %}
-                  <a class="page-link" href="?page={{ reservations.previous_page_number }}">
-                    <i class="fa fa-chevron-left"></i>
-                  </a>
+          <div>
+            <div class="mini-label">To</div>
+            <input type="date" id="ci-to" class="sidebar-input">
+          </div>
+        </div>
+      </div>
+
+      <!-- Check-out Range -->
+      <div class="filter-group">
+        <div class="filter-group-label">Check-out Range</div>
+        <div class="sidebar-input-pair">
+          <div>
+            <div class="mini-label">From</div>
+            <input type="date" id="co-from" class="sidebar-input">
+          </div>
+          <div>
+            <div class="mini-label">To</div>
+            <input type="date" id="co-to" class="sidebar-input">
+          </div>
+        </div>
+      </div>
+
+      <!-- Price Range -->
+      <div class="filter-group">
+        <div class="filter-group-label">Total Price (₫)</div>
+        <div class="sidebar-input-pair">
+          <div>
+            <div class="mini-label">Min</div>
+            <input type="number" id="sidebarPriceMin" class="sidebar-input" placeholder="0" min="0" step="100000">
+          </div>
+          <div>
+            <div class="mini-label">Max</div>
+            <input type="number" id="sidebarPriceMax" class="sidebar-input" placeholder="Any" min="0" step="100000">
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking ID -->
+      <div class="filter-group">
+        <div class="filter-group-label">Booking ID</div>
+        <input type="number" id="sidebarBookingId" class="sidebar-input" placeholder="e.g. 42" min="1">
+      </div>
+
+      <!-- Clear filters -->
+      <button class="clear-filters-btn" onclick="clearAllFilters()">Clear all filters</button>
+
+    </div>
+  </aside>
+
+  <!-- ── MIDDLE: Table ── -->
+  <div class="table-area">
+    <div class="reservations-table">
+      <div class="table-header">
+        <h5><i class="fa fa-list"></i> Reservations</h5>
+        <span id="visibleCount" style="font-size:0.78rem;opacity:0.85;"></span>
+      </div>
+
+      <div class="table-responsive">
+        {% if reservations %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="sortable" data-column="0" data-type="number">ID</th>
+              <th class="sortable" data-column="1" data-type="text">Customer</th>
+              <th class="sortable" data-column="2" data-type="text">Room Type</th>
+              <th class="sortable" data-column="3" data-type="date">Check-in</th>
+              <th class="sortable" data-column="4" data-type="date">Check-out</th>
+              <th class="sortable" data-column="5" data-type="number">Guests</th>
+              <th class="sortable" data-column="6" data-type="number">Total Cost</th>
+              <th class="sortable" data-column="7" data-type="text">Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for booking in reservations %}
+            <tr data-booking-id="{{ booking.booking_id }}" data-room-type="{{ booking.room_type }}">
+              <td style="text-align:center;"><strong>#{{ booking.booking_id }}</strong></td>
+              <td>
+                <div class="customer-info">
+                  <div class="customer-avatar">{{ booking.guest_name|slice:":1"|upper }}</div>
+                  <div class="customer-details">
+                    <span class="customer-name">{{ booking.guest_name }}</span>
+                    <span class="customer-email">{{ booking.email|default:"No email" }}</span>
+                  </div>
+                </div>
+              </td>
+              <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ booking.room_type }}">{{ booking.room_type|title }}</td>
+              <td style="white-space:nowrap;">{{ booking.check_in|date:"M j, Y" }}</td>
+              <td style="white-space:nowrap;">{{ booking.check_out|date:"M j, Y" }}</td>
+              <td style="white-space:nowrap;">
+                <i class="fa fa-user"></i> {{ booking.adults }}{% if booking.children %} <i class="fa fa-child"></i> {{ booking.children }}{% endif %}
+              </td>
+              <td><strong>₫{{ booking.total_price|floatformat:0|intcomma }}</strong></td>
+              <td>
+                {% if booking.check_in == today %}
+                  <span class="badge badge-today">Checking In</span>
+                {% elif booking.check_out == today %}
+                  <span class="badge badge-today">Checking Out</span>
+                {% elif booking.check_in < today and booking.check_out > today %}
+                  <span class="badge badge-upcoming">Staying</span>
+                {% elif booking.check_in > today %}
+                  <span class="badge badge-upcoming">Upcoming</span>
                 {% else %}
-                  <span class="page-link">
-                    <i class="fa fa-chevron-left"></i>
-                  </span>
+                  <span class="badge badge-past">Completed</span>
                 {% endif %}
-              </li>
-              
-              <!-- Page Numbers -->
-              {% for num in reservations.paginator.page_range %}
-                {% if reservations.number == num %}
-                  <li class="page-item active">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                  </li>
-                {% elif num > reservations.number|add:'-3' and num < reservations.number|add:'3' %}
-                  <li class="page-item">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                  </li>
-                {% endif %}
-              {% endfor %}
-              
-              <!-- Next Button -->
-              <li class="page-item {% if not reservations.has_next %}disabled{% endif %}">
-                {% if reservations.has_next %}
-                  <a class="page-link" href="?page={{ reservations.next_page_number }}">
-                    <i class="fa fa-chevron-right"></i>
-                  </a>
-                {% else %}
-                  <span class="page-link">
-                    <i class="fa fa-chevron-right"></i>
-                  </span>
-                {% endif %}
-              </li>
-            </ul>
-          </nav>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-action btn-view" onclick="viewBooking({{ booking.booking_id }})" title="View"><i class="fa fa-eye"></i></button>
+                  <button class="btn-action btn-edit" onclick="editBooking({{ booking.booking_id }})" title="Edit"><i class="fa fa-edit"></i></button>
+                  <button class="btn-action btn-delete" onclick="deleteBooking({{ booking.booking_id }})" title="Delete"><i class="fa fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <i class="fa fa-inbox"></i>
+          <h4>No Reservations Found</h4>
+          <p>There are no reservations matching your criteria.</p>
         </div>
         {% endif %}
       </div>
+
+      {% if reservations %}
+      <div class="pagination-container">
+        <div>Showing <strong>{{ reservations.start_index }}-{{ reservations.end_index }}</strong> of <strong>{{ reservations.paginator.count }}</strong> reservations</div>
+        <nav>
+          <ul class="pagination">
+            <li class="page-item {% if not reservations.has_previous %}disabled{% endif %}">
+              {% if reservations.has_previous %}
+                <a class="page-link" href="?page={{ reservations.previous_page_number }}"><i class="fa fa-chevron-left"></i></a>
+              {% else %}
+                <span class="page-link"><i class="fa fa-chevron-left"></i></span>
+              {% endif %}
+            </li>
+            {% for num in reservations.paginator.page_range %}
+              {% if reservations.number == num %}
+                <li class="page-item active"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+              {% elif num > reservations.number|add:'-3' and num < reservations.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not reservations.has_next %}disabled{% endif %}">
+              {% if reservations.has_next %}
+                <a class="page-link" href="?page={{ reservations.next_page_number }}"><i class="fa fa-chevron-right"></i></a>
+              {% else %}
+                <span class="page-link"><i class="fa fa-chevron-right"></i></span>
+              {% endif %}
+            </li>
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Stats Sidebar ── -->
+  <aside class="stats-sidebar">
+
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#f0f2f5; color:#8b92a7;"><i class="fa fa-calendar"></i></div>
+      <div class="stat-info">
+        <h3>Total Reservations</h3>
+        <p class="value-sm">{{ total_reservations }}</p>
+      </div>
     </div>
 
-    <!-- JavaScript -->
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#fff7e6; color:#ffa527;"><i class="fa fa-sign-in"></i></div>
+      <div class="stat-info">
+        <h3>Check-ins Today</h3>
+        <p class="value-sm">{{ today_checkins }}</p>
+      </div>
+    </div>
+
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#fdecea; color:#dc3545;"><i class="fa fa-sign-out"></i></div>
+      <div class="stat-info">
+        <h3>Check-outs Today</h3>
+        <p class="value-sm">{{ today_checkouts }}</p>
+      </div>
+    </div>
+
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#fff4e0; color:#ffa527;"><i class="fa fa-money"></i></div>
+      <div class="stat-info">
+        <h3>Today's Revenue</h3>
+        <p class="value-sm" style="font-size:1rem;">₫{{ total_revenue|floatformat:0|intcomma|default:"0" }}</p>
+      </div>
+    </div>
+
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#e8f5ec; color:#28a745;"><i class="fa fa-calendar-check-o"></i></div>
+      <div class="stat-info">
+        <h3>Upcoming</h3>
+        <p class="value-sm">{{ upcoming_reservations }}</p>
+      </div>
+    </div>
+
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#fff4e0; color:#ffa527;"><i class="fa fa-bed"></i></div>
+      <div class="stat-info">
+        <h3>Currently Checked In</h3>
+        <p class="value-sm">{{ currently_checked_in }}</p>
+      </div>
+    </div>
+
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#f0f2f5; color:#8b92a7;"><i class="fa fa-users"></i></div>
+      <div class="stat-info">
+        <h3>Guests Today</h3>
+        <p class="value-sm">{{ today_checkins|add:currently_checked_in }}</p>
+      </div>
+    </div>
+
+    <div class="stats-card-sm">
+      <div class="icon-sm" style="background:#fff7e6; color:#ffa527;"><i class="fa fa-clock-o"></i></div>
+      <div class="stat-info">
+        <h3>Pending Check-out</h3>
+        <p class="value-sm">{{ currently_checked_in|add:today_checkouts }}</p>
+      </div>
+    </div>
+
+  </aside>
+
+
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-    <script src="{% static 'js/bootstrap.min.js' %}"></script>
-    
-    <script>
-      // HTML escaping utility to prevent XSS when inserting user data into innerHTML
-      function escapeHtml(str) {
-        if (str == null) return '';
-        return String(str)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+
+<script>
+  // XSS-safe HTML escaping
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // Toast notification
+  function showToast(message, type, statusCode) {
+    const toast = document.getElementById('toast-notification');
+    const messageEl = toast.querySelector('.toast-message');
+    const iconEl = toast.querySelector('.toast-icon');
+    let displayType = 'success';
+    let icon = '✓';
+    if (statusCode) {
+      if (statusCode >= 200 && statusCode < 300) { displayType = 'success'; icon = '✓'; }
+      else if (statusCode >= 400 && statusCode < 500) { displayType = 'warning'; icon = '⚠'; }
+      else { displayType = 'error'; icon = '✗'; }
+    } else {
+      if (type === 'error' || type === true) { displayType = 'error'; icon = '✗'; }
+      else if (type === 'warning') { displayType = 'warning'; icon = '⚠'; }
+    }
+    const bg = {
+      success: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      warning: 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)',
+      error:   'linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%)'
+    };
+    toast.className = 'toast-notification ' + displayType;
+    toast.style.background = bg[displayType];
+    iconEl.textContent = icon;
+    messageEl.textContent = '';
+    if (statusCode) {
+      const badge = document.createElement('span');
+      badge.className = 'toast-status-code';
+      badge.textContent = statusCode;
+      messageEl.appendChild(badge);
+    }
+    messageEl.appendChild(document.createTextNode(message));
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }
+
+  {% if messages %}
+    {% for message in messages %}
+      showToast('{{ message|escapejs }}', {% if 'error' in message.tags %}true{% else %}false{% endif %});
+    {% endfor %}
+  {% endif %}
+
+  // Room types from database
+  const ROOM_TYPES = [
+    {% for room in room_types %}{
+      canonical: '{{ room.canonical }}',
+      display: '{{ room.display }}',
+      price: {% if room.price %}'{{ room.price }}'{% else %}null{% endif %}
+    }{% if not forloop.last %},{% endif %}{% endfor %}
+  ];
+
+  // ── Filter state ──
+  let currentFilter = 'today';
+  let currentSearchTerm = '';
+  let ciFrom = null, ciTo = null, coFrom = null, coTo = null;
+
+  function applyFilterAndSearch() {
+    const rows = document.querySelectorAll('tbody tr');
+    const today = new Date('{{ today|date:"Y-m-d" }}');
+
+    // Sidebar filter values
+    const checkedStatuses = Array.from(document.querySelectorAll('.status-filter-cb:checked')).map(cb => cb.value);
+    const roomTypeFilter = document.getElementById('sidebarRoomType').value;
+    const priceMin = parseFloat(document.getElementById('sidebarPriceMin').value) || null;
+    const priceMax = parseFloat(document.getElementById('sidebarPriceMax').value) || null;
+    const bookingIdFilter = document.getElementById('sidebarBookingId').value.trim();
+
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const badge = row.querySelector('.badge');
+      const checkinCell = row.cells[3];
+      const checkoutCell = row.cells[4];
+      if (!badge || !checkinCell || !checkoutCell) return;
+
+      const badgeText = badge.textContent.trim().toLowerCase();
+      const checkinDate = parseTableDate(checkinCell.textContent.trim());
+      const checkoutDate = parseTableDate(checkoutCell.textContent.trim());
+
+      // Time period filter
+      let passes = false;
+      if (currentFilter === 'today') {
+        passes = (checkinDate && isSameDay(checkinDate, today)) ||
+                 (checkoutDate && isSameDay(checkoutDate, today)) ||
+                 (checkinDate && checkoutDate && checkinDate < today && checkoutDate > today);
+      } else if (currentFilter === 'all') {
+        passes = true;
+      } else if (currentFilter === 'upcoming') {
+        passes = (badgeText === 'upcoming' || badgeText === 'staying');
+      } else if (currentFilter === 'past') {
+        passes = (badgeText === 'completed');
       }
 
-      // Toast notification function with HTTP status code support
-      function showToast(message, type = 'success', statusCode = null) {
-        const toast = document.getElementById('toast-notification');
-        const messageEl = toast.querySelector('.toast-message');
-        const iconEl = toast.querySelector('.toast-icon');
-        
-        // Remove all type classes
-        toast.classList.remove('success', 'warning', 'error');
-        
-        // Determine type from status code if provided
-        let displayType = type;
-        let icon = '✓';
-        
-        if (statusCode) {
-          if (statusCode >= 200 && statusCode < 300) {
-            displayType = 'success';
-            icon = '✓';
-          } else if (statusCode >= 400 && statusCode < 500) {
-            displayType = 'warning';
-            icon = '⚠';
-          } else if (statusCode >= 500) {
-            displayType = 'error';
-            icon = '✗';
-          }
+      // Date range filters
+      if (passes && (ciFrom || ciTo)) {
+        passes = checkinDate && (!ciFrom || checkinDate >= ciFrom) && (!ciTo || checkinDate <= ciTo);
+      }
+      if (passes && (coFrom || coTo)) {
+        passes = checkoutDate && (!coFrom || checkoutDate >= coFrom) && (!coTo || checkoutDate <= coTo);
+      }
+
+      // Status checkbox filter (only filter when not all checked)
+      if (passes && checkedStatuses.length < 5) {
+        passes = checkedStatuses.some(s => badgeText === s);
+      }
+
+      // Room type filter
+      if (passes && roomTypeFilter) {
+        passes = (row.dataset.roomType || '') === roomTypeFilter;
+      }
+
+      // Price range filter
+      if (passes && (priceMin !== null || priceMax !== null)) {
+        const priceCell = row.cells[6];
+        const price = parseFloat(priceCell ? priceCell.textContent.replace(/[^0-9.]/g, '') : '0') || 0;
+        if (priceMin !== null && price < priceMin) passes = false;
+        if (priceMax !== null && price > priceMax) passes = false;
+      }
+
+      // Booking ID filter
+      if (passes && bookingIdFilter) {
+        const rowId = (row.cells[0] ? row.cells[0].textContent.replace(/[^0-9]/g, '') : '');
+        passes = rowId === bookingIdFilter;
+      }
+
+      // Text search
+      const passesSearch = !currentSearchTerm || row.textContent.toLowerCase().includes(currentSearchTerm);
+
+      row.style.display = (passes && passesSearch) ? '' : 'none';
+      if (passes && passesSearch) visibleCount++;
+    });
+
+    const vc = document.getElementById('visibleCount');
+    if (vc) vc.textContent = visibleCount + ' shown';
+  }
+
+  function clearAllFilters() {
+    document.getElementById('searchInput').value = '';
+    currentSearchTerm = '';
+    document.querySelectorAll('.status-filter-cb').forEach(cb => cb.checked = true);
+    document.getElementById('sidebarRoomType').value = '';
+    document.getElementById('ci-from').value = '';
+    document.getElementById('ci-to').value = '';
+    document.getElementById('co-from').value = '';
+    document.getElementById('co-to').value = '';
+    document.getElementById('sidebarPriceMin').value = '';
+    document.getElementById('sidebarPriceMax').value = '';
+    document.getElementById('sidebarBookingId').value = '';
+    ciFrom = ciTo = coFrom = coTo = null;
+    // Reset to "all" period
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.period-btn[data-filter="all"]').classList.add('active');
+    currentFilter = 'all';
+    applyFilterAndSearch();
+  }
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', function() {
+    currentSearchTerm = this.value.toLowerCase();
+    applyFilterAndSearch();
+  });
+
+  // Period buttons
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentFilter = this.dataset.filter;
+      applyFilterAndSearch();
+    });
+  });
+
+  // Status checkboxes
+  document.querySelectorAll('.status-filter-cb').forEach(cb => {
+    cb.addEventListener('change', applyFilterAndSearch);
+  });
+
+  // Room type
+  document.getElementById('sidebarRoomType').addEventListener('change', applyFilterAndSearch);
+
+  // Date range inputs
+  document.getElementById('ci-from').addEventListener('change', function() {
+    ciFrom = this.value ? new Date(this.value + 'T00:00:00') : null;
+    applyFilterAndSearch();
+  });
+  document.getElementById('ci-to').addEventListener('change', function() {
+    ciTo = this.value ? new Date(this.value + 'T00:00:00') : null;
+    applyFilterAndSearch();
+  });
+  document.getElementById('co-from').addEventListener('change', function() {
+    coFrom = this.value ? new Date(this.value + 'T00:00:00') : null;
+    applyFilterAndSearch();
+  });
+  document.getElementById('co-to').addEventListener('change', function() {
+    coTo = this.value ? new Date(this.value + 'T00:00:00') : null;
+    applyFilterAndSearch();
+  });
+
+  // Price + ID filters (debounced)
+  let filterDebounce;
+  ['sidebarPriceMin', 'sidebarPriceMax', 'sidebarBookingId'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function() {
+      clearTimeout(filterDebounce);
+      filterDebounce = setTimeout(applyFilterAndSearch, 300);
+    });
+  });
+
+  // Run on load
+  applyFilterAndSearch();
+
+  // ── Date helpers ──
+  function parseTableDate(dateStr) {
+    try {
+      const parts = dateStr.split(' ');
+      if (parts.length >= 3) {
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const month = monthNames.indexOf(parts[0]);
+        const day = parseInt(parts[1].replace(',', ''));
+        let year = parseInt(parts[2]);
+        if (year < 100) year += 2000;
+        if (month >= 0 && day && year) return new Date(year, month, day);
+      }
+    } catch (e) {}
+    return null;
+  }
+  function isSameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  // ── Table sorting ──
+  let currentSortColumn = null, currentSortOrder = 'asc';
+  document.querySelectorAll('.sortable').forEach(header => {
+    header.addEventListener('click', function() {
+      const column = parseInt(this.dataset.column);
+      const type = this.dataset.type;
+      const tbody = document.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      currentSortOrder = (currentSortColumn === column) ? (currentSortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
+      currentSortColumn = column;
+      document.querySelectorAll('.sortable').forEach(h => h.classList.remove('asc', 'desc'));
+      this.classList.add(currentSortOrder);
+      rows.sort((a, b) => {
+        let av = a.cells[column].textContent.trim();
+        let bv = b.cells[column].textContent.trim();
+        if (type === 'number') {
+          av = parseFloat(av.replace(/[^0-9.-]/g, '')) || 0;
+          bv = parseFloat(bv.replace(/[^0-9.-]/g, '')) || 0;
+          return currentSortOrder === 'asc' ? av - bv : bv - av;
+        } else if (type === 'date') {
+          av = parseTableDate(av); bv = parseTableDate(bv);
+          if (!av && !bv) return 0;
+          if (!av) return 1; if (!bv) return -1;
+          return currentSortOrder === 'asc' ? av - bv : bv - av;
         } else {
-          // Legacy support for type parameter
-          if (type === 'error' || type === true) {
-            displayType = 'error';
-            icon = '✗';
-          } else if (type === 'warning') {
-            displayType = 'warning';
-            icon = '⚠';
-          } else {
-            displayType = 'success';
-            icon = '✓';
-          }
+          const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+          return currentSortOrder === 'asc' ? cmp : -cmp;
         }
-        
-        // Update toast content
-        toast.classList.add(displayType);
-        iconEl.textContent = icon;
-
-        // Clear previous content and use safe DOM methods
-        messageEl.textContent = '';
-        if (statusCode) {
-          const badge = document.createElement('span');
-          badge.className = 'toast-status-code';
-          badge.textContent = statusCode;
-          messageEl.appendChild(badge);
-        }
-        messageEl.appendChild(document.createTextNode(message));
-        
-        // Show toast
-        toast.classList.add('show');
-        
-        // Hide after 4 seconds (longer to read status code)
-        setTimeout(function() {
-          toast.classList.remove('show');
-        }, 4000);
-      }
-      
-      // Check for Django messages and display as toast
-      {% if messages %}
-        {% for message in messages %}
-          showToast('{{ message|escapejs }}', {% if 'error' in message.tags %}true{% else %}false{% endif %});
-        {% endfor %}
-      {% endif %}
-      
-      // Room types from database
-      const ROOM_TYPES = [
-        {% for room in room_types %}
-        {
-          canonical: '{{ room.canonical }}',
-          display: '{{ room.display }}',
-          price: {% if room.price %}'{{ room.price }}'{% else %}null{% endif %}
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-      ];
-      
-      // Global state for filter and search
-      let currentFilter = 'all';
-      let currentSearchTerm = '';
-
-      // Combined filter and search function
-      function applyFilterAndSearch() {
-        const rows = document.querySelectorAll('tbody tr');
-        const today = new Date('{{ today|date:"Y-m-d" }}');
-        
-        rows.forEach(row => {
-          const badge = row.querySelector('.badge');
-          const checkinCell = row.cells[3]; // Check-in column
-          const checkoutCell = row.cells[4]; // Check-out column
-          
-          if (!badge || !checkinCell || !checkoutCell) return;
-          
-          // Check filter condition
-          let passesFilter = false;
-          const badgeText = badge.textContent.toLowerCase();
-          const checkinText = checkinCell.textContent.trim();
-          const checkoutText = checkoutCell.textContent.trim();
-          
-          // Parse dates from the table cells
-          const checkinDate = parseTableDate(checkinText);
-          const checkoutDate = parseTableDate(checkoutText);
-          
-          if (currentFilter === 'all') {
-            passesFilter = true;
-          } else if (currentFilter === 'checkin-today') {
-            // Show rows where check-in date is today
-            passesFilter = (checkinDate && isSameDay(checkinDate, today));
-          } else if (currentFilter === 'checkout-today') {
-            // Show rows where check-out date is today
-            passesFilter = (checkoutDate && isSameDay(checkoutDate, today));
-          } else if (currentFilter === 'upcoming') {
-            // Show rows with "Upcoming" or "Staying" status
-            passesFilter = (badgeText === 'upcoming' || badgeText === 'staying');
-          } else if (currentFilter === 'past') {
-            // Show rows with "Past" or "Completed" status
-            passesFilter = (badgeText === 'past' || badgeText === 'completed');
-          }
-          
-          // Check search condition
-          const passesSearch = currentSearchTerm === '' || 
-                               row.textContent.toLowerCase().includes(currentSearchTerm);
-          
-          // Show row only if it passes both filter AND search
-          row.style.display = (passesFilter && passesSearch) ? '' : 'none';
-        });
-      }
-
-      // Search functionality
-      const searchInput = document.getElementById('searchInput');
-      if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-          currentSearchTerm = this.value.toLowerCase();
-          applyFilterAndSearch();
-        });
-      }
-
-      // Filter buttons
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-          
-          currentFilter = this.dataset.filter;
-          applyFilterAndSearch();
-        });
       });
-      
-      // Helper function to parse date from table cell
-      function parseTableDate(dateStr) {
-        try {
-          // Expected format: "Jan 15, 2026" or "Jan 15, 26"
-          const parts = dateStr.split(' ');
-          if (parts.length >= 3) {
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const month = monthNames.indexOf(parts[0]);
-            const day = parseInt(parts[1].replace(',', ''));
-            let year = parseInt(parts[2]);
-            
-            // Handle 2-digit years (convert to 4-digit)
-            if (year < 100) {
-              year += 2000;
-            }
-            
-            if (month >= 0 && day && year) {
-              return new Date(year, month, day);
-            }
-          }
-          return null;
-        } catch (e) {
-          return null;
-        }
-      }
-      
-      // Helper function to check if two dates are the same day
-      function isSameDay(date1, date2) {
-        return date1.getFullYear() === date2.getFullYear() &&
-               date1.getMonth() === date2.getMonth() &&
-               date1.getDate() === date2.getDate();
-      }
+      rows.forEach(row => tbody.appendChild(row));
+    });
+  });
 
-      // Table sorting functionality
-      let currentSortColumn = null;
-      let currentSortOrder = 'asc';
+  // ── Export CSV ──
+  document.getElementById('exportCsvBtn').addEventListener('click', function() {
+    const headers = ['ID', 'Customer Name', 'Email', 'Room Type', 'Check-in', 'Check-out', 'Guests', 'Total Cost', 'Status'];
+    const rows = Array.from(document.querySelectorAll('tbody tr')).filter(r => r.style.display !== 'none');
 
-      document.querySelectorAll('.sortable').forEach(header => {
-        header.addEventListener('click', function() {
-          const column = parseInt(this.dataset.column);
-          const type = this.dataset.type;
-          const tbody = document.querySelector('tbody');
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          
-          // Determine sort order
-          if (currentSortColumn === column) {
-            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
-          } else {
-            currentSortOrder = 'asc';
-          }
-          currentSortColumn = column;
-          
-          // Remove sort classes from all headers
-          document.querySelectorAll('.sortable').forEach(h => {
-            h.classList.remove('asc', 'desc');
-          });
-          
-          // Add sort class to current header
-          this.classList.add(currentSortOrder);
-          
-          // Sort rows
-          rows.sort((a, b) => {
-            let aValue = a.cells[column].textContent.trim();
-            let bValue = b.cells[column].textContent.trim();
-            
-            // Handle different data types
-            if (type === 'number') {
-              // Extract numbers from text (handle currency, booking IDs, etc.)
-              aValue = parseFloat(aValue.replace(/[^0-9.-]/g, '')) || 0;
-              bValue = parseFloat(bValue.replace(/[^0-9.-]/g, '')) || 0;
-              return currentSortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-            } else if (type === 'date') {
-              // Parse dates
-              aValue = parseTableDate(aValue);
-              bValue = parseTableDate(bValue);
-              if (!aValue && !bValue) return 0;
-              if (!aValue) return 1;
-              if (!bValue) return -1;
-              return currentSortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-            } else {
-              // Text comparison
-              const comparison = aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
-              return currentSortOrder === 'asc' ? comparison : -comparison;
-            }
-          });
-          
-          // Re-append sorted rows
-          rows.forEach(row => tbody.appendChild(row));
-        });
+    if (rows.length === 0) {
+      showToast('No reservations to export with the current filters.', 'warning');
+      return;
+    }
+
+    const csvLines = [headers.join(',')];
+    rows.forEach(row => {
+      const cells = row.cells;
+      const id = cells[0].textContent.replace(/[^0-9]/g, '');
+      const name = cells[1].querySelector('.customer-name') ? cells[1].querySelector('.customer-name').textContent.trim() : '';
+      const email = cells[1].querySelector('.customer-email') ? cells[1].querySelector('.customer-email').textContent.trim() : '';
+      const roomType = cells[2].textContent.trim();
+      const checkin = cells[3].textContent.trim();
+      const checkout = cells[4].textContent.trim();
+      const guests = cells[5].textContent.replace(/\s+/g, ' ').trim();
+      const cost = cells[6].textContent.trim();
+      const status = cells[7].querySelector('.badge') ? cells[7].querySelector('.badge').textContent.trim() : '';
+      const line = [id, name, email, roomType, checkin, checkout, guests, cost, status]
+        .map(v => '"' + String(v).replace(/"/g, '""') + '"')
+        .join(',');
+      csvLines.push(line);
+    });
+
+    const blob = new Blob([csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reservations_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Exported ' + rows.length + ' reservation' + (rows.length !== 1 ? 's' : '') + ' to CSV.', 'success');
+  });
+
+  // ── CRUD Functions ──
+  function getCookie(name) {
+    let val = null;
+    if (document.cookie && document.cookie !== '') {
+      document.cookie.split(';').forEach(c => {
+        const trimmed = c.trim();
+        if (trimmed.startsWith(name + '=')) val = decodeURIComponent(trimmed.slice(name.length + 1));
       });
+    }
+    return val;
+  }
 
-      // Action functions
-      function viewBooking(id) {
-        // Get CSRF token
-        const csrftoken = getCookie('csrftoken');
-        
-        // Fetch booking details
-        fetch(`/dashboard/reservations/view/${id}/`, {
-          method: 'GET',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken,
-          },
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            const booking = data.booking;
-            
-            // Build modal content
-            const modalContent = `
-              <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 600px; margin: 2rem auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #ffba5a; padding-bottom: 1rem;">
-                  <h2 style="margin: 0; color: #2c3e50; font-size: 1.5rem;">
-                    <i class="fa fa-file-text"></i> Reservation Details
-                  </h2>
-                  <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #8b92a7;">&times;</button>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Booking ID</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">#${booking.booking_id}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Booking Date</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${booking.booking_date}</p>
-                  </div>
-                  
-                  <div style="grid-column: 1 / -1;">
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Customer Name</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${escapeHtml(booking.name)}</p>
-                  </div>
-
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Email</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 0.95rem; margin: 0;">${escapeHtml(booking.email)}</p>
-                  </div>
-
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Phone</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 0.95rem; margin: 0;">${escapeHtml(booking.phone)}</p>
-                  </div>
-                  
-                  <div style="grid-column: 1 / -1;">
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Room Type</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0; text-transform: capitalize;">${escapeHtml(booking.room_type.replace(/_/g, ' '))}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Check-in Date</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${booking.checkin_date}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Check-out Date</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${booking.checkout_date}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Total Days</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">${booking.total_days} days</p>
-                  </div>
-                  
-                  <div>
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Guests</h4>
-                    <p style="color: #2c3e50; font-weight: 600; font-size: 1.1rem; margin: 0;">
-                      <i class="fa fa-user"></i> ${booking.adults} Adults
-                      ${booking.children > 0 ? `<i class="fa fa-child" style="margin-left: 0.5rem;"></i> ${booking.children} Children` : ''}
-                    </p>
-                  </div>
-                  
-                  <div style="grid-column: 1 / -1; background: linear-gradient(135deg, #ffba5a 0%, #ffa527 100%); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
-                    <h4 style="color: white; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Total Cost</h4>
-                    <p style="color: white; font-weight: 700; font-size: 1.5rem; margin: 0;">₫${parseFloat(booking.total_cost_amount).toLocaleString()}</p>
-                  </div>
-                  
-                  ${booking.special_requests ? `
-                  <div style="grid-column: 1 / -1; background: #fff3cd; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #ffc107;">
-                    <h4 style="color: #856404; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">
-                      <i class="fa fa-comment"></i> Special Requests
-                    </h4>
-                    <p style="color: #856404; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${escapeHtml(booking.special_requests)}</p>
-                  </div>
-                  ` : ''}
-                  
-                  ${booking.notes ? `
-                  <div style="grid-column: 1 / -1; background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid #ffba5a;">
-                    <h4 style="color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">
-                      <i class="fa fa-sticky-note"></i> Admin Notes
-                    </h4>
-                    <p style="color: #2c3e50; font-size: 0.95rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${escapeHtml(booking.notes)}</p>
-                  </div>
-                  ` : ''}
-                </div>
-                
-                <div style="margin-top: 2rem; text-align: right;">
-                  <button onclick="closeModal()" style="padding: 0.75rem 2rem; background: #ffba5a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
-                    Close
-                  </button>
-                </div>
-              </div>
-            `;
-            
-            // Create modal overlay
-            const modalOverlay = document.createElement('div');
-            modalOverlay.id = 'bookingModal';
-            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; overflow-y: auto; padding: 2rem 1rem;';
-            modalOverlay.innerHTML = modalContent;
-            
-            // Close modal when clicking overlay
-            modalOverlay.addEventListener('click', function(e) {
-              if (e.target === modalOverlay) {
-                closeModal();
-              }
-            });
-            
-            document.body.appendChild(modalOverlay);
-          } else {
-            alert('Error: ' + data.message);
-          }
-        })
-        .catch(error => {
-          alert('An error occurred while fetching booking details: ' + error);
-          console.error('View error:', error);
-        });
-      }
-      
-      function closeModal() {
-        const modal = document.getElementById('bookingModal');
-        if (modal) {
-          modal.remove();
-        }
-      }
-
-      function editBooking(id) {
-        // Get CSRF token
-        const csrftoken = getCookie('csrftoken');
-        
-        // Fetch booking details
-        fetch(`/dashboard/reservations/view/${id}/`, {
-          method: 'GET',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken,
-          },
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            const booking = data.booking;
-            
-            // Build edit form modal
-            const modalContent = `
-              <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 700px; margin: 2rem auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #ffba5a; padding-bottom: 1rem;">
-                  <h2 style="margin: 0; color: #2c3e50; font-size: 1.5rem;">
-                    <i class="fa fa-edit"></i> Edit Reservation #${booking.booking_id}
-                  </h2>
-                  <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; color: #8b92a7; cursor: pointer;">×</button>
-                </div>
-                
-                <form id="editBookingForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                  <div style="grid-column: 1 / -1;">
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-user"></i> Customer Name *
-                    </label>
-                    <input type="text" id="edit_name" value="${escapeHtml(booking.name)}" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  </div>
-                  
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-envelope"></i> Email *
-                    </label>
-                    <input type="email" id="edit_email" value="${escapeHtml(booking.email)}" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  </div>
-                  
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-phone"></i> Phone *
-                    </label>
-                    <input type="tel" id="edit_phone" value="${escapeHtml(booking.phone)}" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  </div>
-                  
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-bed"></i> Room Type *
-                    </label>
-                    <select id="edit_room_type" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                      ${ROOM_TYPES.map(room => `
-                        <option value="${room.canonical}" ${booking.room_type === room.canonical ? 'selected' : ''}>
-                          ${room.display}${room.price ? ' - ₫' + parseFloat(room.price).toLocaleString() + '/night' : ''}
-                        </option>
-                      `).join('')}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-info-circle"></i> Status *
-                    </label>
-                    <select id="edit_status" required style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                      <option value="pending" ${booking.status === 'pending' ? 'selected' : ''}>Pending</option>
-                      <option value="confirmed" ${booking.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
-                      <option value="checked_in" ${booking.status === 'checked_in' ? 'selected' : ''}>Checked-in</option>
-                      <option value="checked_out" ${booking.status === 'checked_out' ? 'selected' : ''}>Checked-out</option>
-                      <option value="cancelled" ${booking.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-                      <option value="rejected" ${booking.status === 'rejected' ? 'selected' : ''}>Rejected</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-calendar"></i> Check-in Date *
-                    </label>
-                    <input type="date" id="edit_checkin_date" value="${booking.checkin_date.split(' ')[2]}-${getMonthNumber(booking.checkin_date.split(' ')[0])}-${booking.checkin_date.split(' ')[1].replace(',', '').padStart(2, '0')}" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  </div>
-                  
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-calendar"></i> Check-out Date *
-                    </label>
-                    <input type="date" id="edit_checkout_date" value="${booking.checkout_date.split(' ')[2]}-${getMonthNumber(booking.checkout_date.split(' ')[0])}-${booking.checkout_date.split(' ')[1].replace(',', '').padStart(2, '0')}" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  </div>
-                  
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-users"></i> Adults *
-                    </label>
-                    <input type="number" id="edit_adults" value="${booking.adults}" min="1" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  </div>
-                  
-                  <div>
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-child"></i> Children
-                    </label>
-                    <input type="number" id="edit_children" value="${booking.children}" min="0" required
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  </div>
-                  
-                  <div style="grid-column: 1 / -1;">
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-comment"></i> Special Requests
-                    </label>
-                    <textarea id="edit_special_requests" rows="2"
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
-                      placeholder="e.g., Non-smoking room, high floor, early check-in...">${escapeHtml(booking.special_requests || '')}</textarea>
-                  </div>
-                  
-                  <div style="grid-column: 1 / -1;">
-                    <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                      <i class="fa fa-sticky-note"></i> Admin Notes
-                    </label>
-                    <textarea id="edit_notes" rows="2"
-                      style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
-                      placeholder="Internal notes for staff...">${escapeHtml(booking.notes || '')}</textarea>
-                  </div>
-                  
-                  <div style="grid-column: 1 / -1; margin-top: 1rem; display: flex; gap: 1rem; justify-content: flex-end;">
-                    <button type="button" onclick="closeEditModal()" 
-                      style="padding: 0.75rem 2rem; background: #e8ecef; color: #5a6c7d; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
-                      Cancel
-                    </button>
-                    <button type="submit" 
-                      style="padding: 0.75rem 2rem; background: #ffba5a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
-                      <i class="fa fa-save"></i> Save Changes
-                    </button>
-                  </div>
-                </form>
-              </div>
-            `;
-            
-            // Create modal overlay
-            const modalOverlay = document.createElement('div');
-            modalOverlay.id = 'editBookingModal';
-            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; overflow-y: auto; padding: 2rem 1rem;';
-            modalOverlay.innerHTML = modalContent;
-            
-            // Close modal when clicking overlay
-            modalOverlay.addEventListener('click', function(e) {
-              if (e.target === modalOverlay) {
-                closeEditModal();
-              }
-            });
-            
-            document.body.appendChild(modalOverlay);
-            
-            // Handle form submission
-            document.getElementById('editBookingForm').addEventListener('submit', function(e) {
-              e.preventDefault();
-              saveBookingChanges(id);
-            });
-          } else {
-            showToast(data.message || 'Failed to load booking details', 'error', statusCode);
-          }
-        })
-        .catch(error => {
-          showToast('An error occurred while fetching booking details: ' + error.message, 'error', 500);
-          console.error('Edit error:', error);
-        });
-      }
-      
-      function closeEditModal() {
-        const modal = document.getElementById('editBookingModal');
-        if (modal) {
-          modal.remove();
-        }
-      }
-      
-      function updateBookingRow(id, formData) {
-        // Find the row
-        const row = document.querySelector(`tr[data-booking-id="${id}"]`);
-        if (!row) return;
-        
-        // Parse dates
-        const checkinDate = new Date(formData.checkin_date);
-        const checkoutDate = new Date(formData.checkout_date);
-        const today = new Date('{{ today|date:"Y-m-d" }}');
-        
-        // Update check-in date cell
-        const checkinCell = row.cells[3];
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        checkinCell.textContent = `${monthNames[checkinDate.getMonth()]} ${checkinDate.getDate()}, ${checkinDate.getFullYear().toString().slice(-2)}`;
-        
-        // Update check-out date cell
-        const checkoutCell = row.cells[4];
-        checkoutCell.textContent = `${monthNames[checkoutDate.getMonth()]} ${checkoutDate.getDate()}, ${checkoutDate.getFullYear().toString().slice(-2)}`;
-        
-        // Update status badge
-        const statusCell = row.cells[7];
-        const badge = statusCell.querySelector('.badge');
-        
-        if (badge) {
-          // Remove old classes
-          badge.classList.remove('badge-today', 'badge-upcoming', 'badge-past');
-          
-          // Determine new status
-          const checkinDateOnly = new Date(checkinDate.toDateString());
-          const checkoutDateOnly = new Date(checkoutDate.toDateString());
-          const todayDateOnly = new Date(today.toDateString());
-          
-          if (checkinDateOnly.getTime() === todayDateOnly.getTime()) {
-            badge.classList.add('badge-today');
-            badge.textContent = 'Checking In';
-          } else if (checkoutDateOnly.getTime() === todayDateOnly.getTime()) {
-            badge.classList.add('badge-today');
-            badge.textContent = 'Checking Out';
-          } else if (checkinDateOnly < todayDateOnly && checkoutDateOnly > todayDateOnly) {
-            badge.classList.add('badge-upcoming');
-            badge.textContent = 'Staying';
-          } else if (checkinDateOnly > todayDateOnly) {
-            badge.classList.add('badge-upcoming');
-            badge.textContent = 'Upcoming';
-          } else {
-            badge.classList.add('badge-past');
-            badge.textContent = 'Completed';
-          }
-        }
-      }
-      
-      function getMonthNumber(monthName) {
-        const months = {
-          'January': '01', 'February': '02', 'March': '03', 'April': '04',
-          'May': '05', 'June': '06', 'July': '07', 'August': '08',
-          'September': '09', 'October': '10', 'November': '11', 'December': '12'
-        };
-        return months[monthName] || '01';
-      }
-      
-      function saveBookingChanges(id) {
-        const formData = {
-          name: document.getElementById('edit_name').value,
-          email: document.getElementById('edit_email').value,
-          phone: document.getElementById('edit_phone').value,
-          room_type: document.getElementById('edit_room_type').value,
-          status: document.getElementById('edit_status').value,
-          checkin_date: document.getElementById('edit_checkin_date').value,
-          checkout_date: document.getElementById('edit_checkout_date').value,
-          adults: document.getElementById('edit_adults').value,
-          children: document.getElementById('edit_children').value,
-          special_requests: document.getElementById('edit_special_requests').value,
-          notes: document.getElementById('edit_notes').value,
-        };
-        
-        // Get CSRF token
-        const csrftoken = getCookie('csrftoken');
-        
-        // Send update request
-        fetch(`/dashboard/reservations/edit/${id}/`, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': csrftoken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        })
-        .then(response => {
-          const statusCode = response.status;
-          return response.json().then(data => ({ data, statusCode }));
-        })
-        .then(({ data, statusCode }) => {
-          if (data.status === 'success') {
-            showToast(data.message, 'success', statusCode);
-            closeEditModal();
-            
-            // Update the row in the table instead of reloading
-            updateBookingRow(id, formData);
-            
-            // Also reload after a delay to ensure statistics are updated
-            setTimeout(() => location.reload(), 1500);
-          } else {
-            showToast(data.message || 'Failed to update reservation', 'error', statusCode);
-          }
-        })
-        .catch(error => {
-          showToast('An error occurred while saving changes: ' + error.message, 'error', 500);
-          console.error('Save error:', error);
-        });
-      }
-
-      function deleteBooking(id) {
-        // Create custom delete confirmation modal
+  function viewBooking(id) {
+    fetch(`/dashboard/reservations/view/${id}/`, {
+      method: 'GET',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'success') {
+        const booking = data.booking;
         const modalContent = `
-          <div style="background: white; padding: 2.5rem; border-radius: 16px; max-width: 500px; margin: 5rem auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease-out;">
-            <div style="text-align: center; margin-bottom: 2rem;">
-              <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(255, 107, 107, 0.4);">
-                <i class="fa fa-exclamation-triangle" style="font-size: 2.5rem; color: white;"></i>
-              </div>
-              <h2 style="margin: 0 0 0.5rem 0; color: #2c3e50; font-size: 1.75rem; font-weight: 700;">Delete Reservation?</h2>
-              <p style="color: #8b92a7; font-size: 1rem; margin: 0;">Are you sure you want to delete booking #${id}?</p>
+          <div style="background:white;padding:2rem;border-radius:12px;max-width:600px;margin:2rem auto;box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;border-bottom:2px solid #ffba5a;padding-bottom:1rem;">
+              <h2 style="margin:0;color:#2c3e50;font-size:1.5rem;"><i class="fa fa-file-text"></i> Reservation Details</h2>
+              <button onclick="closeModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#8b92a7;">&times;</button>
             </div>
-            
-            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 2rem;">
-              <p style="margin: 0; color: #856404; font-size: 0.95rem; line-height: 1.6;">
-                <i class="fa fa-info-circle" style="margin-right: 0.5rem;"></i>
-                <strong>Warning:</strong> This action cannot be undone!
-              </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Booking ID</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;">#${booking.booking_id}</p></div>
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Booking Date</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;">${booking.booking_date}</p></div>
+              <div style="grid-column:1/-1;"><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Customer Name</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;">${escapeHtml(booking.name)}</p></div>
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Email</h4><p style="color:#2c3e50;font-weight:600;font-size:0.95rem;margin:0;">${escapeHtml(booking.email)}</p></div>
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Phone</h4><p style="color:#2c3e50;font-weight:600;font-size:0.95rem;margin:0;">${escapeHtml(booking.phone)}</p></div>
+              <div style="grid-column:1/-1;"><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Room Type</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;text-transform:capitalize;">${escapeHtml(booking.room_type.replace(/_/g,' '))}</p></div>
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Check-in</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;">${booking.checkin_date}</p></div>
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Check-out</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;">${booking.checkout_date}</p></div>
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Total Days</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;">${booking.total_days} days</p></div>
+              <div><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Guests</h4><p style="color:#2c3e50;font-weight:600;font-size:1.1rem;margin:0;"><i class="fa fa-user"></i> ${booking.adults} Adults${booking.children > 0 ? ' <i class="fa fa-child" style="margin-left:.5rem;"></i> ' + booking.children + ' Children' : ''}</p></div>
+              <div style="grid-column:1/-1;background:linear-gradient(135deg,#ffba5a,#ffa527);padding:1rem;border-radius:8px;margin-top:1rem;"><h4 style="color:white;font-size:0.75rem;text-transform:uppercase;margin-bottom:0.5rem;">Total Cost</h4><p style="color:white;font-weight:700;font-size:1.5rem;margin:0;">₫${parseFloat(booking.total_cost_amount).toLocaleString()}</p></div>
+              ${booking.special_requests ? `<div style="grid-column:1/-1;background:#fff3cd;padding:1rem;border-radius:8px;margin-top:.5rem;border-left:4px solid #ffc107;"><h4 style="color:#856404;font-size:0.75rem;text-transform:uppercase;margin-bottom:.5rem;"><i class="fa fa-comment"></i> Special Requests</h4><p style="color:#856404;font-size:.95rem;line-height:1.6;margin:0;white-space:pre-wrap;">${escapeHtml(booking.special_requests)}</p></div>` : ''}
+              ${booking.notes ? `<div style="grid-column:1/-1;background:#f8f9fa;padding:1rem;border-radius:8px;margin-top:.5rem;border-left:4px solid #ffba5a;"><h4 style="color:#8b92a7;font-size:0.75rem;text-transform:uppercase;margin-bottom:.5rem;"><i class="fa fa-sticky-note"></i> Admin Notes</h4><p style="color:#2c3e50;font-size:.95rem;line-height:1.6;margin:0;white-space:pre-wrap;">${escapeHtml(booking.notes)}</p></div>` : ''}
             </div>
-            
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-              <button onclick="closeDeleteModal()" 
-                style="flex: 1; padding: 0.875rem 2rem; background: #e8ecef; color: #5a6c7d; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <i class="fa fa-times" style="margin-right: 0.5rem;"></i>Cancel
-              </button>
-              <button onclick="confirmDelete(${id})" 
-                style="flex: 1; padding: 0.875rem 2rem; background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);">
-                <i class="fa fa-trash" style="margin-right: 0.5rem;"></i>Delete
-              </button>
-            </div>
-          </div>
-          
-          <style>
-            @keyframes modalSlideIn {
-              from {
-                transform: translateY(-50px);
-                opacity: 0;
-              }
-              to {
-                transform: translateY(0);
-                opacity: 1;
-              }
-            }
-          </style>
-        `;
-        
-        // Create modal overlay
-        const modalOverlay = document.createElement('div');
-        modalOverlay.id = 'deleteModal';
-        modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 10000; overflow-y: auto; padding: 1rem; backdrop-filter: blur(4px);';
-        modalOverlay.innerHTML = modalContent;
-        
-        // Close modal when clicking overlay
-        modalOverlay.addEventListener('click', function(e) {
-          if (e.target === modalOverlay) {
-            closeDeleteModal();
-          }
-        });
-        
-        document.body.appendChild(modalOverlay);
-      }
-      
-      function closeDeleteModal() {
-        const modal = document.getElementById('deleteModal');
-        if (modal) {
-          modal.style.animation = 'fadeOut 0.2s ease-out';
-          setTimeout(() => modal.remove(), 200);
-        }
-      }
-      
-      function confirmDelete(id) {
-        // Close the modal first
-        closeDeleteModal();
-        
-        // Get CSRF token from cookies
-        const csrftoken = getCookie('csrftoken');
-        
-        // Send DELETE request to server
-        fetch(`/dashboard/reservations/delete/${id}/`, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': csrftoken,
-            'Content-Type': 'application/json',
-          },
-        })
-        .then(response => {
-          const statusCode = response.status;
-          return response.json().then(data => ({ data, statusCode }));
-        })
-        .then(({ data, statusCode }) => {
-          if (data.status === 'success') {
-            // Show success toast with green notification
-            showToast(data.message || 'Reservation deleted successfully!', 'success', statusCode);
-            // Remove the row from the table
-            const row = document.querySelector(`tr[data-booking-id="${id}"]`);
-            if (row) {
-              row.style.transition = 'opacity 0.3s';
-              row.style.opacity = '0';
-              setTimeout(() => {
-                row.remove();
-                // Refresh the page to update statistics
-                location.reload();
-              }, 300);
-            }
-          } else {
-            // Show error toast with appropriate color based on status code
-            const toastType = statusCode >= 500 ? 'error' : 'warning';
-            showToast(data.message || 'Failed to delete booking', toastType, statusCode);
-          }
-        })
-        .catch(error => {
-          showToast('An error occurred while deleting the booking: ' + error.message, 'error', 500);
-          console.error('Delete error:', error);
-        });
-      }
+            <div style="margin-top:2rem;text-align:right;"><button onclick="closeModal()" style="padding:.75rem 2rem;background:#ffba5a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Close</button></div>
+          </div>`;
+        const overlay = document.createElement('div');
+        overlay.id = 'bookingModal';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:2rem 1rem;';
+        overlay.innerHTML = modalContent;
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+        document.body.appendChild(overlay);
+      } else { alert('Error: ' + data.message); }
+    })
+    .catch(err => { alert('Error fetching booking: ' + err); });
+  }
 
-      // Function to get CSRF token from cookies
-      function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';');
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
-            }
-          }
-        }
-        return cookieValue;
-      }
+  function closeModal() {
+    const m = document.getElementById('bookingModal');
+    if (m) m.remove();
+  }
 
-      // Open Add Reservation Modal
-      function openAddModal() {
+  function editBooking(id) {
+    fetch(`/dashboard/reservations/view/${id}/`, {
+      method: 'GET',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'success') {
+        const booking = data.booking;
         const modalContent = `
-          <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 700px; margin: 2rem auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #ffba5a; padding-bottom: 1rem;">
-              <h2 style="margin: 0; color: #2c3e50; font-size: 1.5rem;">
-                <i class="fa fa-plus-circle"></i> Add New Reservation
-              </h2>
-              <button onclick="closeAddModal()" style="background: none; border: none; font-size: 1.5rem; color: #8b92a7; cursor: pointer;">×</button>
+          <div style="background:white;padding:2rem;border-radius:12px;max-width:700px;margin:2rem auto;box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;border-bottom:2px solid #ffba5a;padding-bottom:1rem;">
+              <h2 style="margin:0;color:#2c3e50;font-size:1.5rem;"><i class="fa fa-edit"></i> Edit Reservation #${booking.booking_id}</h2>
+              <button onclick="closeEditModal()" style="background:none;border:none;font-size:1.5rem;color:#8b92a7;cursor:pointer;">×</button>
             </div>
-            
-            <form id="addBookingForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-              <div style="grid-column: 1 / -1;">
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-user"></i> Customer Name <span style="color: red;">*</span>
-                </label>
-                <input type="text" id="add_name" required
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-              </div>
-              
-              <div>
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-envelope"></i> Email <span style="color: red;">*</span>
-                </label>
-                <input type="email" id="add_email" required
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-              </div>
-              
-              <div>
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-phone"></i> Phone <span style="color: red;">*</span>
-                </label>
-                <input type="tel" id="add_phone" required
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-              </div>
-              
-              <div>
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-bed"></i> Room Type <span style="color: red;">*</span>
-                </label>
-                <select id="add_room_type" required onchange="onAddRoomTypeChange()"
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  <option value="">Select a room type</option>
-                  {% for room in room_types %}
-                  <option value="{{ room.canonical }}" data-price="{{ room.price|default_if_none:'' }}" data-display="{{ room.display }}">{{ room.display }}{% if room.price %} - ₫{{ room.price|floatformat:0|intcomma }}/night{% endif %}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div style="grid-column: 1 / -1;" id="add_pricing_section">
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-money"></i> Pricing <span style="color: red;">*</span>
-                </label>
-                <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
-                  <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; color: #2c3e50;">
-                    <input type="radio" name="add_pricing_mode" value="preset" checked onchange="toggleAddPricingMode()">
-                    Use preset price
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; color: #2c3e50;">
-                    <input type="radio" name="add_pricing_mode" value="custom" onchange="toggleAddPricingMode()">
-                    Custom price
-                  </label>
-                </div>
-                <div id="add_preset_price_display" style="padding: 0.75rem; background: #f0f4f8; border: 2px solid #e8ecef; border-radius: 6px; color: #5a6c7d; font-size: 0.95rem;">
-                  <i class="fa fa-info-circle"></i> Select a room type to see the preset price
-                </div>
-                <div id="add_custom_price_wrapper" style="display: none;">
-                  <input type="number" id="add_custom_price" min="0" step="1000" placeholder="Enter price per night (₫)"
-                    style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  <div style="color: #8b92a7; font-size: 0.75rem; margin-top: 0.3rem;">Enter the per-night rate in VND</div>
-                </div>
-              </div>
-
-              <div>
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-calendar"></i> Check-in Date <span style="color: red;">*</span>
-                </label>
-                <input type="date" id="add_checkin_date" required
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-              </div>
-              
-              <div>
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-calendar"></i> Check-out Date <span style="color: red;">*</span>
-                </label>
-                <input type="date" id="add_checkout_date" required
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-              </div>
-              
-              <div>
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-users"></i> Adults <span style="color: red;">*</span>
-                </label>
-                <select id="add_adults" required
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4+</option>
-                </select>
-              </div>
-              
-              <div>
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-child"></i> Children
-                </label>
-                <select id="add_children"
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem;">
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4+</option>
-                </select>
-              </div>
-              
-              <div style="grid-column: 1 / -1;">
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-comment"></i> Special Requests
-                </label>
-                <textarea id="add_special_requests" rows="2"
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
-                  placeholder="e.g., Non-smoking room, high floor, early check-in..."></textarea>
-              </div>
-              
-              <div style="grid-column: 1 / -1;">
-                <label style="display: block; color: #8b92a7; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 600;">
-                  <i class="fa fa-sticky-note"></i> Admin Notes
-                </label>
-                <textarea id="add_notes" rows="2"
-                  style="width: 100%; padding: 0.75rem; border: 2px solid #e8ecef; border-radius: 6px; font-size: 1rem; resize: vertical;"
-                  placeholder="Internal notes for staff..."></textarea>
-              </div>
-              
-              <div style="grid-column: 1 / -1; margin-top: 1rem; display: flex; gap: 1rem; justify-content: flex-end;">
-                <button type="button" onclick="closeAddModal()" 
-                  style="padding: 0.75rem 2rem; background: #e8ecef; color: #5a6c7d; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
-                  Cancel
-                </button>
-                <button type="submit" 
-                  style="padding: 0.75rem 2rem; background: #ffba5a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
-                  <i class="fa fa-save"></i> Create Reservation
-                </button>
+            <form id="editBookingForm" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+              <div style="grid-column:1/-1;"><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-user"></i> Customer Name *</label><input type="text" id="edit_name" value="${escapeHtml(booking.name)}" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-envelope"></i> Email *</label><input type="email" id="edit_email" value="${escapeHtml(booking.email)}" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-phone"></i> Phone *</label><input type="tel" id="edit_phone" value="${escapeHtml(booking.phone)}" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-bed"></i> Room Type *</label><select id="edit_room_type" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;">${ROOM_TYPES.map(room => `<option value="${room.canonical}" ${booking.room_type === room.canonical ? 'selected' : ''}>${room.display}${room.price ? ' - ₫' + parseFloat(room.price).toLocaleString() + '/night' : ''}</option>`).join('')}</select></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-info-circle"></i> Status *</label><select id="edit_status" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"><option value="pending" ${booking.status==='pending'?'selected':''}>Pending</option><option value="confirmed" ${booking.status==='confirmed'?'selected':''}>Confirmed</option><option value="checked_in" ${booking.status==='checked_in'?'selected':''}>Checked-in</option><option value="checked_out" ${booking.status==='checked_out'?'selected':''}>Checked-out</option><option value="cancelled" ${booking.status==='cancelled'?'selected':''}>Cancelled</option><option value="rejected" ${booking.status==='rejected'?'selected':''}>Rejected</option></select></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-calendar"></i> Check-in *</label><input type="date" id="edit_checkin_date" value="${booking.checkin_date.split(' ')[2]}-${getMonthNumber(booking.checkin_date.split(' ')[0])}-${booking.checkin_date.split(' ')[1].replace(',','').padStart(2,'0')}" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-calendar"></i> Check-out *</label><input type="date" id="edit_checkout_date" value="${booking.checkout_date.split(' ')[2]}-${getMonthNumber(booking.checkout_date.split(' ')[0])}-${booking.checkout_date.split(' ')[1].replace(',','').padStart(2,'0')}" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-users"></i> Adults *</label><input type="number" id="edit_adults" value="${booking.adults}" min="1" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+              <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-child"></i> Children</label><input type="number" id="edit_children" value="${booking.children}" min="0" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+              <div style="grid-column:1/-1;"><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-comment"></i> Special Requests</label><textarea id="edit_special_requests" rows="2" style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;resize:vertical;" placeholder="e.g., Non-smoking room...">${escapeHtml(booking.special_requests || '')}</textarea></div>
+              <div style="grid-column:1/-1;"><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-sticky-note"></i> Admin Notes</label><textarea id="edit_notes" rows="2" style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;resize:vertical;" placeholder="Internal notes...">${escapeHtml(booking.notes || '')}</textarea></div>
+              <div style="grid-column:1/-1;margin-top:1rem;display:flex;gap:1rem;justify-content:flex-end;">
+                <button type="button" onclick="closeEditModal()" style="padding:.75rem 2rem;background:#e8ecef;color:#5a6c7d;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Cancel</button>
+                <button type="submit" style="padding:.75rem 2rem;background:#ffba5a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;"><i class="fa fa-save"></i> Save Changes</button>
               </div>
             </form>
+          </div>`;
+        const overlay = document.createElement('div');
+        overlay.id = 'editBookingModal';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:2rem 1rem;';
+        overlay.innerHTML = modalContent;
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeEditModal(); });
+        document.body.appendChild(overlay);
+        document.getElementById('editBookingForm').addEventListener('submit', e => { e.preventDefault(); saveBookingChanges(id); });
+      } else { showToast(data.message || 'Failed to load booking', 'error'); }
+    })
+    .catch(err => { showToast('Error: ' + err.message, 'error', 500); });
+  }
+
+  function closeEditModal() { const m = document.getElementById('editBookingModal'); if (m) m.remove(); }
+
+  function getMonthNumber(monthName) {
+    const months = { 'January':'01','February':'02','March':'03','April':'04','May':'05','June':'06','July':'07','August':'08','September':'09','October':'10','November':'11','December':'12' };
+    return months[monthName] || '01';
+  }
+
+  function updateBookingRow(id, formData) {
+    const row = document.querySelector(`tr[data-booking-id="${id}"]`);
+    if (!row) return;
+    const checkinDate = new Date(formData.checkin_date);
+    const checkoutDate = new Date(formData.checkout_date);
+    const today = new Date('{{ today|date:"Y-m-d" }}');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    row.cells[3].textContent = `${monthNames[checkinDate.getMonth()]} ${checkinDate.getDate()}, ${checkinDate.getFullYear()}`;
+    row.cells[4].textContent = `${monthNames[checkoutDate.getMonth()]} ${checkoutDate.getDate()}, ${checkoutDate.getFullYear()}`;
+    const badge = row.cells[7].querySelector('.badge');
+    if (badge) {
+      badge.classList.remove('badge-today','badge-upcoming','badge-past');
+      const ci = new Date(checkinDate.toDateString()), co = new Date(checkoutDate.toDateString()), td = new Date(today.toDateString());
+      if (ci.getTime() === td.getTime()) { badge.classList.add('badge-today'); badge.textContent = 'Checking In'; }
+      else if (co.getTime() === td.getTime()) { badge.classList.add('badge-today'); badge.textContent = 'Checking Out'; }
+      else if (ci < td && co > td) { badge.classList.add('badge-upcoming'); badge.textContent = 'Staying'; }
+      else if (ci > td) { badge.classList.add('badge-upcoming'); badge.textContent = 'Upcoming'; }
+      else { badge.classList.add('badge-past'); badge.textContent = 'Completed'; }
+    }
+    if (formData.room_type) row.dataset.roomType = formData.room_type;
+  }
+
+  function saveBookingChanges(id) {
+    const formData = {
+      name: document.getElementById('edit_name').value,
+      email: document.getElementById('edit_email').value,
+      phone: document.getElementById('edit_phone').value,
+      room_type: document.getElementById('edit_room_type').value,
+      status: document.getElementById('edit_status').value,
+      checkin_date: document.getElementById('edit_checkin_date').value,
+      checkout_date: document.getElementById('edit_checkout_date').value,
+      adults: document.getElementById('edit_adults').value,
+      children: document.getElementById('edit_children').value,
+      special_requests: document.getElementById('edit_special_requests').value,
+      notes: document.getElementById('edit_notes').value,
+    };
+    fetch(`/dashboard/reservations/edit/${id}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    })
+    .then(r => { const sc = r.status; return r.json().then(d => ({ d, sc })); })
+    .then(({ d, sc }) => {
+      if (d.status === 'success') {
+        showToast(d.message, 'success', sc);
+        closeEditModal();
+        updateBookingRow(id, formData);
+        setTimeout(() => location.reload(), 1500);
+      } else { showToast(d.message || 'Failed to update', 'error', sc); }
+    })
+    .catch(err => { showToast('Error: ' + err.message, 'error', 500); });
+  }
+
+  function deleteBooking(id) {
+    const modalContent = `
+      <div style="background:white;padding:2.5rem;border-radius:16px;max-width:500px;margin:5rem auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:modalSlideIn .3s ease-out;">
+        <div style="text-align:center;margin-bottom:2rem;">
+          <div style="width:80px;height:80px;background:linear-gradient(135deg,#ff6b6b,#c92a2a);border-radius:50%;margin:0 auto 1.5rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(255,107,107,0.4);"><i class="fa fa-exclamation-triangle" style="font-size:2.5rem;color:white;"></i></div>
+          <h2 style="margin:0 0 .5rem;color:#2c3e50;font-size:1.75rem;font-weight:700;">Delete Reservation?</h2>
+          <p style="color:#8b92a7;font-size:1rem;margin:0;">Are you sure you want to delete booking #${id}?</p>
+        </div>
+        <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:1rem 1.25rem;border-radius:8px;margin-bottom:2rem;"><p style="margin:0;color:#856404;font-size:.95rem;line-height:1.6;"><i class="fa fa-info-circle" style="margin-right:.5rem;"></i><strong>Warning:</strong> This action cannot be undone!</p></div>
+        <div style="display:flex;gap:1rem;justify-content:center;">
+          <button onclick="closeDeleteModal()" style="flex:1;padding:.875rem 2rem;background:#e8ecef;color:#5a6c7d;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:1rem;"><i class="fa fa-times" style="margin-right:.5rem;"></i>Cancel</button>
+          <button onclick="confirmDelete(${id})" style="flex:1;padding:.875rem 2rem;background:linear-gradient(135deg,#ff6b6b,#c92a2a);color:white;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:1rem;box-shadow:0 4px 12px rgba(255,107,107,.4);"><i class="fa fa-trash" style="margin-right:.5rem;"></i>Delete</button>
+        </div>
+      </div>
+      <style>@keyframes modalSlideIn{from{transform:translateY(-50px);opacity:0}to{transform:translateY(0);opacity:1}}</style>`;
+    const overlay = document.createElement('div');
+    overlay.id = 'deleteModal';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:10000;overflow-y:auto;padding:1rem;backdrop-filter:blur(4px);';
+    overlay.innerHTML = modalContent;
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeDeleteModal(); });
+    document.body.appendChild(overlay);
+  }
+
+  function closeDeleteModal() {
+    const m = document.getElementById('deleteModal');
+    if (m) { m.style.animation = 'fadeOut .2s ease-out'; setTimeout(() => m.remove(), 200); }
+  }
+
+  function confirmDelete(id) {
+    closeDeleteModal();
+    fetch(`/dashboard/reservations/delete/${id}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
+    })
+    .then(r => { const sc = r.status; return r.json().then(d => ({ d, sc })); })
+    .then(({ d, sc }) => {
+      if (d.status === 'success') {
+        showToast(d.message || 'Reservation deleted!', 'success', sc);
+        const row = document.querySelector(`tr[data-booking-id="${id}"]`);
+        if (row) { row.style.transition = 'opacity .3s'; row.style.opacity = '0'; setTimeout(() => { row.remove(); location.reload(); }, 300); }
+      } else { showToast(d.message || 'Failed to delete', sc >= 500 ? 'error' : 'warning', sc); }
+    })
+    .catch(err => { showToast('Error: ' + err.message, 'error', 500); });
+  }
+
+  function openAddModal() {
+    const modalContent = `
+      <div style="background:white;padding:2rem;border-radius:12px;max-width:700px;margin:2rem auto;box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;border-bottom:2px solid #ffba5a;padding-bottom:1rem;">
+          <h2 style="margin:0;color:#2c3e50;font-size:1.5rem;"><i class="fa fa-plus-circle"></i> Add New Reservation</h2>
+          <button onclick="closeAddModal()" style="background:none;border:none;font-size:1.5rem;color:#8b92a7;cursor:pointer;">×</button>
+        </div>
+        <form id="addBookingForm" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+          <div style="grid-column:1/-1;"><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-user"></i> Customer Name <span style="color:red;">*</span></label><input type="text" id="add_name" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+          <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-envelope"></i> Email <span style="color:red;">*</span></label><input type="email" id="add_email" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+          <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-phone"></i> Phone <span style="color:red;">*</span></label><input type="tel" id="add_phone" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+          <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-bed"></i> Room Type <span style="color:red;">*</span></label><select id="add_room_type" required onchange="onAddRoomTypeChange()" style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"><option value="">Select a room type</option>{% for room in room_types %}<option value="{{ room.canonical }}" data-price="{{ room.price|default_if_none:'' }}" data-display="{{ room.display }}">{{ room.display }}{% if room.price %} - ₫{{ room.price|floatformat:0|intcomma }}/night{% endif %}</option>{% endfor %}</select></div>
+          <div style="grid-column:1/-1;" id="add_pricing_section">
+            <label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-money"></i> Pricing <span style="color:red;">*</span></label>
+            <div style="display:flex;gap:1rem;margin-bottom:.75rem;">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.9rem;color:#2c3e50;"><input type="radio" name="add_pricing_mode" value="preset" checked onchange="toggleAddPricingMode()"> Use preset price</label>
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.9rem;color:#2c3e50;"><input type="radio" name="add_pricing_mode" value="custom" onchange="toggleAddPricingMode()"> Custom price</label>
+            </div>
+            <div id="add_preset_price_display" style="padding:.75rem;background:#f0f4f8;border:2px solid #e8ecef;border-radius:6px;color:#5a6c7d;font-size:.95rem;"><i class="fa fa-info-circle"></i> Select a room type to see the preset price</div>
+            <div id="add_custom_price_wrapper" style="display:none;"><input type="number" id="add_custom_price" min="0" step="1000" placeholder="Enter price per night (₫)" style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"><div style="color:#8b92a7;font-size:.75rem;margin-top:.3rem;">Enter the per-night rate in VND</div></div>
           </div>
-        `;
-        
-        // Create modal overlay
-        const modalOverlay = document.createElement('div');
-        modalOverlay.id = 'addBookingModal';
-        modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; overflow-y: auto; padding: 2rem 1rem;';
-        modalOverlay.innerHTML = modalContent;
-        
-        // Close modal when clicking overlay
-        modalOverlay.addEventListener('click', function(e) {
-          if (e.target === modalOverlay) {
-            closeAddModal();
-          }
-        });
-        
-        document.body.appendChild(modalOverlay);
-        
-        // Add form submit handler
-        document.getElementById('addBookingForm').addEventListener('submit', function(e) {
-          e.preventDefault();
-          saveNewBooking();
-        });
-      }
-      
-      function closeAddModal() {
-        const modal = document.getElementById('addBookingModal');
-        if (modal) {
-          modal.remove();
-        }
-      }
-      
-      function updateRoomTypeLabels(showPrices) {
-        const sel = document.getElementById('add_room_type');
-        for (let i = 1; i < sel.options.length; i++) {
-          const opt = sel.options[i];
-          const display = opt.getAttribute('data-display');
-          const price = opt.getAttribute('data-price');
-          if (showPrices && price) {
-            opt.textContent = display + ' - ₫' + parseFloat(price).toLocaleString() + '/night';
-          } else {
-            opt.textContent = display;
-          }
-        }
-      }
+          <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-calendar"></i> Check-in <span style="color:red;">*</span></label><input type="date" id="add_checkin_date" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+          <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-calendar"></i> Check-out <span style="color:red;">*</span></label><input type="date" id="add_checkout_date" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"></div>
+          <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-users"></i> Adults <span style="color:red;">*</span></label><select id="add_adults" required style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div>
+          <div><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-child"></i> Children</label><select id="add_children" style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div>
+          <div style="grid-column:1/-1;"><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-comment"></i> Special Requests</label><textarea id="add_special_requests" rows="2" style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;resize:vertical;" placeholder="e.g., Non-smoking room, high floor..."></textarea></div>
+          <div style="grid-column:1/-1;"><label style="display:block;color:#8b92a7;font-size:.75rem;text-transform:uppercase;margin-bottom:.5rem;font-weight:600;"><i class="fa fa-sticky-note"></i> Admin Notes</label><textarea id="add_notes" rows="2" style="width:100%;padding:.75rem;border:2px solid #e8ecef;border-radius:6px;font-size:1rem;resize:vertical;" placeholder="Internal notes..."></textarea></div>
+          <div style="grid-column:1/-1;margin-top:1rem;display:flex;gap:1rem;justify-content:flex-end;">
+            <button type="button" onclick="closeAddModal()" style="padding:.75rem 2rem;background:#e8ecef;color:#5a6c7d;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Cancel</button>
+            <button type="submit" style="padding:.75rem 2rem;background:#ffba5a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;"><i class="fa fa-save"></i> Create Reservation</button>
+          </div>
+        </form>
+      </div>`;
+    const overlay = document.createElement('div');
+    overlay.id = 'addBookingModal';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:2rem 1rem;';
+    overlay.innerHTML = modalContent;
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeAddModal(); });
+    document.body.appendChild(overlay);
+    document.getElementById('addBookingForm').addEventListener('submit', e => { e.preventDefault(); saveNewBooking(); });
+  }
 
-      function toggleAddPricingMode() {
-        const mode = document.querySelector('input[name="add_pricing_mode"]:checked').value;
-        const presetDisplay = document.getElementById('add_preset_price_display');
-        const customWrapper = document.getElementById('add_custom_price_wrapper');
-        if (mode === 'preset') {
-          presetDisplay.style.display = 'block';
-          customWrapper.style.display = 'none';
-          updateRoomTypeLabels(true);
-        } else {
-          presetDisplay.style.display = 'none';
-          customWrapper.style.display = 'block';
-          updateRoomTypeLabels(false);
-          document.getElementById('add_custom_price').focus();
-        }
-      }
+  function closeAddModal() { const m = document.getElementById('addBookingModal'); if (m) m.remove(); }
 
-      function onAddRoomTypeChange() {
-        const sel = document.getElementById('add_room_type');
-        const opt = sel.options[sel.selectedIndex];
-        const presetDisplay = document.getElementById('add_preset_price_display');
-        if (!sel.value) {
-          presetDisplay.innerHTML = '<i class="fa fa-info-circle"></i> Select a room type to see the preset price';
-          return;
-        }
-        const price = opt.getAttribute('data-price');
-        if (price) {
-          presetDisplay.innerHTML = '<i class="fa fa-check-circle" style="color:#27ae60;"></i> Preset rate: <strong>₫' + parseFloat(price).toLocaleString() + '</strong> / night';
-        } else {
-          presetDisplay.innerHTML = '<i class="fa fa-exclamation-triangle" style="color:#e67e22;"></i> No preset price configured for this room type';
-        }
-      }
+  function toggleAddPricingMode() {
+    const mode = document.querySelector('input[name="add_pricing_mode"]:checked').value;
+    const presetDisplay = document.getElementById('add_preset_price_display');
+    const customWrapper = document.getElementById('add_custom_price_wrapper');
+    if (mode === 'preset') { presetDisplay.style.display = 'block'; customWrapper.style.display = 'none'; updateRoomTypeLabels(true); }
+    else { presetDisplay.style.display = 'none'; customWrapper.style.display = 'block'; updateRoomTypeLabels(false); document.getElementById('add_custom_price').focus(); }
+  }
 
-      function saveNewBooking() {
-        // Get form values
-        const pricingMode = document.querySelector('input[name="add_pricing_mode"]:checked').value;
-        const formData = {
-          name: document.getElementById('add_name').value.trim(),
-          email: document.getElementById('add_email').value.trim(),
-          phone: document.getElementById('add_phone').value.trim(),
-          room_type: document.getElementById('add_room_type').value,
-          checkin_date: formatDateForSubmit(document.getElementById('add_checkin_date').value),
-          checkout_date: formatDateForSubmit(document.getElementById('add_checkout_date').value),
-          adults: document.getElementById('add_adults').value,
-          children: document.getElementById('add_children').value,
-          special_requests: document.getElementById('add_special_requests').value.trim(),
-          notes: document.getElementById('add_notes').value.trim()
-        };
+  function updateRoomTypeLabels(showPrices) {
+    const sel = document.getElementById('add_room_type');
+    if (!sel) return;
+    for (let i = 1; i < sel.options.length; i++) {
+      const opt = sel.options[i];
+      const display = opt.getAttribute('data-display');
+      const price = opt.getAttribute('data-price');
+      opt.textContent = (showPrices && price) ? display + ' - ₫' + parseFloat(price).toLocaleString() + '/night' : display;
+    }
+  }
 
-        if (pricingMode === 'custom') {
-          const customPrice = document.getElementById('add_custom_price').value;
-          if (!customPrice || parseFloat(customPrice) <= 0) {
-            showToast('Please enter a valid custom price per night', 'warning', 400);
-            return;
-          }
-          formData.custom_price = customPrice;
-        }
-        
-        // Validate required fields
-        if (!formData.name || !formData.email || !formData.phone || !formData.room_type || !formData.checkin_date || !formData.checkout_date) {
-          showToast('Please fill in all required fields (Name, Email, Phone, Room Type, Check-in Date, Check-out Date)', 'warning', 400);
-          return;
-        }
-        
-        // Get CSRF token
-        const csrftoken = getCookie('csrftoken');
-        
-        // Send POST request
-        fetch('{% url "reservation" %}', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken,
-          },
-          body: new URLSearchParams(formData)
-        })
-        .then(response => {
-          const statusCode = response.status;
-          return response.json().then(data => ({ data, statusCode }));
-        })
-        .then(({ data, statusCode }) => {
-          if (data.status === 'success') {
-            const message = `Reservation created successfully!\nBooking ID: #${data.booking_id}\nTotal Days: ${data.total_days}\nTotal Cost: ₫${parseFloat(data.total_cost_amount).toLocaleString()}`;
-            showToast(message, 'success', statusCode);
-            closeAddModal();
-            // Reload page to show new reservation
-            setTimeout(() => location.reload(), 1500);
-          } else {
-            // Show appropriate notification based on status code
-            const toastType = statusCode >= 500 ? 'error' : 'warning';
-            showToast(data.message || 'Failed to create reservation', toastType, statusCode);
-          }
-        })
-        .catch(error => {
-          const statusCode = error.statusCode || 500;
-          const toastType = statusCode >= 500 ? 'error' : 'warning';
-          showToast('An error occurred: ' + (error.message || 'Failed to create reservation'), toastType, statusCode);
-          console.error('Create error:', error);
-        });
-      }
-      
-      // Helper function to format date for submission (MM/DD/YYYY format)
-      function formatDateForSubmit(dateString) {
-        if (!dateString) return '';
-        // Input format from date picker is YYYY-MM-DD
-        const parts = dateString.split('-');
-        if (parts.length === 3) {
-          // Convert YYYY-MM-DD to MM/DD/YYYY
-          return `${parts[1]}/${parts[2]}/${parts[0]}`;
-        }
-        // Fallback: try to parse as date
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${month}/${day}/${year}`;
-      }
+  function onAddRoomTypeChange() {
+    const sel = document.getElementById('add_room_type');
+    const presetDisplay = document.getElementById('add_preset_price_display');
+    if (!sel || !presetDisplay) return;
+    if (!sel.value) { presetDisplay.innerHTML = '<i class="fa fa-info-circle"></i> Select a room type to see the preset price'; return; }
+    const price = sel.options[sel.selectedIndex].getAttribute('data-price');
+    presetDisplay.innerHTML = price
+      ? '<i class="fa fa-check-circle" style="color:#27ae60;"></i> Preset rate: <strong>₫' + parseFloat(price).toLocaleString() + '</strong> / night'
+      : '<i class="fa fa-exclamation-triangle" style="color:#e67e22;"></i> No preset price configured for this room type';
+  }
 
-      // Export functionality
-      document.querySelectorAll('.export-btn').forEach(function(btn) {
-        if (btn.tagName === 'BUTTON') {
-          btn.addEventListener('click', function() {
-            alert('Exporting reservations to CSV...\n\nThis would generate and download a CSV file.');
-          });
-        }
-      });
-    </script>
+  function saveNewBooking() {
+    const pricingMode = document.querySelector('input[name="add_pricing_mode"]:checked').value;
+    const formData = {
+      name: document.getElementById('add_name').value.trim(),
+      email: document.getElementById('add_email').value.trim(),
+      phone: document.getElementById('add_phone').value.trim(),
+      room_type: document.getElementById('add_room_type').value,
+      checkin_date: formatDateForSubmit(document.getElementById('add_checkin_date').value),
+      checkout_date: formatDateForSubmit(document.getElementById('add_checkout_date').value),
+      adults: document.getElementById('add_adults').value,
+      children: document.getElementById('add_children').value,
+      special_requests: document.getElementById('add_special_requests').value.trim(),
+      notes: document.getElementById('add_notes').value.trim()
+    };
+    if (pricingMode === 'custom') {
+      const customPrice = document.getElementById('add_custom_price').value;
+      if (!customPrice || parseFloat(customPrice) <= 0) { showToast('Please enter a valid custom price per night', 'warning', 400); return; }
+      formData.custom_price = customPrice;
+    }
+    if (!formData.name || !formData.email || !formData.phone || !formData.room_type || !formData.checkin_date || !formData.checkout_date) {
+      showToast('Please fill in all required fields', 'warning', 400); return;
+    }
+    fetch('{% url "reservation" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
+      body: new URLSearchParams(formData)
+    })
+    .then(r => { const sc = r.status; return r.json().then(d => ({ d, sc })); })
+    .then(({ d, sc }) => {
+      if (d.status === 'success') {
+        showToast(`Reservation created! Booking ID: #${d.booking_id} — Total: ₫${parseFloat(d.total_cost_amount).toLocaleString()}`, 'success', sc);
+        closeAddModal();
+        setTimeout(() => location.reload(), 1500);
+      } else { showToast(d.message || 'Failed to create reservation', sc >= 500 ? 'error' : 'warning', sc); }
+    })
+    .catch(err => { showToast('Error: ' + err.message, 'error', 500); });
+  }
+
+  function formatDateForSubmit(dateString) {
+    if (!dateString) return '';
+    const parts = dateString.split('-');
+    if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return `${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')}/${date.getFullYear()}`;
+  }
+</script>
 {% endblock %}
-
-
-
-
-
-

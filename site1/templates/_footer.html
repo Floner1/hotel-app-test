@@ -26,9 +26,7 @@
           <li><a href="{% url 'reservation' %}">Reservation</a></li>
         </ul>
       </div>
-    </div>
 
-    <div class="site-footer__lower">
       <div class="site-footer__col site-footer__reach-col">
         <h4 class="site-footer__heading">Reach Us</h4>
         <ul>
@@ -37,17 +35,17 @@
           {% if hotel.hotel_address %}<li class="site-footer__address"><span class="footer-clickable footer-address-clickable" id="footer-contact-address" title="Open in Google Maps">{{ hotel.hotel_address }}</span></li>{% endif %}
         </ul>
       </div>
+    </div>
 
-      <div class="site-footer__newsletter">
-        <p class="site-footer__newsletter-label">Hotel Newsletter</p>
-        <p class="site-footer__newsletter-copy">Sign up and get 10% off your next booking. Occasional updates on availability and seasonal rates.</p>
-        <form id="newsletter-form" class="site-footer__newsletter-form">
-          <label for="footer-newsletter-email" class="sr-only">Email address</label>
-          <input type="email" id="footer-newsletter-email" class="form-control" name="email" placeholder="Email address" required>
-          <button type="submit" id="newsletter-submit" class="btn no-load">Subscribe</button>
-        </form>
-        <p id="newsletter-feedback" style="display:none; margin-top:0.5rem; font-size:0.875rem;"></p>
-      </div>
+    <div class="site-footer__newsletter">
+      <p class="site-footer__newsletter-label">Hotel Newsletter</p>
+      <p class="site-footer__newsletter-copy">Sign up and get 10% off your next booking. Occasional updates on availability and seasonal rates.</p>
+      <form id="newsletter-form" class="site-footer__newsletter-form">
+        <label for="footer-newsletter-email" class="sr-only">Email address</label>
+        <input type="email" id="footer-newsletter-email" class="form-control" name="email" placeholder="Email address" required>
+        <button type="submit" id="newsletter-submit" class="btn no-load">Subscribe</button>
+      </form>
+      <p id="newsletter-feedback" style="display:none; margin-top:0.5rem; font-size:0.875rem;"></p>
     </div>
 
     <div class="site-footer__rule"></div>

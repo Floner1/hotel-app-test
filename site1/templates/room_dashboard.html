@@ -104,9 +104,11 @@ body {
         box-shadow: 0 2px 8px rgba(0,0,0,0.10);
         transition: transform 0.15s, box-shadow 0.15s;
         position: relative;
+        cursor: pointer;
       }
       .room-card:hover {
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.18);
       }
       .room-card .room-code {
         font-size: 1.5rem;
@@ -143,62 +145,36 @@ body {
       /* Hide cards that don't match the filter */
       .room-card.filtered-out { display: none; }
 
-      /* ── Status change dropdown ── */
-      .status-btn {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: rgba(255,255,255,0.25);
-        color: white;
+      /* ── Room modal status buttons ── */
+      .btn-condition {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
         border: none;
-        border-radius: 50%;
-        width: 26px;
-        height: 26px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.2s;
-      }
-      .status-btn:hover { background: rgba(255,255,255,0.45); }
-
-      .status-dropdown {
-        display: none;
-        position: absolute;
-        top: 36px;
-        right: 4px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        z-index: 100;
-        min-width: 170px;
-        overflow: hidden;
-      }
-      .status-dropdown.open { display: block; }
-      .status-dropdown a {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 14px;
-        color: #333;
-        text-decoration: none;
+        border-radius: 20px;
         font-size: 0.82rem;
-        font-weight: 500;
-        transition: background 0.15s;
+        font-weight: 600;
+        cursor: pointer;
+        color: #fff;
+        transition: opacity 0.15s, transform 0.15s;
       }
-      .status-dropdown a:hover { background: #f0f0f0; }
-      .status-dropdown .dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
+      .btn-condition:hover { opacity: 0.85; transform: translateY(-1px); }
+      .btn-condition.cond-vacant      { background: #28a745; }
+      .btn-condition.cond-empty_dirty { background: #ffc107; color: #333; }
+      .btn-condition.cond-occupied    { background: #007bff; }
+      .btn-condition.cond-reserved    { background: #6f42c1; }
+      .btn-condition.cond-out_of_order{ background: #dc3545; }
+      .modal-status-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #fff;
       }
-      .dot-vacant  { background: #28a745; }
-      .dot-dirty   { background: #ffc107; }
-      .dot-occupied     { background: #007bff; }
-      .dot-out_of_order { background: #dc3545; }
-      .dot-reserved     { background: #6f42c1; }
 
       /* ── Legend ── */
       .legend {
@@ -286,30 +262,37 @@ body {
             <div class="floor-label"><i class="fa fa-th-large"></i> Floor {{ floor_num }} <small style="color:#888;">({{ room_list|length }} rooms)</small></div>
             <div class="room-grid">
               {% for item in room_list %}
-              <div class="room-card status-{{ item.disp_status }}" data-status="{{ item.disp_status }}" data-room-id="{{ item.room.room_id }}">
-
-                <!-- Status change button -->
-                <button class="status-btn" title="Change status" onclick="toggleDropdown(event, this)"><i class="fa fa-ellipsis-v"></i></button>
-                <div class="status-dropdown">
-                  <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'vacant')"><span class="dot dot-vacant"></span> Empty Clean</a>
-                  <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'empty_dirty')"><span class="dot dot-dirty"></span> Empty Dirty</a>
-                  <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'occupied')"><span class="dot dot-occupied"></span> Occupied</a>
-                  <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'out_of_order')"><span class="dot dot-out_of_order"></span> Out of Order</a>
-                  <a href="#" onclick="changeStatus(event, {{ item.room.room_id }}, 'reserved')"><span class="dot dot-reserved"></span> Reserved</a>
-                </div>
+              <div class="room-card status-{{ item.disp_status }}"
+                   data-status="{{ item.disp_status }}"
+                   data-room-id="{{ item.room.room_id }}"
+                   data-room-code="{{ item.room.room_code }}"
+                   data-room-type="{{ item.room.room_type }}"
+                   data-guest-name="{{ item.assignment.booking.guest_name|default:'' }}"
+                   data-phone="{{ item.assignment.booking.phone|default:'' }}"
+                   data-check-in="{{ item.assignment.check_in|date:'M d, Y'|default:'' }}"
+                   data-check-out="{{ item.assignment.check_out|date:'M d, Y'|default:'' }}"
+                   data-duration="{{ item.duration|default:'' }}"
+                   data-adults="{{ item.assignment.booking.adults|default:'' }}"
+                   data-children="{{ item.assignment.booking.children|default:'' }}"
+                   data-booking-id="{{ item.assignment.booking.booking_id|default:'' }}"
+                   data-total-price="{{ item.assignment.booking.total_price|default:'' }}"
+                   data-payment-status="{{ item.assignment.booking.payment_status|default:'' }}"
+                   onclick="openRoomModal(this)">
                 <div>
                   <div class="room-code">{{ item.room.room_code }}</div>
                   <div class="room-status">
                     {% if item.disp_status == 'vacant' %}Clean
                     {% elif item.disp_status == 'dirty' %}Dirty
+                    {% elif item.disp_status == 'occupied' %}Occupied
+                    {% elif item.disp_status == 'reserved' %}Reserved
+                    {% elif item.disp_status == 'out_of_order' %}Out of Order
                     {% else %}{{ item.room.get_reservation_status_display }}{% endif %}
                   </div>
                   <div class="room-type-label">{{ item.room.room_type }}</div>
                 </div>
-
-                {% if item.assignment and item.room.reservation_status == 'occupied' or item.assignment and item.room.reservation_status == 'reserved' %} 
+                {% if item.assignment %}
                 <div class="stay-info">
-                    <div><i class="fa fa-calendar"></i> {{ item.assignment.check_in|date:"M d" }} &rarr; {{ item.assignment.check_out|date:"M d" }} ({{ item.duration }}n)</div>
+                  <div><i class="fa fa-calendar"></i> {{ item.assignment.check_in|date:"M d" }} &rarr; {{ item.assignment.check_out|date:"M d" }} ({{ item.duration }}n)</div>
                 </div>
                 {% endif %}
               </div>
@@ -321,76 +304,140 @@ body {
         </div> <!-- close col-md-main -->
       </div> <!-- close row -->
     </div> <!-- close container-fluid -->
+
+<!-- Room Detail Modal -->
+<div class="modal fade" id="roomModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 620px;">
+    <div class="modal-content" style="border-radius: 12px; overflow: hidden; border: none; box-shadow: 0 8px 32px rgba(0,0,0,0.18);">
+      <div class="modal-header" id="roomModalHeader" style="border-bottom: none; padding: 1.25rem 1.5rem 0.5rem; align-items: flex-start;">
+        <div>
+          <h5 class="modal-title" id="roomModalTitle" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 4px;"></h5>
+          <span id="roomModalBadge" class="modal-status-badge"></span>
+        </div>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="margin-top: -2px;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 0.75rem 1.5rem 1.5rem;">
+        <p id="roomModalType" style="color: #6b7280; margin-bottom: 1rem; font-size: 0.9rem;"></p>
+
+        <!-- Booking info -->
+        <div id="roomModalBooking" style="display:none; background: #f9fafb; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+          <h6 style="font-weight: 700; margin-bottom: 0.85rem; color: #333; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.6px;">Booking Details</h6>
+          <table style="width:100%; font-size: 0.88rem; border-collapse: collapse;">
+            <tr><td style="color:#6b7280; width:110px; padding: 4px 0; vertical-align:top; font-weight:500;">Guest</td><td id="roomModalGuest" style="font-weight:600; padding: 4px 0;"></td></tr>
+            <tr><td style="color:#6b7280; padding: 4px 0; vertical-align:top; font-weight:500;">Phone</td><td id="roomModalPhone" style="padding: 4px 0;"></td></tr>
+            <tr><td style="color:#6b7280; padding: 4px 0; vertical-align:top; font-weight:500;">Dates</td><td id="roomModalDates" style="padding: 4px 0;"></td></tr>
+            <tr><td style="color:#6b7280; padding: 4px 0; vertical-align:top; font-weight:500;">Guests</td><td id="roomModalGuestCount" style="padding: 4px 0;"></td></tr>
+            <tr style="border-top: 1px solid #e5e7eb;"><td style="color:#6b7280; padding: 8px 0 4px; vertical-align:top; font-weight:500;">Payment</td><td id="roomModalPayment" style="padding: 8px 0 4px;"></td></tr>
+          </table>
+        </div>
+
+        <!-- Condition buttons -->
+        <h6 style="font-weight: 700; margin-bottom: 0.75rem; color: #333; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Set Room Condition</h6>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="conditionBtns">
+          <button class="btn-condition cond-vacant"       onclick="setCondition('vacant')">Empty Clean</button>
+          <button class="btn-condition cond-empty_dirty"  onclick="setCondition('empty_dirty')">Empty Dirty</button>
+          <button class="btn-condition cond-occupied"     onclick="setCondition('occupied')">Occupied</button>
+          <button class="btn-condition cond-reserved"     onclick="setCondition('reserved')">Reserved</button>
+          <button class="btn-condition cond-out_of_order" onclick="setCondition('out_of_order')">Out of Order</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
-    <script>
-      var csrfToken = '{{ csrf_token }}';
-      var statusFilter = '{{ status_filter }}';
-      /* ── Client-side filter (instant, no reload) ── */
-      function applyFilter(filter) {
-        document.querySelectorAll('.room-card').forEach(function(card) {
-          if (filter === 'all' || card.dataset.status === filter) {
-            card.classList.remove('filtered-out');
-          } else {
-            card.classList.add('filtered-out');
-          }
-        });
-        document.querySelectorAll('.summary-pill').forEach(function(pill) {
-          pill.classList.toggle('active', pill.dataset.filter === filter);
-        });
-      }
+<script>
+  var csrfToken = '{{ csrf_token }}';
+  var statusFilter = '{{ status_filter }}';
+  var activeRoomId = null;
 
-      /* Intercept filter clicks for instant filtering */
-      document.querySelectorAll('.summary-pill').forEach(function(pill) {
-        pill.addEventListener('click', function(e) {
-          e.preventDefault();
-          var f = this.dataset.filter;
-          if (this.classList.contains('active')) {
-            f = 'all';
-          }
-          statusFilter = f;
-          applyFilter(f);
-          history.replaceState(null, '', '?status=' + f);
-        });
-      });
+  var statusColors = {
+    vacant: '#28a745', dirty: '#ffc107', occupied: '#007bff',
+    reserved: '#6f42c1', out_of_order: '#dc3545'
+  };
+  var statusLabels = {
+    vacant: 'Clean', dirty: 'Dirty', occupied: 'Occupied',
+    reserved: 'Reserved', out_of_order: 'Out of Order'
+  };
 
-      /* Apply on load */
-      if (statusFilter && statusFilter !== 'all') applyFilter(statusFilter);
+  /* ── Client-side filter ── */
+  function applyFilter(filter) {
+    document.querySelectorAll('.room-card').forEach(function(card) {
+      card.classList.toggle('filtered-out', filter !== 'all' && card.dataset.status !== filter);
+    });
+    document.querySelectorAll('.summary-pill').forEach(function(pill) {
+      pill.classList.toggle('active', pill.dataset.filter === filter);
+    });
+  }
 
-      /* ── Status dropdown ── */
-      function toggleDropdown(e, btn) {
-        e.stopPropagation();
-        // Close all others
-        document.querySelectorAll('.status-dropdown.open').forEach(function(d) {
-          if (d !== btn.nextElementSibling) d.classList.remove('open');
-        });
-        btn.nextElementSibling.classList.toggle('open');
-      }
+  document.querySelectorAll('.summary-pill').forEach(function(pill) {
+    pill.addEventListener('click', function(e) {
+      e.preventDefault();
+      var f = this.classList.contains('active') ? 'all' : this.dataset.filter;
+      statusFilter = f;
+      applyFilter(f);
+      history.replaceState(null, '', '?status=' + f);
+    });
+  });
 
-      // Close dropdowns on outside click
-      document.addEventListener('click', function() {
-        document.querySelectorAll('.status-dropdown.open').forEach(function(d) {
-          d.classList.remove('open');
-        });
-      });
+  if (statusFilter && statusFilter !== 'all') applyFilter(statusFilter);
 
-      /* ── AJAX status change ── */
-      function changeStatus(e, roomId, newStatus) {
-        e.preventDefault();
-        e.stopPropagation();
+  /* ── Room modal ── */
+  function openRoomModal(card) {
+    var d = card.dataset;
+    activeRoomId = d.roomId;
 
-        $.ajax({
-          url: '',
-          method: 'POST',
-          data: { room_id: roomId, new_status: newStatus, csrfmiddlewaretoken: csrfToken },
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          success: function() { location.reload(); },
-          error: function() { alert('Failed to update room status.'); }
-        });
-      }
-    </script>
+    var status = d.status;
+    var color  = statusColors[status] || '#888';
+    var label  = statusLabels[status] || status;
+
+    document.getElementById('roomModalHeader').style.background = color;
+    document.getElementById('roomModalHeader').style.color = '#fff';
+    document.getElementById('roomModalTitle').textContent = 'Room ' + d.roomCode;
+    var badge = document.getElementById('roomModalBadge');
+    badge.textContent = label;
+    badge.style.background = 'rgba(255,255,255,0.25)';
+    document.getElementById('roomModalType').textContent = d.roomType;
+
+    var bookingSection = document.getElementById('roomModalBooking');
+    if (d.guestName) {
+      bookingSection.style.display = 'block';
+      document.getElementById('roomModalGuest').textContent = d.guestName;
+      document.getElementById('roomModalPhone').textContent = d.phone || 'No phone on file';
+      document.getElementById('roomModalDates').innerHTML =
+        '<i class="fa fa-calendar" style="margin-right:5px;"></i>' +
+        d.checkIn + ' → ' + d.checkOut +
+        (d.duration ? ' (' + d.duration + ' nights)' : '');
+      var adults = d.adults || '1', children = d.children || '0';
+      document.getElementById('roomModalGuestCount').textContent =
+        adults + ' adult' + (adults != '1' ? 's' : '') +
+        (children > 0 ? ', ' + children + ' child' + (children != '1' ? 'ren' : '') : '');
+      var payText = d.totalPrice ? 'Total: ' + parseFloat(d.totalPrice).toLocaleString('en-US', {style:'currency', currency:'USD'}) : '';
+      var payStatus = d.paymentStatus ? ' · ' + d.paymentStatus.charAt(0).toUpperCase() + d.paymentStatus.slice(1) : '';
+      document.getElementById('roomModalPayment').textContent = payText + payStatus;
+    } else {
+      bookingSection.style.display = 'none';
+    }
+
+    $('#roomModal').modal('show');
+  }
+
+  /* ── Set condition from modal ── */
+  function setCondition(newStatus) {
+    if (!activeRoomId) return;
+    $.ajax({
+      url: '',
+      method: 'POST',
+      data: { room_id: activeRoomId, new_status: newStatus, csrfmiddlewaretoken: csrfToken },
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      success: function() { $('#roomModal').modal('hide'); location.reload(); },
+      error: function() { alert('Failed to update room status.'); }
+    });
+  }
+</script>
 {% endblock %}
 
 

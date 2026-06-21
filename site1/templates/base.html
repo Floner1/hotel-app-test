@@ -57,24 +57,26 @@
     {% block extra_js %}{% endblock %}
 
     <script>
-      // Toast notification function
-      function showToast(message, isError = false) {
-        var toast = $('#toast-notification');
-        toast.find('.toast-message').text(message);
+      // Toast notification function (only used when a page hasn't defined its own)
+      if (typeof window.showToast !== 'function') {
+        window.showToast = function(message, isError = false) {
+          var toast = $('#toast-notification');
+          toast.find('.toast-message').text(message);
 
-        if (isError) {
-          toast.addClass('error');
-          toast.find('.toast-icon').html('<i class="fa fa-times-circle" aria-hidden="true"></i>');
-        } else {
-          toast.removeClass('error');
-          toast.find('.toast-icon').html('<i class="fa fa-check-circle" aria-hidden="true"></i>');
-        }
+          if (isError) {
+            toast.addClass('error');
+            toast.find('.toast-icon').html('<i class="fa fa-times-circle" aria-hidden="true"></i>');
+          } else {
+            toast.removeClass('error');
+            toast.find('.toast-icon').html('<i class="fa fa-check-circle" aria-hidden="true"></i>');
+          }
 
-        toast.addClass('show');
+          toast.addClass('show');
 
-        setTimeout(function() {
-          toast.removeClass('show');
-        }, 3000);
+          setTimeout(function() {
+            toast.removeClass('show');
+          }, 3000);
+        };
       }
 
       // Check for Django messages and display as toast

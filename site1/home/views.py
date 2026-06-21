@@ -572,14 +572,13 @@ def admin_reservations(request):
         check_out__gte=today
     ).count()
     
-    # Calculate total revenue
-    total_revenue = all_reservations.aggregate(
+    # Calculate today's revenue (bookings made today)
+    total_revenue = all_reservations.filter(booking_date__date=today).aggregate(
         total=Sum('total_price')
     )['total'] or 0
     
-    # Pagination - 10 items per page
     page = request.GET.get('page', 1)
-    paginator = Paginator(all_reservations, 10)  # Show 10 reservations per page
+    paginator = Paginator(all_reservations, 200)
     
     try:
         reservations = paginator.page(page)
@@ -667,14 +666,19 @@ def room_dashboard(request):
             duration = (assignment.check_out - assignment.check_in).days
 
         # Mapping to old format for UI rendering
+        from datetime import date
+        today = date.today()
         disp_status = room.reservation_status # defaults to vacant/occupied/reserved
         if room.housekeeping_status == 'out_of_order':
             disp_status = 'out_of_order'
+        elif assignment and assignment.check_in <= today <= assignment.check_out:
+            disp_status = 'occupied'
+        elif assignment and assignment.check_in > today:
+            disp_status = 'reserved'
         elif room.reservation_status == 'vacant' and room.housekeeping_status == 'dirty':
             disp_status = 'dirty'
-        else:
-            if room.reservation_status == 'vacant':
-                disp_status = 'vacant'
+        elif room.reservation_status == 'vacant':
+            disp_status = 'vacant'
         
         status_counts[disp_status] = status_counts.get(disp_status, 0) + 1
 
@@ -913,14 +917,20 @@ def manage_accounts(request):
         return redirect('manage_accounts')
     
     # GET request - display accounts based on role hierarchy
+    tab = request.GET.get('tab', 'all')
     if request.user.role == 'admin':
-        accounts = User.objects.filter(is_active=True).order_by('-created_at')
+        qs = User.objects.exclude(is_active=False).order_by('-created_at')
+        if tab == 'staff':
+            qs = qs.filter(role__in=['staff', 'admin'])
+        elif tab == 'customers':
+            qs = qs.filter(role='customer')
     else:
-        accounts = User.objects.filter(is_active=True, role='customer').order_by('-created_at')
-    
+        qs = User.objects.exclude(is_active=False).filter(role='customer').order_by('-created_at')
+        tab = 'customers'
+
     return render(request, 'manage_accounts.html', {
-        
-        'accounts': accounts
+        'accounts': qs,
+        'active_tab': tab,
     })
 
 @login_required

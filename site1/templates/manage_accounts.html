@@ -88,7 +88,8 @@
       border-bottom: 2px solid #e0e0e0;
     }
 
-    .tabs button {
+    .tab-link {
+      display: inline-block;
       background: none;
       border: none;
       padding: 15px 30px;
@@ -96,17 +97,19 @@
       font-weight: 600;
       color: var(--text-light);
       cursor: pointer;
-      transition: all 0.3s ease;
+      text-decoration: none;
       border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
     }
 
-    .tabs button.active {
+    .tab-link.active {
       color: var(--primary-color);
       border-bottom-color: var(--primary-color);
     }
 
-    .tabs button:hover {
+    .tab-link:hover {
       color: var(--primary-color);
+      text-decoration: none;
     }
 
     .accounts-table {
@@ -434,9 +437,11 @@
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="active" onclick="switchTab('all')">All Accounts</button>
-      <button onclick="switchTab('staff')">Staff</button>
-      <button onclick="switchTab('customers')">Customers</button>
+      {% if request.user.role == 'admin' %}
+      <a class="tab-link {% if active_tab == 'all' %}active{% endif %}" href="?tab=all">All Accounts</a>
+      <a class="tab-link {% if active_tab == 'staff' %}active{% endif %}" href="?tab=staff">Staff</a>
+      {% endif %}
+      <a class="tab-link {% if active_tab == 'customers' %}active{% endif %}" href="?tab=customers">Customers</a>
     </div>
 
     <!-- Accounts Table -->
@@ -454,19 +459,19 @@
         <tbody id="accountsTableBody">
           {% if accounts %}
             {% for account in accounts %}
-            <tr data-type="{% if account.is_staff %}staff{% else %}customer{% endif %}">
+            <tr data-type="{% if account.role == 'staff' or account.role == 'admin' %}staff{% else %}customer{% endif %}">
               <td><strong>{{ account.username }}</strong></td>
               <td>{{ account.email }}</td>
               <td>
-                {% if account.is_staff %}
-                  <span class="badge badge-staff">Staff</span>
+                {% if account.role == 'staff' or account.role == 'admin' %}
+                  <span class="badge badge-staff">{{ account.role|capfirst }}</span>
                 {% else %}
                   <span class="badge badge-customer">Customer</span>
                 {% endif %}
               </td>
               <td>{{ account.created_at|date:"M d, Y" }}</td>
               <td>
-                <button class="btn-action btn-edit" onclick="editAccount({{ account.user_id }}, '{{ account.username|escapejs }}', '{{ account.email|escapejs }}', '{{ account.is_staff|yesno:"true,false" }}')">
+                <button class="btn-action btn-edit" onclick="editAccount({{ account.user_id }}, '{{ account.username|escapejs }}', '{{ account.email|escapejs }}', '{% if account.role == "staff" or account.role == "admin" %}true{% else %}false{% endif %}')">
                   <i class="fa fa-edit"></i> Edit
                 </button>
                 <button class="btn-action btn-delete" onclick="confirmDelete({{ account.user_id }}, '{{ account.username|escapejs }}')">
@@ -599,25 +604,6 @@
         showToast('{{ message|escapejs }}', '{% if message.tags %}{% if "error" in message.tags %}error{% elif "warning" in message.tags %}warning{% else %}success{% endif %}{% else %}success{% endif %}');
       {% endfor %}
     {% endif %}
-
-    let currentTab = 'all';
-
-    function switchTab(tab) {
-      currentTab = tab;
-      const buttons = document.querySelectorAll('.tabs button');
-      buttons.forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
-      
-      const rows = document.querySelectorAll('#accountsTableBody tr');
-      rows.forEach(row => {
-        const type = row.getAttribute('data-type');
-        if (tab === 'all' || type === tab || (tab === 'customers' && type === 'customer')) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-    }
 
     function openModal(mode, id = '', username = '', email = '', isStaff = 'false') {
       const modal = document.getElementById('accountModal');
