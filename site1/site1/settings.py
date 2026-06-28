@@ -87,14 +87,12 @@ WSGI_APPLICATION = 'site1.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'mssql',
-        'NAME': os.getenv('DB_NAME', 'hotelbooking'),
-        'HOST': os.getenv('DB_HOST', 'DESKTOP-NS6H7CH\\MSSQLSERVER01'),
-        'Trusted_Connection': 'yes',  # Use Windows Authentication
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-            'trust_server_certificate': 'yes',
-        },
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'railway'),
+        'USER': os.getenv('DB_USER', 'root'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', 'reseau.proxy.rlwy.net'),
+        'PORT': os.getenv('DB_PORT', '47961'),
     }
 }
 
@@ -197,6 +195,7 @@ CSRF_COOKIE_HTTPONLY = False           # Must be False so JS can read CSRF token
 
 # ---------- Security settings (apply when DEBUG=False) ----------
 if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000          # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
