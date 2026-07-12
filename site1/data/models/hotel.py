@@ -42,6 +42,10 @@ class User(AbstractBaseUser):
         default='customer'
     )
     is_active = models.BooleanField(default=True, null=True, blank=True)
+    # Email-verification flag. Defaults True so admin-provisioned accounts and all
+    # pre-existing rows are usable; only public self-signup sets it False and must
+    # verify via emailed token before login. Distinct from is_active (soft-delete).
+    is_verified = models.BooleanField(default=True, db_column='is_verified')
     created_at = models.DateTimeField(null=True, blank=True)
     last_login = models.DateTimeField(null=True, blank=True)
     created_by = models.IntegerField(null=True, blank=True, db_column='created_by')

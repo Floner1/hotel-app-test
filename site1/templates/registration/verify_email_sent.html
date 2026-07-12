@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Verify Your Email | {{ hotel_name|default:"Thiên Tài Hotel" }}{% endblock %}
+{% block page_id %}verify-email-sent{% endblock %}
+{% block extra_css %}{% include "registration/_auth_styles.html" %}{% endblock %}
+
+{% block content %}
+<section class="page-title-bar">
+  <div class="container">
+    <div class="page-title-inner">
+      <a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="{{ hotel_name|default:'Thiên Tài Hotel' }}" class="page-title-logo"></a>
+      <h1>Verify Your Email</h1>
+    </div>
+  </div>
+</section>
+
+<section class="auth-section">
+  <div class="container">
+    <div class="auth-card">
+      <h2>Check your inbox</h2>
+      <p>We sent a verification link{% if email %} to <strong>{{ email }}</strong>{% endif %}. Open it within one hour to activate your account and sign in.</p>
+      <p>Did not get it? Check your spam folder, or <a href="{% url 'resend_verification' %}">request a new link</a>.</p>
+      <div class="auth-footer">
+        <a href="{% url 'login' %}">Back to sign in</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

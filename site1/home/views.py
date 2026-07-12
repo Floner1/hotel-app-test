@@ -402,10 +402,18 @@ def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
+            # AuthenticationForm.clean() already ran authenticate(request, ...) with
+            # the request, so django-axes recorded the attempt and can enforce
+            # per-username lockout. Reuse that cached user instead of a second,
+            # request-less authenticate() call (which axes cannot track).
+            user = form.get_user()
             if user is not None:
+                # Block self-signup accounts that haven't verified their email.
+                # is_verified defaults True, so existing and admin-created accounts
+                # are unaffected; only unverified public signups are stopped here.
+                if not user.is_verified:
+                    messages.error(request, 'Please verify your email before signing in. Check your inbox or request a new link below.')
+                    return render(request, 'registration/verify_email_invalid.html', {'email': user.email})
                 login(request, user)
                 log_user_login(user, request)
                 
@@ -437,6 +445,75 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'You have been successfully logged out.')
     return redirect('home')
+
+
+def _send_verification_email(request, user):
+    """Build and send a single-use email-verification link to the user."""
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+    from django.template.loader import render_to_string
+    from django.core.mail import send_mail
+    from django.urls import reverse
+    from home.tokens import email_verification_token
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = email_verification_token.make_token(user)
+    link = request.build_absolute_uri(reverse('verify_email', args=[uid, token]))
+    body = render_to_string('registration/verify_email_email.html', {
+        'link': link,
+        'username': user.username,
+    })
+    try:
+        send_mail(
+            'Verify your Thiên Tài Hotel account',
+            body,
+            None,  # DEFAULT_FROM_EMAIL
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        # Non-fatal: signup still succeeds; user can use the resend endpoint.
+        logger.exception('Verification email send failed for %s', user.email)
+
+
+def verify_email(request, uidb64, token):
+    """Confirm an email-verification token, mark the account verified, log in."""
+    from django.utils.http import urlsafe_base64_decode
+    from django.utils.encoding import force_str
+    from home.tokens import email_verification_token
+
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+        user = None
+
+    # Token is single-use: it embeds is_verified, so it stops validating once set.
+    if user is not None and email_verification_token.check_token(user, token):
+        if not user.is_verified:
+            user.is_verified = True
+            user.save(update_fields=['is_verified'])
+        login(request, user, backend='home.auth_backend.CustomUserBackend')
+        messages.success(request, 'Your email has been verified. Welcome!')
+        return redirect('home')
+
+    return render(request, 'registration/verify_email_invalid.html')
+
+
+@ratelimit(key='ip', rate='3/m', method='POST', block=True)
+def resend_verification(request):
+    """Re-send a verification link. Generic response — never reveals whether an
+    account exists or is already verified (anti-enumeration)."""
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        if email:
+            user = User.objects.filter(email__iexact=email, is_verified=False).first()
+            if user:
+                _send_verification_email(request, user)
+        return render(request, 'registration/verify_email_sent.html', {
+            'email': email, 'resent': True,
+        })
+    return render(request, 'registration/verify_email_invalid.html')
 
 
 @ratelimit(key='ip', rate='3/m', method='POST', block=True)
@@ -496,24 +573,24 @@ def register_view(request):
             }
             return render(request, 'register.html', context)
         
-        # Create user
+        # Create user (unverified — must confirm email before first login)
         try:
             from django.utils import timezone
             from django.contrib.auth.hashers import make_password
-            
+
             user = User.objects.create(
                 username=username,
                 email=email,
                 password_hash=make_password(password1),
                 role='customer',
                 is_active=True,
+                is_verified=False,   # email not confirmed yet
                 created_at=timezone.now()
             )
-            
-            # Log the user in - specify backend since we have multiple
-            login(request, user, backend='home.auth_backend.CustomUserBackend')
-            messages.success(request, f'Welcome {username}! Your account has been created successfully.')
-            return redirect('reservation')
+
+            # Send the verification link; do NOT log in until verified.
+            _send_verification_email(request, user)
+            return render(request, 'registration/verify_email_sent.html', {'email': email})
             
         except Exception as e:
             logger.exception('User registration failed')

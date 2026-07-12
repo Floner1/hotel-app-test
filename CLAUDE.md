@@ -6,6 +6,21 @@ Read this before touching any file in this repo.
 
 You may only edit frontend files: templates in `site1/templates/`, stylesheets and JS in `site1/static/`. Do not touch views, models, URLs, migrations, settings, or any backend logic unless explicitly asked.
 
+### Temporary backend scope — security remediation (2026-07-12)
+
+This is a **scoped, temporary** lift for a security-hardening pass driven by a prior audit. It is **not** a blanket or permanent lift of the frontend-only rule above. Backend files in scope for this task only:
+
+- `site1/site1/settings.py`
+- `site1/site1/urls.py`, `site1/home/urls.py`
+- `site1/home/views.py` (auth/login/registration/reset flows only)
+- `site1/data/models/` and `site1/home/models.py` (auth/User model only)
+- `site1/data/migrations/`, `site1/home/migrations/` (new security migrations)
+- middleware (CSP, django-axes)
+- `requirements.txt`
+- `site1/home/auth_backend.py` and any new auth token/generator files
+
+Stay out of booking logic, payment logic, room/rate models, email-campaign send logic, and anything not required by the seven audit items. When this pass is done, the frontend-only rule is the default again.
+
 ---
 
 ## Design System

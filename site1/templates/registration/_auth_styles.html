@@ -1,0 +1,42 @@
+<style>
+  .auth-section { padding: var(--space-lg) 0; background: var(--color-bg); }
+  .auth-card {
+    max-width: 440px; margin: 0 auto; background: var(--color-bg);
+    padding: var(--space-md); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+  .auth-card h2 { font-size: var(--text-h3); margin: 0 0 var(--space-sm); color: var(--color-text); }
+  .auth-card p { color: var(--color-text-muted); font-size: var(--text-caption); line-height: var(--line-height-body); }
+  .auth-card .form-group { margin-bottom: 1.25rem; }
+  .auth-card label {
+    display: block; margin-bottom: 0.4rem; font-weight: var(--font-weight-heading);
+    color: var(--color-text); font-size: var(--text-caption);
+  }
+  .auth-card .form-control {
+    height: 46px; border-width: 1px; border-color: var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .auth-card .btn-submit {
+    width: 100%; padding: 0.75rem; background: var(--color-primary);
+    color: var(--color-text); border: none; border-radius: var(--radius-md);
+    font-weight: var(--font-weight-heading); cursor: pointer;
+    transition: background var(--duration-base) var(--ease);
+  }
+  .auth-card .btn-submit:hover { background: var(--color-accent); }
+  .auth-card .btn-submit:active { transform: translateY(1px); }
+  .auth-card .error-message {
+    padding: 0.75rem 1rem; margin-bottom: 1.25rem; background: #fdecea;
+    color: #b3261e; border: 1px solid #f5c2c0; border-radius: var(--radius-sm);
+    font-size: var(--text-caption);
+  }
+  .auth-card .auth-footer {
+    margin-top: var(--space-sm); text-align: center;
+    color: var(--color-text-muted); font-size: var(--text-caption);
+  }
+  .auth-card .auth-footer a { color: var(--color-text); font-weight: var(--font-weight-heading); }
+  .auth-card .auth-footer a:hover { color: var(--color-primary); }
+  .site-header { display: none !important; }
+  .page-title-bar { margin-top: 0 !important; }
+  .page-title-inner { display: flex; align-items: center; gap: 1.25rem; }
+  .page-title-logo { height: 56px; width: auto; flex-shrink: 0; }
+</style>

@@ -1,8 +1,38 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
+from django_ratelimit.decorators import ratelimit
 from . import views
+
+# Password reset request view (stock Django views + custom templates).
+# The custom data.User exposes a `password` property mapping to password_hash,
+# and pk = user_id, so Django's stock PasswordResetTokenGenerator works as-is.
+# Rate-limited by IP separately from login to block email enumeration / spam.
+password_reset_request = ratelimit(key='ip', rate='5/m', method='POST', block=True)(
+    auth_views.PasswordResetView.as_view(
+        template_name='registration/password_reset_form.html',
+        email_template_name='registration/password_reset_email.html',
+        subject_template_name='registration/password_reset_subject.txt',
+        success_url='/accounts/password_reset/done/',
+    )
+)
 
 urlpatterns = [
     path('', views.get_home, name='home'),  # Root URL
+    # ---- Password reset (stock auth views) ----
+    path('accounts/password_reset/', password_reset_request, name='password_reset'),
+    path('accounts/password_reset/done/',
+         auth_views.PasswordResetDoneView.as_view(
+             template_name='registration/password_reset_done.html'),
+         name='password_reset_done'),
+    path('accounts/reset/<uidb64>/<token>/',
+         auth_views.PasswordResetConfirmView.as_view(
+             template_name='registration/password_reset_confirm.html',
+             success_url='/accounts/reset/done/'),
+         name='password_reset_confirm'),
+    path('accounts/reset/done/',
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='registration/password_reset_complete.html'),
+         name='password_reset_complete'),
     path('about/', views.get_about, name='about'),
     path('contact/', views.get_contact, name='contact'),
     path('reservation/', views.get_reservation, name='reservation'),
@@ -12,6 +42,8 @@ urlpatterns = [
     path('unsubscribe/<str:token>/', views.unsubscribe_view, name='unsubscribe'),
     path('accounts/login/', views.login_view, name='login'),
     path('accounts/register/', views.register_view, name='register'),
+    path('accounts/verify/<uidb64>/<token>/', views.verify_email, name='verify_email'),
+    path('accounts/verify/resend/', views.resend_verification, name='resend_verification'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/reservations/', views.admin_reservations, name='admin_reservations'),
     path('dashboard/rooms/', views.room_dashboard, name='room_dashboard'),
