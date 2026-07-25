@@ -57,7 +57,15 @@
       "Bash(git checkout *)",
       "Bash(git merge *)",
       "Bash(git commit *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(python \"C:/Users/LAPTOP~1/AppData/Local/Temp/claude/d--coding-projects-hotel-app-test/86ab1fba-950d-4a35-96be-af7cb81628cf/scratchpad/test_guards.py\")",
+      "Bash(python \"C:/Users/LAPTOP~1/AppData/Local/Temp/claude/d--coding-projects-hotel-app-test/86ab1fba-950d-4a35-96be-af7cb81628cf/scratchpad/test_guards2.py\")",
+      "Bash(xargs grep -Ln \"csrf_token\")",
+      "Bash(xargs -I{} grep -l \"<form\" {})",
+      "Bash(xargs grep -l \"csrf\" -i)",
+      "Bash(xargs grep -l \"newsletter-form\\\\|dp-form\\\\|reservationForm\\\\|editBookingForm\")",
+      "Bash(cd \"d:\\\\coding projects\\\\hotel-app-test\\\\site1\" && grep -n \"MEDIA_\\\\|STORAGES\\\\|FILE_UPLOAD\" site1/settings.py; echo \"---procfile etc---\"; find .. -maxdepth 2 -iname \"Procfile*\" -o -iname \"nginx*\" -o -iname \"*.conf\" 2>/dev/null; find . -maxdepth 1 -iname \"Procfile*\")",
+      "Read(//d/coding projects/**)"
     ]
   }
 }

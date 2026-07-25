@@ -17,6 +17,9 @@ env/
 .vscode/
 .idea/
 
+# Local git worktrees
+.claude/worktrees/
+
 # Database
 db.sqlite3
 

@@ -92,6 +92,40 @@
     color: var(--color-primary);
   }
 
+  .password-field { position: relative; }
+
+  .password-field .form-control { padding-right: 44px; }
+
+  .password-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 46px;
+    width: 44px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: color var(--duration-base) var(--ease);
+  }
+
+  .password-toggle:hover,
+  .password-toggle:focus-visible {
+    color: var(--color-text);
+  }
+
+  /* Mouse clicks get no ring; keyboard focus keeps one. */
+  .password-toggle:focus { outline: none; }
+
+  .password-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .password-toggle .fa { font-size: var(--text-body); }
+
   .site-header { display: none !important; }
   .page-title-bar { margin-top: 0 !important; }
 
@@ -140,7 +174,12 @@
 
         <div class="form-group">
           <label for="id_password">Password</label>
-          <input type="password" name="password" class="form-control" id="id_password" required>
+          <div class="password-field">
+            <input type="password" name="password" class="form-control" id="id_password" required>
+            <button type="button" class="password-toggle" id="password-toggle" aria-label="Show password" aria-pressed="false">
+              <i class="fa fa-eye" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
 
         <button type="submit" class="btn-submit">Sign In</button>
@@ -158,4 +197,16 @@
     </div>
   </div>
 </section>
+
+{# ponytail: nonce'd inline script, not an on*= handler, so it survives the CSP flip to enforced #}
+<script nonce="{{ request.csp_nonce }}">
+  document.getElementById('password-toggle').addEventListener('click', function () {
+    var input = document.getElementById('id_password');
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    this.setAttribute('aria-pressed', show);
+    this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    this.firstElementChild.className = show ? 'fa fa-eye-slash' : 'fa fa-eye';
+  });
+</script>
 {% endblock %}
