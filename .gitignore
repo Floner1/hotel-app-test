@@ -17,11 +17,18 @@ env/
 .vscode/
 .idea/
 
-# Local git worktrees
-.claude/worktrees/
+# Claude Code / agent workspace — local state, not project source
+.claude/
+CLAUDE.md
+docs/superpowers/
+docs/council-report-*.html
+docs/council-transcript-*.md
 
 # Database
 db.sqlite3
+
+# Logs
+logs/
 
 # OS
 Thumbs.db

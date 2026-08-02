@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,7 +24,12 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-assert SECRET_KEY, "SECRET_KEY must be set in the environment variables"
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set in the environment (or in site1/.env). "
+        "Generate one with: python -c \"from django.core.management.utils import "
+        "get_random_secret_key; print(get_random_secret_key())\""
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
@@ -95,6 +101,14 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME', 'hotelbooking'),
         'HOST': os.getenv('DB_HOST', 'DESKTOP-NS6H7CH\\MSSQLSERVER01'),
         'Trusted_Connection': 'yes',  # Use Windows Authentication
+        # DO NOT set CONN_MAX_AGE here until SESSION_CONTEXT is set per request.
+        # home.views.login_view calls sp_set_session_context exactly once, at
+        # login, and that value lives on the CONNECTION. Persistent connections
+        # would therefore carry one user's user_id/user_role into the next
+        # user's request, and the RLS triggers in schema.sql (trg_booking_
+        # ownership, trg_prevent_role_escalation) would judge them by it.
+        # Re-enable only once the RBAC middleware sets and clears the context
+        # on every request.
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
             'trust_server_certificate': 'yes',
@@ -141,6 +155,19 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',  # Use only the new static directory
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Hash static filenames (style.abc123.css) so {% static %} URLs change whenever
+# the file changes. This is what replaces the old `?v={% now 'U' %}` query
+# string, which busted the cache on *every* request and made caching useless.
+# Compressed* also writes .gz/.br siblings that WhiteNoise serves directly.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Login/Logout URLs
 LOGIN_URL = '/accounts/login/'
@@ -263,9 +290,9 @@ CSRF_TRUSTED_ORIGINS = [
 # file. Do not flip before that refactor.
 #
 # NOTE: CSP headers are enforced by BROWSERS on web pages only. They do NOT
-# govern email clients, so this does NOT mitigate the campaign.html email XSS —
-# that needs server-side HTML sanitization of body_html (bleach/nh3). Flagged
-# separately.
+# govern email clients, so this does NOT mitigate the campaign.html email XSS.
+# That is handled instead by server-side sanitization of body_html at the DB
+# write path — see EmailRepository._clean_html in data/repos/repositories.py.
 CONTENT_SECURITY_POLICY_REPORT_ONLY = {
     "DIRECTIVES": {
         "default-src": ["'self'"],
@@ -277,6 +304,60 @@ CONTENT_SECURITY_POLICY_REPORT_ONLY = {
         "base-uri": ["'self'"],
         "object-src": ["'none'"],
         "form-action": ["'self'"],
+    },
+}
+
+# ---------- Logging ----------
+# Console for dev, rotating file for anything long-lived. Root is INFO;
+# django.db.backends is pinned to WARNING because at DEBUG it logs every single
+# SQL statement, which floods the file on a page that renders a booking list.
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_DIR / 'app.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB per file
+            'backupCount': 5,             # app.log.1 .. app.log.5
+            'formatter': 'verbose',
+            'encoding': 'utf-8',          # log messages contain non-ASCII
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        # Django's own DEFAULT_LOGGING gives the 'django' logger a console
+        # handler AND leaves propagate=True. Adding root handlers above would
+        # therefore print every django.* record to the console twice. Naming
+        # 'django' here replaces its handler list with an empty one, so records
+        # reach the console exactly once, via root.
+        # (This also drops DEFAULT_LOGGING's mail_admins handler, which is
+        # already inert: ADMINS is not configured.)
+        'django': {
+            'handlers': [],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # No handlers: records propagate to root, level just caps the volume.
+        'django.db.backends': {
+            'level': 'WARNING',
+        },
     },
 }
 

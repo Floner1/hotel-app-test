@@ -6,6 +6,7 @@ django-ratelimit==4.1.0
 djangorestframework==3.16.0
 git-filter-repo==2.47.0
 mssql-django==1.6
+nh3==0.3.6
 pillow==12.1.0
 pyodbc==5.2.0
 python-dotenv==1.1.1

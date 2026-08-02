@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git check-ignore *)",
-      "Bash(echo \"---exit:$?\")",
-      "Bash(grep -i \"^\\\\.env$\\\\|site1/\\\\.env$\")"
-    ]
-  }
-}

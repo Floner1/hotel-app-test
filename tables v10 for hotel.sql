@@ -159,7 +159,7 @@ CREATE TABLE booking_info (
     total_price      DECIMAL(10,2) NOT NULL,
     amount_paid      DECIMAL(10,2) DEFAULT 0,
     status           NVARCHAR(50) DEFAULT 'pending'
-        CHECK (status IN ('pending','confirmed','cancelled','completed')),
+        CONSTRAINT chk_booking_status CHECK (status IN ('pending','confirmed','checked_in','checked_out','cancelled','completed','rejected')),
     payment_status   NVARCHAR(50) DEFAULT 'unpaid'
         CHECK (payment_status IN ('unpaid','partial','paid','refunded')),
     special_requests NVARCHAR(MAX),

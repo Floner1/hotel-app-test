@@ -6,6 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService
 from data.models import User, CustomerBookingInfo
@@ -16,6 +17,16 @@ import logging
 from home.audit import log_booking_create, log_booking_update, log_booking_delete, log_user_login
 
 logger = logging.getLogger(__name__)
+
+BOOKING_STATUSES = {
+    'pending',
+    'confirmed',
+    'checked_in',
+    'checked_out',
+    'cancelled',
+    'completed',
+    'rejected',
+}
 
 def is_admin(user):
     """Check if user has admin role."""
@@ -200,16 +211,16 @@ def get_reservation(request):
             # Milestone check: intercept before booking if this is a loyalty milestone
             # and the guest hasn't yet decided whether to redeem it.
             milestone_decision = request.POST.get('milestone_decision', '')
-            email_val = (reservation_data.get('email') or '').strip().lower()
-            if not milestone_decision and email_val:
-                existing_count = CustomerBookingInfo.objects.filter(email__iexact=email_val).count()
-                if (existing_count + 1) % 3 == 0:
-                    return JsonResponse({
-                        'status': 'milestone_check',
-                        'booking_number': existing_count + 1,
-                    })
+            existing_count = CustomerBookingInfo.objects.filter(user=request.user).count()
+            milestone_booking_number = existing_count + 1
+            milestone_eligible = milestone_booking_number % 3 == 0
+            if not milestone_decision and milestone_eligible:
+                return JsonResponse({
+                    'status': 'milestone_check',
+                    'booking_number': milestone_booking_number,
+                })
 
-            if milestone_decision == 'redeem':
+            if milestone_decision == 'redeem' and milestone_eligible:
                 reservation_data['milestone_discount_percent'] = 10
 
             # Create reservation using the service
@@ -838,56 +849,51 @@ def view_reservation(request, booking_id):
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+@require_POST
 def delete_reservation(request, booking_id):
     """
     Delete a reservation by booking_id.
     Only accepts POST requests for security.
     Requires user to be logged in and have staff/admin role.
     """
-    if request.method == 'POST':
-        try:
-            # Find the booking
-            booking = CustomerBookingInfo.objects.select_related('hotel', 'user').get(booking_id=booking_id)
-            booking_name = booking.guest_name
-            booking_data = {
-                'guest_name': booking.guest_name,
-                'room_type': booking.room_type,
-                'check_in': str(booking.check_in),
-                'check_out': str(booking.check_out),
-                'total_price': str(booking.total_price),
-            }
+    try:
+        # Find the booking
+        booking = CustomerBookingInfo.objects.select_related('hotel', 'user').get(booking_id=booking_id)
+        booking_name = booking.guest_name
+        booking_data = {
+            'guest_name': booking.guest_name,
+            'room_type': booking.room_type,
+            'check_in': str(booking.check_in),
+            'check_out': str(booking.check_out),
+            'total_price': str(booking.total_price),
+        }
 
-            # Delete related records to prevent Foreign Key constraint errors
-            booking.room_assignments.all().delete()
-            from django.db import connection
-            with connection.cursor() as cursor:
-                cursor.execute("DELETE FROM customer_requests WHERE booking_id = %s", [booking_id])
+        # Delete related records to prevent Foreign Key constraint errors
+        booking.room_assignments.all().delete()
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM customer_requests WHERE booking_id = %s", [booking_id])
 
-            # Delete the booking
-            booking.delete()
-            log_booking_delete(request.user, booking_id, booking_data, request)
+        # Delete the booking
+        booking.delete()
+        log_booking_delete(request.user, booking_id, booking_data, request)
 
-            return JsonResponse({
-                'status': 'success',
-                'message': f'Reservation for {booking_name} (Booking #{booking_id}) has been deleted successfully.'
-            })
-              
-        except CustomerBookingInfo.DoesNotExist:
-            return JsonResponse({
-                'status': 'error',
-                'message': f'Booking #{booking_id} not found.'
-            }, status=404)
-        except Exception as e:
-            logger.exception('Reservation deletion failed for #%s', booking_id)
-            return JsonResponse({
-                'status': 'error',
-                'message': 'An unexpected error occurred while deleting the reservation.'
-            }, status=500)
-    else:
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Reservation for {booking_name} (Booking #{booking_id}) has been deleted successfully.'
+        })
+          
+    except CustomerBookingInfo.DoesNotExist:
         return JsonResponse({
             'status': 'error',
-            'message': 'Only POST requests are allowed.'
-        }, status=405)
+            'message': f'Booking #{booking_id} not found.'
+        }, status=404)
+    except Exception as e:
+        logger.exception('Reservation deletion failed for #%s', booking_id)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An unexpected error occurred while deleting the reservation.'
+        }, status=500)
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
@@ -1193,64 +1199,62 @@ def email_campaign_send(request, campaign_id):
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+@require_POST
 def upload_image(request):
     """Handle image upload for admin users — saves binary data to the ImagesRef DB table."""
-    if request.method == 'POST':
-        try:
-            from PIL import Image
-            from io import BytesIO
-            from data.models.images import ImagesRef
+    try:
+        from PIL import Image
+        from io import BytesIO
+        from data.models.images import ImagesRef
 
-            image_file = request.FILES.get('image')
-            image_id = request.POST.get('image_id')
+        image_file = request.FILES.get('image')
+        image_id = request.POST.get('image_id')
 
-            if not image_file:
-                return JsonResponse({'status': 'error', 'message': 'No image file provided'}, status=400)
+        if not image_file:
+            return JsonResponse({'status': 'error', 'message': 'No image file provided'}, status=400)
 
-            if not image_id:
-                return JsonResponse({'status': 'error', 'message': 'No image ID provided'}, status=400)
+        if not image_id:
+            return JsonResponse({'status': 'error', 'message': 'No image ID provided'}, status=400)
 
-            # Validate file size (5 MB)
-            if image_file.size > 5 * 1024 * 1024:
-                return JsonResponse({'status': 'error', 'message': 'File size must be less than 5MB'}, status=400)
+        # Validate file size (5 MB)
+        if image_file.size > 5 * 1024 * 1024:
+            return JsonResponse({'status': 'error', 'message': 'File size must be less than 5MB'}, status=400)
 
-            # Validate file type
-            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
-            if image_file.content_type not in allowed_types:
-                return JsonResponse({'status': 'error', 'message': 'Invalid file type. Only JPG, PNG, and GIF are allowed'}, status=400)
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+        if image_file.content_type not in allowed_types:
+            return JsonResponse({'status': 'error', 'message': 'Invalid file type. Only JPG, PNG, and GIF are allowed'}, status=400)
 
-            # Open, convert, and compress with Pillow
-            img = Image.open(image_file)
-            if img.mode in ('RGBA', 'LA', 'P'):
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode in ('P', 'LA'):
-                    img = img.convert('RGBA')
-                background.paste(img, mask=img.split()[-1])
-                img = background
+        # Open, convert, and compress with Pillow
+        img = Image.open(image_file)
+        if img.mode in ('RGBA', 'LA', 'P'):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode in ('P', 'LA'):
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1])
+            img = background
 
-            buffer = BytesIO()
-            img.save(buffer, 'JPEG', quality=85, optimize=True)
-            image_bytes = buffer.getvalue()
+        buffer = BytesIO()
+        img.save(buffer, 'JPEG', quality=85, optimize=True)
+        image_bytes = buffer.getvalue()
 
-            # Upsert: update if name exists, otherwise insert
-            obj, created = ImagesRef.objects.update_or_create(
-                ImageName=image_id,
-                defaults={
-                    'ImageData': image_bytes,
-                    'ImageContentType': 'image/jpeg',
-                }
-            )
+        # Upsert: update if name exists, otherwise insert
+        obj, created = ImagesRef.objects.update_or_create(
+            ImageName=image_id,
+            defaults={
+                'ImageData': image_bytes,
+                'ImageContentType': 'image/jpeg',
+            }
+        )
 
-            return JsonResponse({
-                'status': 'success',
-                'message': f'Image "{image_id}" saved to database successfully!',
-            })
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Image "{image_id}" saved to database successfully!',
+        })
 
-        except Exception as e:
-            logger.exception('Image upload failed')
-            return JsonResponse({'status': 'error', 'message': 'Image upload failed. Please try again.'}, status=500)
-
-    return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed'}, status=405)
+    except Exception as e:
+        logger.exception('Image upload failed')
+        return JsonResponse({'status': 'error', 'message': 'Image upload failed. Please try again.'}, status=500)
 
 
 def serve_image(request, image_name):
@@ -1266,212 +1270,211 @@ def serve_image(request, image_name):
 
 @login_required
 @user_passes_test(is_admin, login_url='/accounts/login/')
+@require_POST
 def save_content(request):
     """Save a site content value to the DB (any key allowed for inline editing).
     If a 'db_key' is also provided, the value is saved under that key too
     (for elements originally rendered from {{ ct.xxx }} template variables)."""
-    if request.method == 'POST':
-        try:
-            import json
-            data = json.loads(request.body)
-            key   = data.get('key', '').strip()
-            value = data.get('value', '').strip()
-            db_key = data.get('db_key', '').strip()   # optional original DB key
-            if not key:
-                return JsonResponse({'status': 'error', 'message': 'No key provided'}, status=400)
-            if len(key) > 100:
-                return JsonResponse({'status': 'error', 'message': 'Key too long'}, status=400)
-            from data.models.site_content import SiteContent
-            # Save the page-level override key
+    try:
+        import json
+        data = json.loads(request.body)
+        key   = data.get('key', '').strip()
+        value = data.get('value', '').strip()
+        db_key = data.get('db_key', '').strip()   # optional original DB key
+        if not key:
+            return JsonResponse({'status': 'error', 'message': 'No key provided'}, status=400)
+        if len(key) > 100:
+            return JsonResponse({'status': 'error', 'message': 'Key too long'}, status=400)
+        from data.models.site_content import SiteContent
+        # Save the page-level override key
+        SiteContent.objects.update_or_create(
+            content_key=key,
+            defaults={'content_value': value}
+        )
+        # Also save to the original DB key if provided
+        if db_key and len(db_key) <= 100:
             SiteContent.objects.update_or_create(
-                content_key=key,
+                content_key=db_key,
                 defaults={'content_value': value}
             )
-            # Also save to the original DB key if provided
-            if db_key and len(db_key) <= 100:
-                SiteContent.objects.update_or_create(
-                    content_key=db_key,
-                    defaults={'content_value': value}
-                )
-            return JsonResponse({'status': 'success', 'value': value})
-        except Exception as e:
-            logger.exception('Content save failed')
-            return JsonResponse({'status': 'error', 'message': 'An error occurred while saving content.'}, status=500)
-    return JsonResponse({'status': 'error', 'message': 'POST only'}, status=405)
+        return JsonResponse({'status': 'success', 'value': value})
+    except Exception as e:
+        logger.exception('Content save failed')
+        return JsonResponse({'status': 'error', 'message': 'An error occurred while saving content.'}, status=500)
 
 
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
+@require_POST
 def edit_reservation(request, booking_id):
     """
     Edit an existing reservation.
     Only accepts POST requests with JSON data.
     Requires user to be logged in and have staff/admin role.
     """
-    if request.method == 'POST':
+    try:
+        import json
+        from datetime import datetime
+        from decimal import Decimal
+        
+        # Find the booking
+        booking = CustomerBookingInfo.objects.select_related('hotel', 'user').get(booking_id=booking_id)
+
+        # Capture old data for audit
+        old_status = booking.status
+        old_data = {
+            'guest_name': booking.guest_name,
+            'room_type': booking.room_type,
+            'check_in': str(booking.check_in),
+            'check_out': str(booking.check_out),
+            'total_price': str(booking.total_price),
+        }
+
+        # Parse JSON data
+        data = json.loads(request.body)
+        
+        # Validate required fields
+        required_fields = ['name', 'checkin_date', 'checkout_date', 'adults', 'room_type']
+        for field in required_fields:
+            if not data.get(field):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Missing required field: {field}'
+                }, status=400)
+        
+        # Parse dates
         try:
-            import json
-            from datetime import datetime
-            from decimal import Decimal
-            
-            # Find the booking
-            booking = CustomerBookingInfo.objects.select_related('hotel', 'user').get(booking_id=booking_id)
-
-            # Capture old data for audit
-            old_status = booking.status
-            old_data = {
-                'guest_name': booking.guest_name,
-                'room_type': booking.room_type,
-                'check_in': str(booking.check_in),
-                'check_out': str(booking.check_out),
-                'total_price': str(booking.total_price),
-            }
-
-            # Parse JSON data
-            data = json.loads(request.body)
-            
-            # Validate required fields
-            required_fields = ['name', 'checkin_date', 'checkout_date', 'adults', 'room_type']
-            for field in required_fields:
-                if not data.get(field):
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f'Missing required field: {field}'
-                    }, status=400)
-            
-            # Parse dates
-            try:
-                checkin_date = datetime.strptime(data['checkin_date'], '%Y-%m-%d').date()
-                checkout_date = datetime.strptime(data['checkout_date'], '%Y-%m-%d').date()
-            except ValueError as e:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'Invalid date format: {str(e)}'
-                }, status=400)
-            
-            # Validate dates
-            if checkout_date < checkin_date:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Check-out date cannot be before check-in date.'
-                }, status=400)
-            
-            # Calculate new totals
-            total_days = (checkout_date - checkin_date).days
-            # For same-day bookings, charge for at least 1 day
-            if total_days == 0:
-                total_days = 1
-            
-            # Get room rate for the selected room type
-            try:
-                canonical_room_type = ReservationService._canonicalise_room_type(data['room_type'])
-                if not canonical_room_type:
-                    raise ValidationError('Invalid room type selected.')
-                rate = ReservationService._resolve_rate(canonical_room_type)
-                total_cost = rate * total_days
-            except ValidationError as e:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': str(e)
-                }, status=400)
-            
-            # Prepare new email value
-            new_email = data.get('email', '').strip() if data.get('email') else None
-            
-            # Update booking fields
-            booking.guest_name = data['name'].strip()
-            booking.email = new_email
-            booking.phone = data.get('phone', '').strip() if data.get('phone') else None
-            booking.room_type = canonical_room_type
-            booking.check_in = checkin_date
-            booking.check_out = checkout_date
-            booking.adults = int(data['adults'])
-            booking.children = int(data.get('children', 0))
-            booking.booked_rate = rate
-            booking.total_price = total_cost
-            booking.special_requests = data.get('special_requests', '').strip() if data.get('special_requests') else None
-            booking.notes = data.get('notes', '').strip() if data.get('notes') else None
-            
-            # Update timestamp
-            from django.utils import timezone
-            booking.updated_at = timezone.now()
-            
-            # Update status if provided
-            if 'status' in data:
-                booking.status = data['status']
-            if 'payment_status' in data:
-                booking.payment_status = data['payment_status']
-            if 'amount_paid' in data:
-                booking.amount_paid = Decimal(str(data['amount_paid']))
-            
-            # Save changes
-            booking.save()
-
-            # Handle room allocation on status transitions
-            new_status = booking.status
-            if new_status != old_status:
-                try:
-                    from django.core.exceptions import ValidationError
-                    if new_status == 'confirmed':
-                        RoomService.allocate_room(booking, assigned_by=request.user)
-                    elif new_status == 'checked_in':
-                        RoomService.check_in_room(booking)
-                    elif new_status == 'checked_out':
-                        RoomService.check_out_room(booking)
-                    elif new_status in ('cancelled', 'rejected'):
-                        RoomService.deallocate_room(booking)
-                except ValidationError as room_err:
-                    # No rooms available — roll back the status change
-                    booking.status = old_status
-                    booking.save()
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': str(room_err),
-                    }, status=400)
-
-                # Fire transactional email for guest-facing status changes.
-                # Confirmation email is already sent on booking creation (services.py).
-                # Email failure is non-fatal — handled inside EmailService.
-                try:
-                    if new_status in ('cancelled', 'rejected'):
-                        EmailService.queue_booking_cancellation(
-                            booking.booking_id,
-                            reason=data.get('cancellation_reason') or None,
-                        )
-                except Exception:
-                    logger.exception('Email dispatch failed for booking #%s', booking.booking_id)
-
-            log_booking_update(request.user, booking, old_data, request)
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': f'Reservation #{booking_id} updated successfully!',
-                'booking': {
-                    'booking_id': booking.booking_id,
-                    'name': booking.guest_name,
-                    'total_days': total_days,
-                    'total_cost_amount': str(booking.total_price),
-                }
-            })
-            
-        except CustomerBookingInfo.DoesNotExist:
+            checkin_date = datetime.strptime(data['checkin_date'], '%Y-%m-%d').date()
+            checkout_date = datetime.strptime(data['checkout_date'], '%Y-%m-%d').date()
+        except ValueError as e:
             return JsonResponse({
                 'status': 'error',
-                'message': f'Booking #{booking_id} not found.'
-            }, status=404)
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Invalid JSON data.'
+                'message': f'Invalid date format: {str(e)}'
             }, status=400)
-        except Exception as e:
-            logger.exception('Reservation edit failed for #%s', booking_id)
+        
+        # Validate dates
+        if checkout_date < checkin_date:
             return JsonResponse({
                 'status': 'error',
-                'message': 'An unexpected error occurred while updating the reservation.'
-            }, status=500)
-    else:
+                'message': 'Check-out date cannot be before check-in date.'
+            }, status=400)
+        
+        # Calculate new totals
+        total_days = (checkout_date - checkin_date).days
+        # For same-day bookings, charge for at least 1 day
+        if total_days == 0:
+            total_days = 1
+        
+        # Get room rate for the selected room type
+        try:
+            canonical_room_type = ReservationService._canonicalise_room_type(data['room_type'])
+            if not canonical_room_type:
+                raise ValidationError('Invalid room type selected.')
+            rate = ReservationService._resolve_rate(canonical_room_type)
+            total_cost = rate * total_days
+        except ValidationError as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+        
+        # Prepare new email value
+        new_email = data.get('email', '').strip() if data.get('email') else None
+        
+        # Update booking fields
+        booking.guest_name = data['name'].strip()
+        booking.email = new_email
+        booking.phone = data.get('phone', '').strip() if data.get('phone') else None
+        booking.room_type = canonical_room_type
+        booking.check_in = checkin_date
+        booking.check_out = checkout_date
+        booking.adults = int(data['adults'])
+        booking.children = int(data.get('children', 0))
+        booking.booked_rate = rate
+        booking.total_price = total_cost
+        booking.special_requests = data.get('special_requests', '').strip() if data.get('special_requests') else None
+        booking.notes = data.get('notes', '').strip() if data.get('notes') else None
+        
+        # Update timestamp
+        from django.utils import timezone
+        booking.updated_at = timezone.now()
+        
+        # Update status if provided
+        if 'status' in data:
+            if data['status'] not in BOOKING_STATUSES:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid booking status.'
+                }, status=400)
+            booking.status = data['status']
+        if 'payment_status' in data:
+            booking.payment_status = data['payment_status']
+        if 'amount_paid' in data:
+            booking.amount_paid = Decimal(str(data['amount_paid']))
+        
+        # Save changes
+        booking.save()
+
+        # Handle room allocation on status transitions
+        new_status = booking.status
+        if new_status != old_status:
+            try:
+                from django.core.exceptions import ValidationError
+                if new_status == 'confirmed':
+                    RoomService.allocate_room(booking, assigned_by=request.user)
+                elif new_status == 'checked_in':
+                    RoomService.check_in_room(booking)
+                elif new_status == 'checked_out':
+                    RoomService.check_out_room(booking)
+                elif new_status in ('cancelled', 'rejected'):
+                    RoomService.deallocate_room(booking)
+            except ValidationError as room_err:
+                # No rooms available — roll back the status change
+                booking.status = old_status
+                booking.save()
+                return JsonResponse({
+                    'status': 'error',
+                    'message': str(room_err),
+                }, status=400)
+
+            # Fire transactional email for guest-facing status changes.
+            # Confirmation email is already sent on booking creation (services.py).
+            # Email failure is non-fatal — handled inside EmailService.
+            try:
+                if new_status in ('cancelled', 'rejected'):
+                    EmailService.queue_booking_cancellation(
+                        booking.booking_id,
+                        reason=data.get('cancellation_reason') or None,
+                    )
+            except Exception:
+                logger.exception('Email dispatch failed for booking #%s', booking.booking_id)
+
+        log_booking_update(request.user, booking, old_data, request)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Reservation #{booking_id} updated successfully!',
+            'booking': {
+                'booking_id': booking.booking_id,
+                'name': booking.guest_name,
+                'total_days': total_days,
+                'total_cost_amount': str(booking.total_price),
+            }
+        })
+        
+    except CustomerBookingInfo.DoesNotExist:
         return JsonResponse({
             'status': 'error',
-            'message': 'Only POST requests are allowed.'
-        }, status=405)
+            'message': f'Booking #{booking_id} not found.'
+        }, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data.'
+        }, status=400)
+    except Exception as e:
+        logger.exception('Reservation edit failed for #%s', booking_id)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An unexpected error occurred while updating the reservation.'
+        }, status=500)

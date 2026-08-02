@@ -16,29 +16,20 @@ class CustomUserBackend(BaseBackend):
         Authenticate user with username and password.
         """
         try:
-            # Try to get user by username
             user = User.objects.get(username=username)
-            
-            # Check if password matches
-            if user.check_password(password):
-                # Update last_login
-                from django.utils import timezone
-                user.last_login = timezone.now()
-                user.save(update_fields=['last_login'])
-                return user
-                
         except User.DoesNotExist:
-            # Try by email as fallback
             try:
                 user = User.objects.get(email=username)
-                if user.check_password(password):
-                    from django.utils import timezone
-                    user.last_login = timezone.now()
-                    user.save(update_fields=['last_login'])
-                    return user
             except User.DoesNotExist:
-                pass
-        
+                User().set_password(password)
+                return None
+
+        if not user.is_active:
+            return None
+
+        if user.check_password(password):
+            return user
+
         return None
     
     def get_user(self, user_id):

@@ -1,7 +1,7 @@
 {% load static %}
 {% load humanize %}
 <!DOCTYPE HTML>
-<html>
+<html lang="en">
   <head>
     <!-- Meta Tags Section -->
     <!-- Basic meta tags for character encoding and browser compatibility -->
@@ -22,10 +22,10 @@
     <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
 
     <!-- Main Theme Styling -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v={% now 'U' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
     <!-- Shared Override Styles -->
-    <link rel="stylesheet" href="{% static 'css/overrides.css' %}?v={% now 'U' %}">
+    <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
 
     {% block extra_css %}{% endblock %}
   </head>
@@ -52,7 +52,7 @@
     <script src="{% static 'js/bootstrap.min.js' %}"></script>
     <script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
 
-    <script src="{% static 'js/main.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 

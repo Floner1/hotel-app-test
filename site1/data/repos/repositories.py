@@ -1,6 +1,7 @@
 import secrets
 from datetime import timedelta
 
+import nh3
 from django.conf import settings
 
 from data.models.hotel import Hotel, Room, RoomAssignment
@@ -197,8 +198,8 @@ class RoomRepository:
         """
         Return an unevaluated queryset of Room objects that:
         - match the given room_type
-        - have reservation_status = 'vacant'
         - have NO active RoomAssignment overlapping [check_in, check_out)
+        - have housekeeping_status != 'out_of_order'
 
         Returns a queryset so the caller can chain .select_for_update().
         """
@@ -210,8 +211,9 @@ class RoomRepository:
         )
         return Room.objects.filter(
             room_type=room_type,
-            reservation_status='vacant',
-        ).exclude(Exists(overlapping))
+        ).exclude(Exists(overlapping)).exclude(
+            housekeeping_status='out_of_order'
+        )
 
     @staticmethod
     def count_available_rooms_by_type(room_type, check_in, check_out):
@@ -424,6 +426,92 @@ class EmailRepository:
     def active_subscribers():
         return EmailSubscriber.objects.filter(status='subscribed').order_by('email')
 
+    # ---------------- email_campaigns ----------------
+
+    # campaign.body_html is rendered with |safe into the outgoing email, so it
+    # is sanitized here on the way IN rather than at render time. CSP does not
+    # help: it is a browser mechanism and email clients ignore it.
+    _HTML_TAGS = {
+        'p', 'br', 'hr', 'div', 'span',
+        'strong', 'b', 'em', 'i', 'u',
+        'h1', 'h2', 'h3', 'h4', 'blockquote',
+        'ul', 'ol', 'li',
+        'a', 'img',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    }
+    _HTML_ATTRS = {
+        'a': {'href', 'title', 'target'},
+        'img': {'src', 'alt', 'width', 'height'},
+        'table': {'width', 'cellpadding', 'cellspacing', 'border'},
+        'td': {'align', 'valign', 'width', 'colspan', 'rowspan'},
+        'th': {'align', 'valign', 'width', 'colspan', 'rowspan'},
+        # Inline style is allowed because several clients (notably Gmail on
+        # mobile) drop or clip <style> blocks, so inlining is the norm for
+        # email. nh3 does not parse CSS, so a campaign author can still write
+        # arbitrary CSS here; that is acceptable because authoring a campaign
+        # is already an admin-only privilege. It is not a defence against a
+        # hostile admin.
+        '*': {'style'},
+    }
+
+    @classmethod
+    def _clean_html(cls, html):
+        """Strip anything not on the allowlist. nh3 also drops javascript: and
+        other non-http(s)/mailto URL schemes in href/src by default."""
+        return nh3.clean(html or '', tags=cls._HTML_TAGS, attributes=cls._HTML_ATTRS)
+
+    @staticmethod
+    def create_campaign(name, subject, body_html, body_text=None, created_by=None):
+        now = timezone.now()
+        return EmailCampaign.objects.create(
+            name=name,
+            subject=subject,
+            body_html=EmailRepository._clean_html(body_html),
+            body_text=body_text,
+            status='draft',
+            created_by=created_by,
+            created_at=now,
+            updated_at=now,
+        )
+
+    @staticmethod
+    def update_campaign(campaign_id, **fields):
+        try:
+            camp = EmailCampaign.objects.get(id=campaign_id)
+        except EmailCampaign.DoesNotExist:
+            return None
+        allowed = {'name', 'subject', 'body_html', 'body_text', 'status'}
+        for k, v in fields.items():
+            if k in allowed:
+                if k == 'body_html':
+                    v = EmailRepository._clean_html(v)
+                setattr(camp, k, v)
+        camp.updated_at = timezone.now()
+        camp.save()
+        return camp
+
+    @staticmethod
+    def get_campaign(campaign_id):
+        return EmailCampaign.objects.filter(id=campaign_id).first()
+
+    @staticmethod
+    def list_campaigns():
+        return EmailCampaign.objects.all().order_by('-created_at')
+
+    @staticmethod
+    def mark_campaign_sent(campaign_id, recipient_count, sent_count, failed_count):
+        camp = EmailCampaign.objects.filter(id=campaign_id).first()
+        if not camp:
+            return None
+        camp.status = 'sent'
+        camp.sent_at = timezone.now()
+        camp.recipient_count = recipient_count
+        camp.sent_count = sent_count
+        camp.failed_count = failed_count
+        camp.updated_at = timezone.now()
+        camp.save()
+        return camp
+
 
 class DiscountRepository:
     """Data access for discount_codes table."""
@@ -507,55 +595,4 @@ class DiscountRepository:
         )
         return discount, True
 
-    # ---------------- email_campaigns ----------------
-
-    @staticmethod
-    def create_campaign(name, subject, body_html, body_text=None, created_by=None):
-        now = timezone.now()
-        return EmailCampaign.objects.create(
-            name=name,
-            subject=subject,
-            body_html=body_html,
-            body_text=body_text,
-            status='draft',
-            created_by=created_by,
-            created_at=now,
-            updated_at=now,
-        )
-
-    @staticmethod
-    def update_campaign(campaign_id, **fields):
-        try:
-            camp = EmailCampaign.objects.get(id=campaign_id)
-        except EmailCampaign.DoesNotExist:
-            return None
-        allowed = {'name', 'subject', 'body_html', 'body_text', 'status'}
-        for k, v in fields.items():
-            if k in allowed:
-                setattr(camp, k, v)
-        camp.updated_at = timezone.now()
-        camp.save()
-        return camp
-
-    @staticmethod
-    def get_campaign(campaign_id):
-        return EmailCampaign.objects.filter(id=campaign_id).first()
-
-    @staticmethod
-    def list_campaigns():
-        return EmailCampaign.objects.all().order_by('-created_at')
-
-    @staticmethod
-    def mark_campaign_sent(campaign_id, recipient_count, sent_count, failed_count):
-        camp = EmailCampaign.objects.filter(id=campaign_id).first()
-        if not camp:
-            return None
-        camp.status = 'sent'
-        camp.sent_at = timezone.now()
-        camp.recipient_count = recipient_count
-        camp.sent_count = sent_count
-        camp.failed_count = failed_count
-        camp.updated_at = timezone.now()
-        camp.save()
-        return camp
 

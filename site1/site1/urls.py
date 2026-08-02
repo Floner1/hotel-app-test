@@ -16,8 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
+from django.template.loader import get_template
 from django_ratelimit.exceptions import Ratelimited
 
 urlpatterns = [
@@ -39,5 +40,16 @@ def handler403(request, exception=None):
 def handler404(request, exception=None):
     return render(request, '404.html', status=404)
 
+def handler400(request, exception=None):
+    return HttpResponse(get_template('400.html').render(), status=400)
+
 def handler500(request):
-    return render(request, '500.html', status=500)
+    # Rendered WITHOUT a RequestContext on purpose. render() would run every
+    # context processor, and text_overrides hits the DB — a bad dependency on
+    # the error path, since a dead DB is a likely reason we are here at all.
+    # If a context processor ever raises, the 500 page itself 500s and the
+    # user gets a bare "A server error occurred" instead of this template.
+    # Today text_overrides happens to swallow its own exceptions, so this is
+    # defence in depth rather than a fix for a live crash. 500.html is
+    # self-contained (no extends, no tags), so it needs no context at all.
+    return HttpResponse(get_template('500.html').render(), status=500)
