@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
-from django.contrib.auth import logout, authenticate, login
+from django.contrib.auth import logout, login
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -558,8 +559,16 @@ def register_view(request):
         
         if not password1:
             errors['password1'] = 'Password is required.'
-        elif len(password1) < 8:
-            errors['password1'] = 'Password must be at least 8 characters.'
+        else:
+            # AUTH_PASSWORD_VALIDATORS is configured in settings but was inert
+            # here: a bare length check accepted '12345678', which
+            # NumericPasswordValidator and CommonPasswordValidator both reject.
+            # MinimumLengthValidator covers the eight-character rule, so the
+            # old elif is folded into this call rather than kept alongside it.
+            try:
+                validate_password(password1)
+            except ValidationError as e:
+                errors['password1'] = ' '.join(e.messages)
         
         if not password2:
             errors['password2'] = 'Please confirm your password.'

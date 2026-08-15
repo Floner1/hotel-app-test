@@ -208,14 +208,43 @@ def test_auth_backend_accepts_active_user_with_correct_password():
     assert result is user
 
 
-def test_register_view_uses_django_password_validators():
+def test_password_validators_reject_an_all_digit_password():
     """AUTH_PASSWORD_VALIDATORS must still include NumericPasswordValidator.
 
-    Guards the settings entry, not the view: drop the validator and an
-    all-digit password starts being accepted at registration.
+    Guards the settings entry, not the view. The view itself is covered by
+    test_register_view_rejects_an_all_digit_password below.
     """
     with pytest.raises(ValidationError):
         validate_password('12345678')
+
+
+@pytest.mark.django_db
+def test_register_view_rejects_an_all_digit_password(client):
+    """register_view must run the configured validators, not just a length check.
+
+    '12345678' is eight characters, so the `len(password1) < 8` test passes it.
+    Only NumericPasswordValidator and CommonPasswordValidator catch it, and
+    they are inert unless the view actually calls validate_password.
+
+    _send_verification_email is patched out because GMAIL_APP_PASSWORD in a
+    real .env flips EMAIL_BACKEND to SMTP, and a regression here would
+    otherwise post real mail on the way to failing.
+    """
+    with patch('home.views._send_verification_email') as send_mail:
+        response = client.post(reverse('register'), {
+            'username': 'digituser',
+            'email': 'digits@example.com',
+            'password1': '12345678',
+            'password2': '12345678',
+        })
+
+    assert not User.objects.filter(username='digituser').exists(), (
+        'an all-numeric password created an account'
+    )
+    assert not send_mail.called, 'reached the verification email despite a bad password'
+    assert b'entirely numeric' in response.content, (
+        f'no validator message rendered back to the form: {response.content[:400]!r}'
+    )
 
 
 def test_milestone_check_counts_bookings_by_authenticated_user_not_email():
