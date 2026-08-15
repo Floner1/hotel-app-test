@@ -564,8 +564,13 @@ def register_view(request):
             # NumericPasswordValidator and CommonPasswordValidator both reject.
             # MinimumLengthValidator covers the eight-character rule, so the
             # old elif is folded into this call rather than kept alongside it.
+            # The unsaved User is what makes UserAttributeSimilarityValidator do
+            # anything: it returns immediately on a None user, so passing the
+            # password alone would leave one of the four configured validators
+            # inert and let someone register with their password set to their
+            # own username. Nothing is saved by constructing it.
             try:
-                validate_password(password1)
+                validate_password(password1, User(username=username, email=email))
             except ValidationError as e:
                 errors['password1'] = ' '.join(e.messages)
         

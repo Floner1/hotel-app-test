@@ -218,6 +218,15 @@ def test_password_validators_reject_an_all_digit_password():
         validate_password('12345678')
 
 
+def _clear_register_ratelimit():
+    """register_view is @ratelimit(key='ip', rate='3/m'). django-ratelimit
+    counts in the default cache, which is process-wide and outlives a test, so
+    the third registration test in a run would get a 403 instead of the
+    rejection it asserts on."""
+    from django.core.cache import cache
+    cache.clear()
+
+
 @pytest.mark.django_db
 def test_register_view_rejects_an_all_digit_password(client):
     """register_view must run the configured validators, not just a length check.
@@ -230,6 +239,7 @@ def test_register_view_rejects_an_all_digit_password(client):
     real .env flips EMAIL_BACKEND to SMTP, and a regression here would
     otherwise post real mail on the way to failing.
     """
+    _clear_register_ratelimit()
     with patch('home.views._send_verification_email') as send_mail:
         response = client.post(reverse('register'), {
             'username': 'digituser',
@@ -244,6 +254,33 @@ def test_register_view_rejects_an_all_digit_password(client):
     assert not send_mail.called, 'reached the verification email despite a bad password'
     assert b'entirely numeric' in response.content, (
         f'no validator message rendered back to the form: {response.content[:400]!r}'
+    )
+
+
+@pytest.mark.django_db
+def test_register_view_rejects_a_password_matching_the_username(client):
+    """validate_password has to be given the user, or one of the four
+    configured validators does nothing.
+
+    UserAttributeSimilarityValidator returns immediately on a None user, so
+    calling validate_password(password) alone still accepts a password
+    identical to the username. The view passes an unsaved User for this.
+    """
+    _clear_register_ratelimit()
+    with patch('home.views._send_verification_email') as send_mail:
+        response = client.post(reverse('register'), {
+            'username': 'sameassword',
+            'email': 'same@example.com',
+            'password1': 'sameassword',
+            'password2': 'sameassword',
+        })
+
+    assert not User.objects.filter(username='sameassword').exists(), (
+        'a password identical to the username created an account'
+    )
+    assert not send_mail.called
+    assert b'too similar' in response.content, (
+        f'no similarity message rendered back to the form: {response.content[:400]!r}'
     )
 
 

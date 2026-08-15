@@ -29,9 +29,15 @@ class SqlSessionContextMiddleware:
         # Static files never reach here (WhiteNoise sits earlier in the chain).
         # Only SQL Server has SESSION_CONTEXT; the test suite runs on SQLite.
         if connection.vendor == 'microsoft':
-            user = getattr(request, 'user', None)
-            if user is not None and user.is_authenticated:
-                user_id, role = str(user.pk), getattr(user, 'role', None)
+            # request.user directly, not getattr(..., None). If this class is
+            # ever moved above AuthenticationMiddleware the AttributeError says
+            # so on the first request. Tolerating a missing user would instead
+            # write NULL for everyone and turn a bad MIDDLEWARE order into
+            # every booking edit on the site failing with a 50002 from a
+            # trigger, which is a much longer walk back to the cause.
+            user = request.user
+            if user.is_authenticated:
+                user_id, role = str(user.pk), user.role
             else:
                 user_id, role = None, None
 

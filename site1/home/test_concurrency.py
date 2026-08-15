@@ -31,9 +31,11 @@ the database and let the next run rebuild it:
     sqlcmd -S <host>\\MSSQLSERVER01 -E -Q "DROP DATABASE hotel_concurrency_test"
 """
 import os
+import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from pathlib import Path
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -86,6 +88,31 @@ def _ensure_schema():
         with connection.schema_editor() as editor:
             for model in missing:
                 editor.create_model(model)
+
+
+SCHEMA_SQL = Path(__file__).resolve().parent.parent / 'schema.sql'
+
+
+def _install_trigger(name):
+    """Recreate one trigger from the checked-in schema, so the assertions below
+    are made against the definition in site1/schema.sql rather than against a
+    copy that can drift from it. Pulled out by regex the same way
+    test_booking_status.py pulls out the CHECK constraint.
+
+    Dropped and recreated every run: the point is to test the current file.
+    """
+    from django.db import connection
+
+    body = re.search(
+        r'(CREATE TRIGGER\s+%s\b.*?)\n\s*GO\b' % re.escape(name),
+        SCHEMA_SQL.read_text(encoding='utf-8'),
+        re.S | re.IGNORECASE,
+    )
+    assert body, f'{name} not found in schema.sql'
+
+    with connection.cursor() as cursor:
+        cursor.execute(f'DROP TRIGGER IF EXISTS {name};')
+        cursor.execute(body.group(1))
 
 
 @pytest.fixture
@@ -147,6 +174,47 @@ def race_setup(mssql_default):
         CustomerBookingInfo.objects.filter(pk__in=[booking_a.pk, booking_b.pk]).delete()
         Room.objects.filter(pk=room.pk).delete()
         Hotel.objects.filter(pk=hotel.pk).delete()
+
+
+def test_booking_writes_are_denied_without_a_session_context(race_setup):
+    """trg_booking_ownership must deny by default and allow with an identity.
+
+    This is the control that was failing open for months: the original trigger
+    compared SESSION_CONTEXT inline, and NULL <> 'admin' is UNKNOWN rather than
+    TRUE in T-SQL, so it never fired. The replacement fails closed, which means
+    the failure mode of a regression flipped from "customers can edit other
+    people's bookings" to "nobody can edit any booking". Both halves are
+    asserted here so neither direction can rot unnoticed.
+
+    SqlSessionContextMiddleware is what supplies the identity in the running
+    app. It writes the same two keys this test writes by hand.
+    """
+    from django.db import connection
+
+    _, booking_a, _ = race_setup
+    _install_trigger('trg_booking_ownership')
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("EXEC sp_set_session_context @key=N'user_role', @value=%s", [None])
+
+            with pytest.raises(Exception, match='session context'):
+                cursor.execute(
+                    'UPDATE booking_info SET status = %s WHERE booking_id = %s',
+                    ['confirmed', booking_a.pk],
+                )
+
+            # And the other half: a stamped identity gets through.
+            cursor.execute("EXEC sp_set_session_context @key=N'user_role', @value=%s", ['admin'])
+            cursor.execute(
+                'UPDATE booking_info SET status = %s WHERE booking_id = %s',
+                ['confirmed', booking_a.pk],
+            )
+            cursor.execute('SELECT status FROM booking_info WHERE booking_id = %s', [booking_a.pk])
+            assert cursor.fetchone()[0] == 'confirmed'
+    finally:
+        with connection.cursor() as cursor:
+            cursor.execute('DROP TRIGGER IF EXISTS trg_booking_ownership;')
+            cursor.execute("EXEC sp_set_session_context @key=N'user_role', @value=%s", [None])
 
 
 def test_concurrent_allocation_prevents_double_booking(race_setup):
