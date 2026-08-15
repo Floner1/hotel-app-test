@@ -1,9 +1,12 @@
 import contextlib
+import json
 import pytest
 from datetime import date, timedelta
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.test import RequestFactory
 from django.urls import reverse
 from data.models import User
 from data.repos.repositories import EmailRepository, RoomRepository
@@ -162,3 +165,83 @@ def test_failed_allocation_leaves_no_booking_behind(bookable):
     assert CustomerBookingInfo.objects.count() == 0, (
         'a booking was committed even though no room could be allocated'
     )
+
+
+# ── Authentication and access control ──────────────────────────────────
+# All four run without the database: data.User is managed = False, so the
+# users table does not exist in the test database. They patch at the query
+# boundary and assert on what the code does with the result.
+
+
+def test_auth_backend_rejects_inactive_user_even_with_correct_password():
+    """A deactivated account must not authenticate, right password or not.
+
+    CustomUserBackend checks is_active AFTER the password check, so a broken
+    ordering here would let a disabled account back in.
+    """
+    from home.auth_backend import CustomUserBackend
+
+    user = MagicMock(is_active=False)
+    user.check_password.return_value = True
+
+    with patch('home.auth_backend.User.objects.get', return_value=user):
+        result = CustomUserBackend().authenticate(
+            None, username='bob', password='correct-password'
+        )
+
+    assert result is None, 'an inactive user was authenticated'
+
+
+def test_auth_backend_accepts_active_user_with_correct_password():
+    """The other half of the pair, so the test above cannot pass by rejecting
+    everything."""
+    from home.auth_backend import CustomUserBackend
+
+    user = MagicMock(is_active=True)
+    user.check_password.return_value = True
+
+    with patch('home.auth_backend.User.objects.get', return_value=user):
+        result = CustomUserBackend().authenticate(
+            None, username='bob', password='correct-password'
+        )
+
+    assert result is user
+
+
+def test_register_view_uses_django_password_validators():
+    """AUTH_PASSWORD_VALIDATORS must still include NumericPasswordValidator.
+
+    Guards the settings entry, not the view: drop the validator and an
+    all-digit password starts being accepted at registration.
+    """
+    with pytest.raises(ValidationError):
+        validate_password('12345678')
+
+
+def test_milestone_check_counts_bookings_by_authenticated_user_not_email():
+    """Loyalty milestones must be counted against request.user.
+
+    The email arrives in the POST body, so counting on it would let anyone
+    claim someone else's every-third-booking discount by typing their
+    address. The assertion is on the filter kwargs for that reason.
+    """
+    from home.views import get_reservation
+
+    user = MagicMock(is_authenticated=True, is_staff=False)
+    request = RequestFactory().post('/reservation/', {
+        'name': 'Jane', 'phone': '123', 'email': 'jane@example.com',
+        'checkin_date': '2026-08-01', 'checkout_date': '2026-08-02',
+        'adults': '1', 'children': '0', 'room_type': 'standard',
+        'milestone_decision': '',
+    })
+    request.user = user
+
+    mock_qs = MagicMock()
+    mock_qs.count.return_value = 2  # (2 + 1) % 3 == 0, so this trips the milestone
+    with patch(
+        'home.views.CustomerBookingInfo.objects.filter', return_value=mock_qs
+    ) as mock_filter:
+        response = get_reservation(request)
+
+    assert json.loads(response.content)['status'] == 'milestone_check'
+    mock_filter.assert_called_once_with(user=user)
