@@ -358,15 +358,25 @@ ON users
 AFTER UPDATE
 AS
 BEGIN
+    -- SESSION_CONTEXT is NULL whenever the caller never identified itself.
+    -- Comparing it inline (SESSION_CONTEXT(N'user_role') <> 'admin') evaluates
+    -- to UNKNOWN rather than TRUE, so the old form never fired: the trigger
+    -- failed open. Read it into a variable and deny explicitly on NULL.
+    DECLARE @role NVARCHAR(50) = CAST(SESSION_CONTEXT(N'user_role') AS NVARCHAR(50));
+
     IF EXISTS (
         SELECT 1
         FROM inserted i
-        JOIN deleted  d ON i.user_id = d.user_id
+        JOIN deleted d ON i.user_id = d.user_id
         WHERE i.role <> d.role
-          AND SESSION_CONTEXT(N'user_role') <> 'admin'
     )
+    AND (@role IS NULL OR @role <> 'admin')
     BEGIN
-        ROLLBACK;
+        -- THROW without ROLLBACK. SQL Server forces XACT_ABORT ON inside a
+        -- trigger, so the error unwinds the transaction on its own; an explicit
+        -- ROLLBACK would tear down the transaction Django's atomic() block is
+        -- holding and surface as TransactionManagementError instead of this
+        -- message.
         THROW 50001, 'Only admins can change roles', 1;
     END
 END;
@@ -377,13 +387,27 @@ ON booking_info
 AFTER UPDATE, DELETE
 AS
 BEGIN
-    IF SESSION_CONTEXT(N'user_role') = 'customer'
+    DECLARE @role NVARCHAR(50) = CAST(SESSION_CONTEXT(N'user_role') AS NVARCHAR(50));
+    DECLARE @uid  NVARCHAR(50) = CAST(SESSION_CONTEXT(N'user_id')  AS NVARCHAR(50));
+
+    -- Deny by default: no identity, no booking writes. Every UPDATE and DELETE
+    -- path in the app runs through a login_required staff/admin view, so
+    -- anything arriving here without context is maintenance SQL that should set
+    -- the context first, or something that has no business being here.
+    IF @role IS NULL
+    BEGIN
+        THROW 50002, 'Booking writes require SQL session context (user_role is not set)', 1;
+    END
+
+    -- Guest bookings carry user_id NULL and belong to nobody, so a customer
+    -- must not touch those either. NULL <> @uid is UNKNOWN, hence the IS NULL arm.
+    IF @role = 'customer'
        AND EXISTS (
            SELECT 1 FROM deleted
-           WHERE user_id <> SESSION_CONTEXT(N'user_id')
+           WHERE user_id IS NULL
+              OR CAST(user_id AS NVARCHAR(50)) <> @uid
        )
     BEGIN
-        ROLLBACK;
         THROW 50002, 'Customers can only modify their own bookings', 1;
     END
 END;
