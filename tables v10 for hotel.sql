@@ -556,15 +556,20 @@ GO
 /* =====================================================
    13. SEED USERS — admin / staff / customer test accounts
        Passwords hashed with Django PBKDF2-SHA256 hasher.
-         admin     -> admin123
-         staff     -> staff123
-         customer  -> customer123
+
+       The plaintext passwords are deliberately NOT recorded here. The three
+       that used to be printed in this comment were public for the life of the
+       repository and have been rotated out. Get the current ones from wherever
+       they are being kept; they exist nowhere in this tree.
+
+       To rotate again, hash the new value with
+       django.contrib.auth.hashers.make_password and replace the string below.
 ===================================================== */
 INSERT INTO users (username, email, password_hash, role, is_active, created_at) VALUES
 (
     N'admin',
     N'admin@thientaihotel.com',
-    N'pbkdf2_sha256$1000000$lRdjvButmkojNBCRTPJcJt$7VhEpw9WMZLIWGrFKHo2Bx2DYfzKv7k6jvbUn19fdtM=',
+    N'pbkdf2_sha256$1000000$P4aTgAHODePyHvIoyZ2hqJ$+uDQdc64SxvP3cTESWDW/Lh6J9dAdEu2Q+k1q53bz18=',
     N'admin',
     1,
     GETDATE()
@@ -572,7 +577,7 @@ INSERT INTO users (username, email, password_hash, role, is_active, created_at) 
 (
     N'staff',
     N'staff@thientaihotel.com',
-    N'pbkdf2_sha256$1000000$gbtOTghFo99Lxza54AZA9W$0KrNbkezj2QEjOCNcXmBRRW1CZKsZ6oHqDcEsVEMVnQ=',
+    N'pbkdf2_sha256$1000000$cxxR5Wy5buClERMhlk250z$boQjqdiT72L3Sy7pFD+WilMQZqhJ4RR1L7rqNYRqCBc=',
     N'staff',
     1,
     GETDATE()
@@ -580,7 +585,7 @@ INSERT INTO users (username, email, password_hash, role, is_active, created_at) 
 (
     N'customer',
     N'customer@thientaihotel.com',
-    N'pbkdf2_sha256$1000000$Pc2TGSpBZLg3UA0TUV8y86$oG6gCbTHKtokqC0d2WT9gwFbmhVMNUFmruTz3Xg2Qco=',
+    N'pbkdf2_sha256$1000000$zEuI5TvKVwioWynWV0KyzO$SYPRArSX/jhNyA0Ss40+zEaOD7YL5CqVYMmlHYLaAXc=',
     N'customer',
     1,
     GETDATE()
