@@ -76,12 +76,12 @@ def _ensure_schema():
     """Create any missing tables from the models. conftest.pytest_configure has
     already flipped managed = True, so the schema editor can build them."""
     from data.models import (
-        CustomerBookingInfo, Hotel, Room, RoomAssignment, RoomPrice, User,
+        AuditLog, CustomerBookingInfo, Hotel, Room, RoomAssignment, RoomPrice, User,
     )
     from django.db import connection
 
     # Creation order: referenced tables before the tables that point at them.
-    order = [Hotel, User, RoomPrice, CustomerBookingInfo, Room, RoomAssignment]
+    order = [Hotel, User, RoomPrice, CustomerBookingInfo, Room, RoomAssignment, AuditLog]
     existing = set(connection.introspection.table_names())
     missing = [m for m in order if m._meta.db_table not in existing]
     if missing:
@@ -174,6 +174,82 @@ def race_setup(mssql_default):
         CustomerBookingInfo.objects.filter(pk__in=[booking_a.pk, booking_b.pk]).delete()
         Room.objects.filter(pk=room.pk).delete()
         Hotel.objects.filter(pk=hotel.pk).delete()
+
+
+@pytest.fixture
+def audit_actor(mssql_default):
+    """A user_id to hang audit rows off: the FK on audit_log is NOT NULL.
+
+    Raw SQL rather than the ORM. Deleting a User through the ORM makes the
+    cascade collector walk every FK pointing at the user model, including
+    django.contrib.admin's django_admin_log, which this scratch database does
+    not have because it is built from data/ models only.
+    """
+    from django.db import connection
+
+    def _cleanup(cursor):
+        cursor.execute(
+            'DELETE FROM audit_log WHERE user_id IN '
+            "(SELECT user_id FROM users WHERE username = 'audit-probe')"
+        )
+        cursor.execute("DELETE FROM users WHERE username = 'audit-probe'")
+
+    with connection.cursor() as cursor:
+        _cleanup(cursor)  # in case a hard-killed run left one behind
+        cursor.execute(
+            'INSERT INTO users '
+            '(username, email, password_hash, role, is_active, is_verified, created_at) '
+            "VALUES ('audit-probe', 'audit-probe@example.com', 'unusable', 'admin', 1, 1, GETDATE())"
+        )
+        cursor.execute("SELECT user_id FROM users WHERE username = 'audit-probe'")
+        user_id = cursor.fetchone()[0]
+
+    try:
+        yield user_id
+    finally:
+        with connection.cursor() as cursor:
+            _cleanup(cursor)
+
+
+def test_audit_log_is_append_only(audit_actor):
+    """Audit rows can be written and then never altered or erased.
+
+    home/audit.py only ever calls AuditLog.objects.create(), so nothing in the
+    app needs UPDATE or DELETE here. Enforcing that at the database means a
+    compromised staff session cannot quietly edit its own trail afterwards.
+
+    Insert is asserted too, not just the two denials: a trigger that refused
+    everything would satisfy the denial half while breaking every audit write
+    in the app.
+    """
+    from data.models import AuditLog
+    from django.db import connection
+
+    _install_trigger('trg_audit_log_append_only')
+    try:
+        row = AuditLog.objects.create(
+            user_id=audit_actor, action_type='LOGIN', table_name='users',
+            record_id=audit_actor, ip_address='127.0.0.1',
+        )
+        assert row.pk, 'INSERT is the one operation that has to keep working'
+
+        with connection.cursor() as cursor:
+            with pytest.raises(Exception, match='append-only'):
+                cursor.execute(
+                    'UPDATE audit_log SET action_type = %s WHERE log_id = %s',
+                    ['CREATE', row.pk],
+                )
+            with pytest.raises(Exception, match='append-only'):
+                cursor.execute('DELETE FROM audit_log WHERE log_id = %s', [row.pk])
+
+        # Still there, and still saying what it said when it was written.
+        row.refresh_from_db()
+        assert row.action_type == 'LOGIN'
+    finally:
+        # Before the fixture teardown, which has to delete the row this test
+        # just made undeletable.
+        with connection.cursor() as cursor:
+            cursor.execute('DROP TRIGGER IF EXISTS trg_audit_log_append_only;')
 
 
 def test_booking_writes_are_denied_without_a_session_context(race_setup):

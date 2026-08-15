@@ -287,6 +287,36 @@ BEGIN
 END;
 GO
 
+/* audit_log is append-only.
+
+   home/audit.py only ever calls AuditLog.objects.create(), and the user FK is
+   DO_NOTHING, so nothing in the application updates or deletes an audit row and
+   no user deletion can cascade one away. Enforcing that here means a
+   compromised staff session cannot edit its own trail after the fact.
+
+   This was going to be DENY UPDATE, DELETE ON audit_log TO <app login>, which
+   is the textbook control. It does nothing on this deployment: the app connects
+   with Trusted_Connection, that account maps to dbo and holds sysadmin, and SQL
+   Server skips permission checks entirely for sysadmin. Applying the DENY and
+   then running an UPDATE, the UPDATE still succeeded. Naming the account in a
+   DENY would also break this script on any machine where that Windows account
+   does not exist.
+
+   A trigger fires for sysadmin too, so this holds whoever connects. If the app
+   is ever given its own least-privilege login, add the DENY as a second layer
+   rather than replacing this. */
+CREATE TRIGGER trg_audit_log_append_only
+ON audit_log
+AFTER UPDATE, DELETE
+AS
+BEGIN
+    -- THROW without ROLLBACK, for the same reason as the two triggers above:
+    -- SQL Server forces XACT_ABORT ON inside a trigger, so an explicit ROLLBACK
+    -- would tear down the transaction Django's atomic() block is holding.
+    THROW 50003, 'audit_log is append-only: rows cannot be updated or deleted', 1;
+END;
+GO
+
 CREATE VIEW v_customer_bookings AS
 SELECT *
 FROM booking_info
