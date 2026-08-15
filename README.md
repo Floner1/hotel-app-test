@@ -136,13 +136,15 @@ Go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser.
 
 ## Default accounts
 
-The schema seeds three accounts into the database. Use these to log in without creating anything manually.
+The schema seeds an admin, a staff and a customer account. Their usernames and
+the passwords they were hashed from are in section 13, `SEED USERS`, of
+`tables v10 for hotel.sql`.
 
-| Role     | Email                        | Password    |
-|----------|------------------------------|-------------|
-| Admin    | admin@thientaihotel.com      | admin123    |
-| Staff    | staff@thientaihotel.com      | staff123    |
-| Customer | customer@thientaihotel.com   | customer123 |
+**These are throwaway development credentials. Rotate all three before this
+runs anywhere reachable, and do not reuse them.** They have been in this
+repository's history in plaintext, and this repository is public, so treat them
+as known to anyone who has cloned it. Changing them here does not undo that:
+the old values stay readable in every earlier commit.
 
 ---
 
