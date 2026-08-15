@@ -425,13 +425,12 @@ def login_view(request):
                     return render(request, 'registration/verify_email_invalid.html', {'email': user.email})
                 login(request, user)
                 log_user_login(user, request)
-                
-                # Set SQL Server session context for RBAC triggers
-                from django.db import connection
-                with connection.cursor() as cursor:
-                    cursor.execute("EXEC sp_set_session_context @key=N'user_id', @value=%s", [str(user.id)])
-                    cursor.execute("EXEC sp_set_session_context @key=N'user_role', @value=%s", [user.role])
-                
+
+                # SqlSessionContextMiddleware stamps user_id/user_role on every
+                # request from here on, so setting them again here bought
+                # nothing: this request only redirects, and the value it wrote
+                # died with the connection anyway.
+
                 messages.success(request, 'You have been successfully logged in.')
                 # Redirect to next parameter or home (validate to prevent open redirect)
                 from django.utils.http import url_has_allowed_host_and_scheme

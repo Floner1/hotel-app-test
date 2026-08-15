@@ -64,6 +64,11 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Must sit after AuthenticationMiddleware: it reads request.user. Stamps
+    # user_id/user_role into SQL Server's SESSION_CONTEXT so the RBAC triggers
+    # can see who is acting. Without it the triggers get NULL and, since they
+    # now deny by default, every booking UPDATE and DELETE fails.
+    'home.middleware.SqlSessionContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # django-axes must be LAST so request.user is populated before it runs.
@@ -102,14 +107,15 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME', 'hotelbooking'),
         'HOST': os.getenv('DB_HOST', 'DESKTOP-NS6H7CH\\MSSQLSERVER01'),
         'Trusted_Connection': 'yes',  # Use Windows Authentication
-        # DO NOT set CONN_MAX_AGE here until SESSION_CONTEXT is set per request.
-        # home.views.login_view calls sp_set_session_context exactly once, at
-        # login, and that value lives on the CONNECTION. Persistent connections
-        # would therefore carry one user's user_id/user_role into the next
-        # user's request, and the RLS triggers in schema.sql (trg_booking_
-        # ownership, trg_prevent_role_escalation) would judge them by it.
-        # Re-enable only once the RBAC middleware sets and clears the context
-        # on every request.
+        # Persistent connections are safe now that SqlSessionContextMiddleware
+        # stamps SESSION_CONTEXT on every request and writes NULLs for
+        # anonymous ones. Without that clearing write, a reused connection
+        # would hand the next visitor the previous user's user_id/user_role and
+        # the RLS triggers in schema.sql would judge them by it.
+        # CONN_HEALTH_CHECKS stops a reused-but-dead connection surfacing as a
+        # request error after SQL Server drops it.
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
             'trust_server_certificate': 'yes',
