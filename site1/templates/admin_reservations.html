@@ -1269,6 +1269,10 @@
   }
 
   function saveBookingChanges(id) {
+    const restore = btnBusy(
+      document.querySelector('#editBookingForm button[type="submit"]'), 'Saving...'
+    );
+    if (!restore) return;  // already in flight — ignore the repeat click
     const formData = {
       name: document.getElementById('edit_name').value,
       email: document.getElementById('edit_email').value,
@@ -1293,10 +1297,11 @@
         showToast(d.message, 'success', sc);
         closeEditModal();
         updateBookingRow(id, formData);
+        // Stays busy through the reload — success is a one-way trip.
         setTimeout(() => location.reload(), 1500);
-      } else { showToast(d.message || 'Failed to update', 'error', sc); }
+      } else { showToast(d.message || 'Failed to update', 'error', sc); restore(); }
     })
-    .catch(err => { showToast('Error: ' + err.message, 'error', 500); });
+    .catch(err => { showToast('Error: ' + err.message, 'error', 500); restore(); });
   }
 
   function deleteBooking(id) {
@@ -1310,7 +1315,7 @@
         <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:1rem 1.25rem;border-radius:8px;margin-bottom:2rem;"><p style="margin:0;color:#856404;font-size:.95rem;line-height:1.6;"><i class="fa fa-info-circle" style="margin-right:.5rem;"></i><strong>Warning:</strong> This action cannot be undone!</p></div>
         <div style="display:flex;gap:1rem;justify-content:center;">
           <button onclick="closeDeleteModal()" style="flex:1;padding:.875rem 2rem;background:#e8ecef;color:#5a6c7d;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:1rem;"><i class="fa fa-times" style="margin-right:.5rem;"></i>Cancel</button>
-          <button onclick="confirmDelete(${id})" style="flex:1;padding:.875rem 2rem;background:linear-gradient(135deg,#ff6b6b,#c92a2a);color:white;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:1rem;box-shadow:0 4px 12px rgba(255,107,107,.4);"><i class="fa fa-trash" style="margin-right:.5rem;"></i>Delete</button>
+          <button onclick="confirmDelete(${id}, this)" style="flex:1;padding:.875rem 2rem;background:linear-gradient(135deg,#ff6b6b,#c92a2a);color:white;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:1rem;box-shadow:0 4px 12px rgba(255,107,107,.4);"><i class="fa fa-trash" style="margin-right:.5rem;"></i>Delete</button>
         </div>
       </div>
       <style>@keyframes modalSlideIn{from{transform:translateY(-50px);opacity:0}to{transform:translateY(0);opacity:1}}</style>`;
@@ -1327,8 +1332,13 @@
     if (m) { m.style.animation = 'fadeOut .2s ease-out'; setTimeout(() => m.remove(), 200); }
   }
 
-  function confirmDelete(id) {
-    closeDeleteModal();
+  function confirmDelete(id, btn) {
+    // The modal used to be closed here, before the fetch — which removed the
+    // button and made a loading state impossible, while the 200ms close
+    // animation left a window for a second click. It now stays open until the
+    // response lands, so the button can show progress and block the repeat.
+    const restore = btnBusy(btn, 'Deleting...');
+    if (!restore) return;
     fetch(`/dashboard/reservations/delete/${id}/`, {
       method: 'POST',
       headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
@@ -1336,12 +1346,16 @@
     .then(r => { const sc = r.status; return r.json().then(d => ({ d, sc })); })
     .then(({ d, sc }) => {
       if (d.status === 'success') {
+        closeDeleteModal();
         showToast(d.message || 'Reservation deleted!', 'success', sc);
         const row = document.querySelector(`tr[data-booking-id="${id}"]`);
         if (row) { row.style.transition = 'opacity .3s'; row.style.opacity = '0'; setTimeout(() => { row.remove(); location.reload(); }, 300); }
-      } else { showToast(d.message || 'Failed to delete', sc >= 500 ? 'error' : 'warning', sc); }
+      } else {
+        showToast(d.message || 'Failed to delete', sc >= 500 ? 'error' : 'warning', sc);
+        restore();  // leave the modal open so the failure is retryable
+      }
     })
-    .catch(err => { showToast('Error: ' + err.message, 'error', 500); });
+    .catch(err => { showToast('Error: ' + err.message, 'error', 500); restore(); });
   }
 
   function openAddModal() {
@@ -1440,6 +1454,13 @@
     if (!formData.name || !formData.email || !formData.phone || !formData.room_type || !formData.checkin_date || !formData.checkout_date) {
       showToast('Please fill in all required fields', 'warning', 400); return;
     }
+    // Claimed only after validation passes, so a failed validation leaves the
+    // button usable. A repeat click while the POST is in flight gets null here
+    // and returns — this is what stops the double-click duplicate booking.
+    const restore = btnBusy(
+      document.querySelector('#addBookingForm button[type="submit"]'), 'Creating...'
+    );
+    if (!restore) return;
     fetch('{% url "reservation" %}', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
@@ -1450,10 +1471,11 @@
       if (d.status === 'success') {
         showToast(`Reservation created! Booking ID: #${d.booking_id} — Total: ₫${parseFloat(d.total_cost_amount).toLocaleString()}`, 'success', sc);
         closeAddModal();
+        // Stays busy through the reload — the booking exists now.
         setTimeout(() => location.reload(), 1500);
-      } else { showToast(d.message || 'Failed to create reservation', sc >= 500 ? 'error' : 'warning', sc); }
+      } else { showToast(d.message || 'Failed to create reservation', sc >= 500 ? 'error' : 'warning', sc); restore(); }
     })
-    .catch(err => { showToast('Error: ' + err.message, 'error', 500); });
+    .catch(err => { showToast('Error: ' + err.message, 'error', 500); restore(); });
   }
 
   function formatDateForSubmit(dateString) {

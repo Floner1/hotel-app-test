@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -115,6 +116,25 @@ DATABASES = {
         },
     }
 }
+
+# Tests run against in-memory sqlite: the real schema is SQL Server, applied by
+# hand, and every model is managed = False. Migrations are disabled because the
+# data/ migrations are raw T-SQL; conftest.pytest_configure flips managed on so
+# run_syncdb builds the test tables straight from the models instead.
+if 'pytest' in sys.modules:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+
+    class _NoMigrations:
+        def __contains__(self, item):
+            return True
+
+        def __getitem__(self, item):
+            return None
+
+    MIGRATION_MODULES = _NoMigrations()
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -244,8 +264,16 @@ from datetime import timedelta
 # ["ip_address"] key catches one IP spraying many usernames. Either tripping
 # locks. This is why W006 (ip-bypass) does not apply.
 AXES_LOCKOUT_PARAMETERS = [["ip_address"], ["username"]]
-AXES_FAILURE_LIMIT = 5                      # attempts before lockout  [confirm value]
-AXES_COOLOFF_TIME = timedelta(minutes=30)  # auto-unlock after 30 min  [confirm value]
+# Signed off 2026-08-15. Upstream defaults are 3 attempts and COOLOFF_TIME=None
+# (locked until an admin manually resets). Both are wrong for a hotel back
+# office: staff mistype, and there is nobody on call overnight to unlock them.
+#
+# With COOLOFF_TIME set, axes counts only attempts newer than the threshold
+# (see AxesDatabaseHandler.get_user_attempts), so this is a rolling 30-minute
+# window rather than a tally that never clears — 5 failures inside any 30
+# minutes locks, and the lock lifts on its own.
+AXES_FAILURE_LIMIT = 5                      # attempts before lockout
+AXES_COOLOFF_TIME = timedelta(minutes=30)  # auto-unlock after 30 min
 AXES_RESET_ON_SUCCESS = True               # a good login clears the counter
 AXES_LOCKOUT_TEMPLATE = '403_ratelimited.html'  # reuse existing "too many requests" page
 

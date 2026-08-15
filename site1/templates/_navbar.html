@@ -21,7 +21,7 @@
                     <a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a>
                     <a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a>
                     {% if user.role == 'admin' %}
-                      <a href="#" id="navEditModeToggle" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;"><i class="fa fa-pencil"></i> Edit Mode</a>
+                      <a href="#" id="navEditModeToggle" class="js-edit-mode-toggle"><i class="fa fa-pencil"></i> Edit Mode</a>
                     {% endif %}
                   </div>
                 </li>
@@ -59,7 +59,7 @@
                         <li><a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a></li>
                         <li><a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a></li>
                         {% if user.role == 'admin' %}
-                          <li><a href="#" onclick="if(typeof toggleEditMode==='function'){toggleEditMode();}return false;"><i class="fa fa-pencil"></i> Edit Mode</a></li>
+                          <li><a href="#" class="js-edit-mode-toggle"><i class="fa fa-pencil"></i> Edit Mode</a></li>
                         {% endif %}
                       {% endif %}
                       <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>

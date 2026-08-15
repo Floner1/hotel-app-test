@@ -10,7 +10,9 @@ from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService
 from data.models import User, CustomerBookingInfo
+from data.models.hotel import BookingStatus
 from data.repos.repositories import DiscountRepository
+from django.db import IntegrityError
 from django.db.models import Sum
 from datetime import date, datetime
 import logging
@@ -18,15 +20,10 @@ from home.audit import log_booking_create, log_booking_update, log_booking_delet
 
 logger = logging.getLogger(__name__)
 
-BOOKING_STATUSES = {
-    'pending',
-    'confirmed',
-    'checked_in',
-    'checked_out',
-    'cancelled',
-    'completed',
-    'rejected',
-}
+# Derived, not restated. The list lives on the model (data/models/hotel.py) so
+# this check and the model field cannot drift apart. The DB's chk_booking_status
+# constraint is still a separate artefact and must be ALTERed by hand to match.
+BOOKING_STATUSES = set(BookingStatus.values)
 
 def is_admin(user):
     """Check if user has admin role."""
@@ -1412,14 +1409,34 @@ def edit_reservation(request, booking_id):
         if 'amount_paid' in data:
             booking.amount_paid = Decimal(str(data['amount_paid']))
         
-        # Save changes
-        booking.save()
+        # Save changes. A DB CHECK-constraint rejection (chk_booking_status is the
+        # likely one, since the model's status list and the constraint are separate
+        # artefacts) arrives as IntegrityError. Catch it here so it returns a real
+        # 400 naming the value, instead of falling through to the generic
+        # `except Exception` below and reporting an opaque 500.
+        try:
+            booking.save()
+        except IntegrityError:
+            logger.exception(
+                'Booking #%s rejected by a DB constraint (status=%r)',
+                booking_id, booking.status,
+            )
+            return JsonResponse({
+                'status': 'error',
+                'message': (
+                    f'The database rejected this booking. Status "{booking.status}" '
+                    f'may not be permitted by the booking_info constraint.'
+                ),
+            }, status=400)
 
         # Handle room allocation on status transitions
         new_status = booking.status
         if new_status != old_status:
             try:
-                from django.core.exceptions import ValidationError
+                # NB: do not re-import ValidationError here. It is already imported
+                # at module level, and a function-local import binds the name for
+                # this whole function — which made the `raise ValidationError` in
+                # the room-rate block above raise UnboundLocalError instead.
                 if new_status == 'confirmed':
                     RoomService.allocate_room(booking, assigned_by=request.user)
                 elif new_status == 'checked_in':

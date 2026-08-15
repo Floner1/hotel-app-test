@@ -265,11 +265,11 @@ class ReservationService:
             if applied_discount:
                 DiscountRepository.redeem(applied_discount, booking)
 
-            # Auto-assign an available room so it immediately appears on the Room Dashboard
-            try:
-                RoomService.allocate_room(booking, assigned_by=user)
-            except Exception as e:
-                logger.warning(f"Could not auto-allocate room for booking. Error: {e}")
+            # Auto-assign an available room so it immediately appears on the Room
+            # Dashboard. A failure here must abort the whole booking: the row is
+            # already written above, so swallowing the error would commit a
+            # booking with no room and still report success to the guest.
+            RoomService.allocate_room(booking, assigned_by=user)
 
         # Fire booking confirmation email AFTER the transaction commits so
         # the row is guaranteed visible to the email service. Failure is

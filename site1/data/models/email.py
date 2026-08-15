@@ -1,7 +1,7 @@
 """Email infrastructure models — mapped to the SQL Server email_* tables.
 
 All three models are `managed = False`: the schema is owned by
-`tables v6 for hotel.sql`, not by Django migrations.
+`tables v10 for hotel.sql`, not by Django migrations.
 """
 from django.db import models
 

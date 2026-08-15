@@ -140,6 +140,29 @@ class Hotel(models.Model):
         return self.hotel_name or 'Unnamed Hotel'
 
 
+class BookingStatus(models.TextChoices):
+    """The one definition of a valid booking status.
+
+    Three places gate this value and none of them stay in sync on their own:
+    this field's choices, home.views.BOOKING_STATUSES, and the DB's
+    chk_booking_status CHECK constraint. views.py now derives its set from here,
+    so only the DB constraint is a separate artefact — changing a member here
+    means writing the matching ALTER for booking_info by hand.
+
+    Note choices= does not enforce anything at write time: Model.save() never
+    calls full_clean(). Enforcement is the explicit check in edit_reservation
+    plus the DB constraint. This exists so all three read from one list.
+    """
+
+    PENDING = 'pending', 'Pending'
+    CONFIRMED = 'confirmed', 'Confirmed'
+    CHECKED_IN = 'checked_in', 'Checked-in'
+    CHECKED_OUT = 'checked_out', 'Checked-out'
+    CANCELLED = 'cancelled', 'Cancelled'
+    COMPLETED = 'completed', 'Completed'
+    REJECTED = 'rejected', 'Rejected'
+
+
 class CustomerBookingInfo(models.Model):
     """Model mapped to SQL Server's booking_info table."""
 
@@ -169,7 +192,9 @@ class CustomerBookingInfo(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     
     # Status Tracking
-    status = models.CharField(max_length=50, default='pending')
+    status = models.CharField(
+        max_length=50, choices=BookingStatus, default=BookingStatus.PENDING
+    )
     payment_status = models.CharField(max_length=50, default='unpaid')
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     

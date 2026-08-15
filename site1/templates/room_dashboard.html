@@ -336,11 +336,11 @@ body {
         <!-- Condition buttons -->
         <h6 style="font-weight: 700; margin-bottom: 0.75rem; color: #333; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Set Room Condition</h6>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="conditionBtns">
-          <button class="btn-condition cond-vacant"       onclick="setCondition('vacant')">Empty Clean</button>
-          <button class="btn-condition cond-empty_dirty"  onclick="setCondition('empty_dirty')">Empty Dirty</button>
-          <button class="btn-condition cond-occupied"     onclick="setCondition('occupied')">Occupied</button>
-          <button class="btn-condition cond-reserved"     onclick="setCondition('reserved')">Reserved</button>
-          <button class="btn-condition cond-out_of_order" onclick="setCondition('out_of_order')">Out of Order</button>
+          <button class="btn-condition cond-vacant"       onclick="setCondition('vacant', this)">Empty Clean</button>
+          <button class="btn-condition cond-empty_dirty"  onclick="setCondition('empty_dirty', this)">Empty Dirty</button>
+          <button class="btn-condition cond-occupied"     onclick="setCondition('occupied', this)">Occupied</button>
+          <button class="btn-condition cond-reserved"     onclick="setCondition('reserved', this)">Reserved</button>
+          <button class="btn-condition cond-out_of_order" onclick="setCondition('out_of_order', this)">Out of Order</button>
         </div>
       </div>
     </div>
@@ -426,15 +426,22 @@ body {
   }
 
   /* ── Set condition from modal ── */
-  function setCondition(newStatus) {
+  function setCondition(newStatus, btn) {
     if (!activeRoomId) return;
+    // Five sibling condition buttons, so busying only the clicked one still
+    // leaves the other four live. Lock the whole group for the request.
+    const restore = btnBusy(btn, 'Saving...');
+    if (!restore) return;
+    const $others = $('.btn-condition').not(btn).prop('disabled', true);
+    const release = function() { restore(); $others.prop('disabled', false); };
     $.ajax({
       url: '',
       method: 'POST',
       data: { room_id: activeRoomId, new_status: newStatus, csrfmiddlewaretoken: csrfToken },
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      // Stays locked through the reload on success.
       success: function() { $('#roomModal').modal('hide'); location.reload(); },
-      error: function() { alert('Failed to update room status.'); }
+      error: function() { alert('Failed to update room status.'); release(); }
     });
   }
 </script>
