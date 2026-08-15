@@ -1,16 +1,24 @@
-asgiref==3.9.1
-Django==5.2.4
+# Exact pins are reconciled against what is actually installed and tested
+# (pip freeze), not bumped speculatively. Django 5.2.x patch releases are the
+# security-fix channel for the 5.2 LTS line, so letting this file lag the
+# installed interpreter is itself the risk: it makes a clean-room install ship
+# older code than anything anyone has run.
+asgiref==3.11.1
+Django==5.2.15
 django-axes==8.3.1
 django-csp==4.0
 django-ratelimit==4.1.0
 mssql-django==1.6
 nh3==0.3.6
-pillow==12.1.0
+pillow==12.2.0
 pyodbc==5.2.0
-python-dotenv==1.1.1
+python-dotenv==1.2.2
 pytz==2025.2
-sqlparse==0.5.3
-tzdata==2025.2
+sqlparse==0.5.5
+tzdata==2026.2
+
+# Floors, not pins: serving and test tooling, where a newer patch release is
+# always wanted and no schema depends on the exact version.
 whitenoise>=6.5.0
 pytest>=7.4.0
 pytest-django>=4.5.2
