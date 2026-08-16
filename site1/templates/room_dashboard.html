@@ -415,7 +415,7 @@ body {
       document.getElementById('roomModalGuestCount').textContent =
         adults + ' adult' + (adults != '1' ? 's' : '') +
         (children > 0 ? ', ' + children + ' child' + (children != '1' ? 'ren' : '') : '');
-      var payText = d.totalPrice ? 'Total: ' + parseFloat(d.totalPrice).toLocaleString('en-US', {style:'currency', currency:'USD'}) : '';
+      var payText = d.totalPrice ? 'Total: ₫' + parseFloat(d.totalPrice).toLocaleString('vi-VN') : '';
       var payStatus = d.paymentStatus ? ' · ' + d.paymentStatus.charAt(0).toUpperCase() + d.paymentStatus.slice(1) : '';
       document.getElementById('roomModalPayment').textContent = payText + payStatus;
     } else {
