@@ -19,11 +19,10 @@ The only manual step is creating the empty database:
 
     sqlcmd -S <host>\\MSSQLSERVER01 -E -Q "CREATE DATABASE hotel_concurrency_test"
 
-The tables are then built from the Django models on first run. They are built
-from the models rather than from site1/schema.sql because schema.sql is stale:
-it still declares the pre-44f0447 single `current_status` column on rooms,
-where the models and the live database use split reservation_status /
-housekeeping_status columns.
+The tables are then built from the Django models on first run, not from the
+schema file, so this database only ever contains the handful of tables these
+tests touch. Individual triggers are pulled out of the schema file where a test
+needs one, by _install_trigger below.
 
 Only missing tables are created, never altered, so after changing a model drop
 the database and let the next run rebuild it:
@@ -90,12 +89,12 @@ def _ensure_schema():
                 editor.create_model(model)
 
 
-SCHEMA_SQL = Path(__file__).resolve().parent.parent / 'schema.sql'
+SCHEMA_SQL = Path(__file__).resolve().parents[2] / 'tables v10 for hotel.sql'
 
 
 def _install_trigger(name):
     """Recreate one trigger from the checked-in schema, so the assertions below
-    are made against the definition in site1/schema.sql rather than against a
+    are made against the definition in the schema file rather than against a
     copy that can drift from it. Pulled out by regex the same way
     test_booking_status.py pulls out the CHECK constraint.
 
@@ -108,7 +107,7 @@ def _install_trigger(name):
         SCHEMA_SQL.read_text(encoding='utf-8'),
         re.S | re.IGNORECASE,
     )
-    assert body, f'{name} not found in schema.sql'
+    assert body, f'{name} not found in {SCHEMA_SQL.name}'
 
     with connection.cursor() as cursor:
         cursor.execute(f'DROP TRIGGER IF EXISTS {name};')

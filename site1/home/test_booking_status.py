@@ -3,15 +3,15 @@
 The status value is gated in three independent places:
   1. CustomerBookingInfo.status  (the model field's choices)
   2. home.views.BOOKING_STATUSES (the explicit check in edit_reservation)
-  3. chk_booking_status          (the CHECK constraint in schema.sql)
+  3. chk_booking_status          (the CHECK constraint in the schema file)
 
 Nothing keeps them in sync automatically, and the file meant to keep the live DB
 constraint aligned (migrations/alter_booking_status_constraint.sql) was deleted.
 These tests fail the moment any of the three drifts from the others.
 
-Note: schema.sql is the checked-in schema, not the live database. A green run
-here proves the code and the checked-in schema agree; it says nothing about what
-constraint is actually installed in production.
+Note: the schema file is the checked-in schema, not the live database. A green
+run here proves the code and the checked-in schema agree; it says nothing about
+what constraint is actually installed in production.
 """
 
 import re
@@ -25,7 +25,10 @@ from data.models import CustomerBookingInfo
 from data.models.hotel import BookingStatus
 from home.views import BOOKING_STATUSES
 
-SCHEMA_SQL = Path(__file__).resolve().parent.parent / 'schema.sql'
+# The one checked-in schema, at the repo root. This is also the file the README
+# tells you to run through SSMS, so the constraint asserted on below is the one
+# a fresh database actually gets.
+SCHEMA_SQL = Path(__file__).resolve().parents[2] / 'tables v10 for hotel.sql'
 
 
 def _schema_statuses():
@@ -35,7 +38,7 @@ def _schema_statuses():
         SCHEMA_SQL.read_text(encoding='utf-8'),
         re.IGNORECASE,
     )
-    assert match, 'chk_booking_status constraint not found in schema.sql'
+    assert match, f'chk_booking_status constraint not found in {SCHEMA_SQL.name}'
     return {value.strip().strip("'") for value in match.group(1).split(',')}
 
 

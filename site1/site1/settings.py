@@ -111,7 +111,7 @@ DATABASES = {
         # stamps SESSION_CONTEXT on every request and writes NULLs for
         # anonymous ones. Without that clearing write, a reused connection
         # would hand the next visitor the previous user's user_id/user_role and
-        # the RLS triggers in schema.sql would judge them by it.
+        # the RLS triggers in the schema file would judge them by it.
         # CONN_HEALTH_CHECKS stops a reused-but-dead connection surfacing as a
         # request error after SQL Server drops it.
         'CONN_MAX_AGE': 60,
