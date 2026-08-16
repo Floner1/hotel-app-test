@@ -131,11 +131,6 @@ DATABASES = {
 # (mssql/base.py get_new_connection), so setting USER here is what switches the
 # connection to SQL authentication. The key above is left in place rather than
 # deleted, because it is what the fallback path uses.
-#
-# Why this matters: the Windows account currently used is a sysadmin, and
-# sysadmin bypasses every GRANT and DENY check in SQL Server. No table
-# permission can constrain the app until it connects as something that is not
-# sysadmin, which is why enforcement presently lives in triggers instead.
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 
@@ -224,13 +219,9 @@ STORAGES = {
     },
 }
 
-# The manifest backend refuses to resolve {% static %} unless
-# staticfiles/staticfiles.json exists, and that file is only written by
-# collectstatic. staticfiles/ is untracked, so on a fresh clone every test that
-# renders a template dies with "Missing staticfiles manifest entry" before it
-# gets anywhere near what it was written to check. Nothing under test cares
-# about hashed filenames. Overridden here rather than in the block above
-# because STORAGES is not defined until this point.
+# The manifest backend cannot resolve {% static %} without staticfiles.json,
+# which only collectstatic writes, so on a fresh clone every test that renders a
+# template died before reaching what it was written to check.
 if 'pytest' in sys.modules:
     STORAGES['staticfiles']['BACKEND'] = (
         'django.contrib.staticfiles.storage.StaticFilesStorage'

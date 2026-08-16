@@ -111,7 +111,9 @@ DB_HOST=YOUR_COMPUTER_NAME\YOUR_INSTANCE_NAME
 
 To find your instance name, open SSMS and look at the "Server name" field in the connection dialog.
 
-You do not need to set a username or password — the project uses Windows Authentication, which means it connects as whichever Windows user is running the Python process. Make sure that Windows account has access to the `hotelbooking` database in SQL Server.
+By default you do not need to set a username or password: the project uses Windows Authentication, which means it connects as whichever Windows user is running the Python process. Make sure that Windows account has access to the `hotelbooking` database in SQL Server.
+
+To connect with a SQL Server login instead, set both `DB_USER` and `DB_PASSWORD` in `site1/.env`. Setting only one of them is an error rather than a silent fallback. That path needs the instance to allow SQL authentication (mixed mode), which is off by default.
 
 ### 11. Collect static files
 

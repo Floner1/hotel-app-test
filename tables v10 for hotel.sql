@@ -428,9 +428,9 @@ GO
    DENY would also break this script on any machine where that Windows account
    does not exist.
 
-   A trigger fires for sysadmin too, so this holds whoever connects. If the app
-   is ever given its own least-privilege login, add the DENY as a second layer
-   rather than replacing this. */
+   A trigger fires for sysadmin too, so this holds whoever connects. The
+   least-privilege login does exist and does carry the DENY as a second layer;
+   see the APPLICATION LOGIN block below. */
 /* ---------------------------------------------------------------------------
    APPLICATION LOGIN (reference only, deliberately not executed)
 
@@ -448,12 +448,8 @@ GO
    time. Enabling mixed mode needs a SQL Server service restart and is not
    something this script does.
 
-   Why bother: the app otherwise connects as a developer's Windows account that
-   holds sysadmin, and sysadmin bypasses every GRANT and DENY check. No table
-   permission constrains the app until it connects as a principal that is not
-   sysadmin. db_datareader plus db_datawriter is the whole requirement here. The
-   app reads and writes its own tables and needs nothing else, so no
-   table-by-table grant list is warranted.
+   Two roles, not a table-by-table grant list: the app reads and writes its own
+   tables and needs nothing else.
 
    -- CREATE LOGIN hotelapp WITH PASSWORD = N'<generate a strong one, do not commit it>';
    -- GO
@@ -461,7 +457,12 @@ GO
    -- CREATE USER hotelapp FOR LOGIN hotelapp;
    -- ALTER ROLE db_datareader ADD MEMBER hotelapp;
    -- ALTER ROLE db_datawriter ADD MEMBER hotelapp;
+   -- DENY UPDATE, DELETE ON audit_log TO hotelapp;
    -- GO
+
+   The DENY is the permission-layer half of the append-only rule above, and it
+   is applied on this instance today. It bites this principal, unlike the
+   sysadmin account, which is the whole reason the trigger had to exist as well.
 
    Do NOT add db_owner. It would restore the bypass this exists to remove.
    EXECUTE on sp_set_session_context, which SqlSessionContextMiddleware calls on
