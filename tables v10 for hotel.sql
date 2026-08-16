@@ -431,6 +431,43 @@ GO
    A trigger fires for sysadmin too, so this holds whoever connects. If the app
    is ever given its own least-privilege login, add the DENY as a second layer
    rather than replacing this. */
+/* ---------------------------------------------------------------------------
+   APPLICATION LOGIN (reference only, deliberately not executed)
+
+   Commented out on purpose. CREATE LOGIN fails if the login already exists,
+   which would abort the batch and take the rest of this script with it. Run
+   these by hand, once, when provisioning a new machine.
+
+   A login named hotelapp already exists on this instance and is already a
+   member of db_datareader and db_datawriter in hotelbooking, and of no server
+   role. It is recorded here so a rebuild from this file does not silently drop
+   the mapping.
+
+   It cannot currently be used: this instance is configured for Windows
+   authentication only (LoginMode = 1), so SQL logins are refused at connect
+   time. Enabling mixed mode needs a SQL Server service restart and is not
+   something this script does.
+
+   Why bother: the app otherwise connects as a developer's Windows account that
+   holds sysadmin, and sysadmin bypasses every GRANT and DENY check. No table
+   permission constrains the app until it connects as a principal that is not
+   sysadmin. db_datareader plus db_datawriter is the whole requirement here. The
+   app reads and writes its own tables and needs nothing else, so no
+   table-by-table grant list is warranted.
+
+   -- CREATE LOGIN hotelapp WITH PASSWORD = N'<generate a strong one, do not commit it>';
+   -- GO
+   -- USE hotelbooking;
+   -- CREATE USER hotelapp FOR LOGIN hotelapp;
+   -- ALTER ROLE db_datareader ADD MEMBER hotelapp;
+   -- ALTER ROLE db_datawriter ADD MEMBER hotelapp;
+   -- GO
+
+   Do NOT add db_owner. It would restore the bypass this exists to remove.
+   EXECUTE on sp_set_session_context, which SqlSessionContextMiddleware calls on
+   every request, is granted to public by default and needs no separate grant.
+--------------------------------------------------------------------------- */
+
 CREATE TRIGGER trg_audit_log_append_only
 ON audit_log
 AFTER UPDATE, DELETE

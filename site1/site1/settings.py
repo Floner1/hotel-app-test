@@ -123,6 +123,35 @@ DATABASES = {
     }
 }
 
+# Optional SQL Server login, for running the app as something other than the
+# developer's own Windows account. Set DB_USER and DB_PASSWORD to use one;
+# leave both unset and nothing changes.
+#
+# mssql-django only reads Trusted_Connection when USER is absent
+# (mssql/base.py get_new_connection), so setting USER here is what switches the
+# connection to SQL authentication. The key above is left in place rather than
+# deleted, because it is what the fallback path uses.
+#
+# Why this matters: the Windows account currently used is a sysadmin, and
+# sysadmin bypasses every GRANT and DENY check in SQL Server. No table
+# permission can constrain the app until it connects as something that is not
+# sysadmin, which is why enforcement presently lives in triggers instead.
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+
+# Half a configuration is worse than none: a username with no password would
+# fall straight through to Windows auth and quietly connect as whoever is
+# running the process, which is the opposite of what setting DB_USER means.
+if bool(DB_USER) != bool(DB_PASSWORD):
+    raise ImproperlyConfigured(
+        'Set both DB_USER and DB_PASSWORD to use a SQL Server login, or neither '
+        'to use Windows authentication. Exactly one of them is set.'
+    )
+
+if DB_USER:
+    DATABASES['default']['USER'] = DB_USER
+    DATABASES['default']['PASSWORD'] = DB_PASSWORD
+
 # Tests run against in-memory sqlite: the real schema is SQL Server, applied by
 # hand, and every model is managed = False. Migrations are disabled because the
 # data/ migrations are raw T-SQL; conftest.pytest_configure flips managed on so
