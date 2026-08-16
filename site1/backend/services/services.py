@@ -93,12 +93,21 @@ class DiscountService:
         return DiscountRepository.get_or_issue_for_email(email, subscriber)
 
     @staticmethod
-    def validate(discount):
-        """Raise ValidationError if the discount cannot be applied."""
+    def validate(discount, email):
+        """Raise ValidationError if the discount cannot be applied.
+
+        `email` is required rather than defaulted. newsletter-discount-plan.md
+        §2 decision 2 binds a code to the address it was issued to, so a caller
+        that cannot supply an email has not established the code is usable —
+        a default here would let a call site silently skip the one check this
+        function exists for.
+        """
         if discount is None:
             raise ValidationError('Discount code not found.')
         if discount.status != 'active':
             raise ValidationError('This code has already been used.')
+        if (email or '').strip().lower() != (discount.email or '').strip().lower():
+            raise ValidationError('This code was issued to a different email address.')
 
 
 class ReservationService:
@@ -210,7 +219,7 @@ class ReservationService:
                     .filter(code__iexact=discount_code_input)
                     .first()
                 )
-                DiscountService.validate(disc)
+                DiscountService.validate(disc, reservation_data.get('email'))
                 total_cost = (
                     total_cost * Decimal(100 - disc.discount_percent) / Decimal(100)
                 ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)

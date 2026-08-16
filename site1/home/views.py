@@ -364,9 +364,18 @@ def validate_discount_code(request):
         code = request.POST.get('code', '').strip()
         if not code:
             return JsonResponse({'valid': False, 'message': 'Code is required.'}, status=400)
+        # No email means the binding cannot be checked. Answering 'valid' here
+        # would promise a discount that create_reservation then refuses, so
+        # this fails closed rather than optimistically.
+        email = request.POST.get('email', '').strip()
+        if not email:
+            return JsonResponse({
+                'valid': False,
+                'message': 'Enter the email address you are booking with to check this code.',
+            })
         disc = DiscountRepository.get_by_code(code)
         try:
-            DiscountService.validate(disc)
+            DiscountService.validate(disc, email)
         except ValidationError as exc:
             return JsonResponse({'valid': False, 'message': exc.message})
         return JsonResponse({
