@@ -800,12 +800,22 @@ def room_dashboard(request):
                 )
                 requested = 'dirty' if new_status == 'empty_dirty' else new_status
                 if _display_status(room, assignment, date.today()) != requested:
-                    msg = (
-                        f'Room {room.room_code} is assigned to booking '
-                        f'#{assignment.booking_id} ({assignment.check_in} to '
-                        f'{assignment.check_out}). Change that booking to free '
-                        f'the room.'
-                    )
+                    # An assignment is the usual thing standing in the way, but
+                    # not the only one: out_of_order outranks everything in the
+                    # derivation, so Occupied or Reserved on a broken room with
+                    # no booking loses here too.
+                    if assignment is not None:
+                        msg = (
+                            f'Room {room.room_code} is assigned to booking '
+                            f'#{assignment.booking_id} ({assignment.check_in} to '
+                            f'{assignment.check_out}). Change that booking to free '
+                            f'the room.'
+                        )
+                    else:
+                        msg = (
+                            f'Room {room.room_code} is out of order. Clear that '
+                            f'first, with Empty Clean or Empty Dirty.'
+                        )
                     if is_ajax:
                         return JsonResponse({'status': 'error', 'message': msg}, status=409)
                     messages.error(request, msg)

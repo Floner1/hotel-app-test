@@ -165,6 +165,54 @@ def test_empty_dirty_works_on_a_room_with_no_assignment(staff_client, room):
 
 
 @pytest.mark.django_db
+def test_occupied_on_an_out_of_order_room_is_refused_without_a_booking(
+    staff_client, room
+):
+    """out_of_order outranks reservation_status, so Occupied loses here too,
+    but there is no assignment to name in the refusal.
+
+    Found by review: the refusal message reached for assignment.booking_id
+    unconditionally, so this path raised AttributeError and returned a 500
+    rather than a refusal.
+    """
+    room.housekeeping_status = 'out_of_order'
+    room.save()
+
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'occupied'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 409, (
+        f'expected a refusal, got {response.status_code}: {response.content!r}'
+    )
+    assert 'out of order' in response.json()['message'].lower(), (
+        f'the refusal must say what actually blocked it: {response.json()!r}'
+    )
+    room.refresh_from_db()
+    assert room.reservation_status != 'occupied'
+
+
+@pytest.mark.django_db
+def test_clearing_an_out_of_order_room_still_works(staff_client, room):
+    """Empty Clean sets housekeeping back to clean in the same write, so the
+    derivation agrees and the room can always be brought back into service."""
+    room.housekeeping_status = 'out_of_order'
+    room.save()
+
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'vacant'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 200, response.content
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'clean'
+
+
+@pytest.mark.django_db
 def test_marking_a_future_booked_room_occupied_is_refused(staff_client, room, hotel):
     """A future assignment renders as Reserved, so Occupied would be overridden
     too. Same rule, different branch of the derivation."""
