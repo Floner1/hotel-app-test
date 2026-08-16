@@ -117,32 +117,41 @@ class ReservationService:
     _RATE_CACHE_FETCHED_AT: Optional[datetime] = None
     _RATE_CACHE_TTL_SECONDS = 300
 
+    # Keys are room_price.room_type values, lowercased, which is the form the
+    # direct-match branch below returns and the form _load_room_rates keys the
+    # rate cache on. The tuples are older free-text spellings, including the
+    # invented snake_case keys this map used to resolve to.
+    #
+    # Keying on anything else is what broke this. Both the rate cache and the
+    # availability query read room_price.room_type and rooms.room_type, so a
+    # canonical value absent from those columns can never match a rate or a
+    # room, and every alias hit failed.
     _ROOM_TYPE_ALIASES: Dict[str, Iterable[str]] = {
-        'one_bed_balcony_room': (
+        '1 bed with balcony': (
             '1 bed balcony room',
             '1 bed balcony',
             '1-bed balcony room',
             'one bed balcony room',
             'one_bed_balcony_room',
         ),
-        'one_bed_window_room': (
+        '1 bed with window': (
             '1 bed window room',
             '1 bed window',
             'one bed window room',
             'one_bed_window_room',
         ),
-        'two_bed_no_window_room': (
+        '2 bed no window room': (
             '2 bed no window',
             'two bed no window',
             '2-bed no window room',
             'two_bed_no_window_room',
         ),
-        'one_bed_no_window_room': (
-            '1 bed no window',
+        '1 bed no window': (
+            '1 bed no window room',
             'one bed no window',
             'one_bed_no_window_room',
         ),
-        'two_bed_condotel_balcony': (
+        '2 bed & balcony condotel': (
             'condotel 2 bed and balcony',
             'condotel 2 bed balcony',
             '2 bed condotel balcony',
@@ -362,10 +371,20 @@ class ReservationService:
         except Exception:
             logger.exception("Database check error in _canonicalise_room_type")
 
-        # Then check against aliases for backward compatibility
+        # Then check against aliases for backward compatibility. The resolved
+        # key is confirmed against room_price the same way the direct branch
+        # is. If seed data gets renamed out from under this map, the caller
+        # gets 'Invalid room type selected' rather than a rate error naming the
+        # pricing table when the fault is here.
         for canonical, aliases in cls._ROOM_TYPE_ALIASES.items():
             if normalised in (alias.lower() for alias in aliases):
-                return canonical
+                if RoomPrice.objects.filter(room_type__iexact=canonical).exists():
+                    return canonical
+                logger.warning(
+                    "Room type alias %r maps to %r, which room_price does not hold",
+                    normalised, canonical,
+                )
+                return None
 
         # If no match found, return None
         return None
