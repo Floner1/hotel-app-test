@@ -355,6 +355,37 @@ def test_manage_accounts_rejects_a_weak_password_on_edit(account_admin):
     assert target.password_hash == old_hash, 'an all-numeric password was accepted'
 
 
+@pytest.mark.django_db
+def test_milestone_count_is_taken_under_a_row_lock(client):
+    """The count that grants the discount must not straddle a transaction.
+
+    Asserted at the query boundary because sqlite accepts select_for_update()
+    and never blocks on it; test_concurrency.py proves the blocking half
+    against real SQL Server, the same split pytest.ini already documents for
+    allocate_room. Without the lock, two bookings from one guest around their
+    third both read the same count and both collect 10%.
+
+    This guest has no bookings, so the provisional count is 1 and the request
+    falls through the ask-the-guest branch into the locked one.
+    """
+    guest = User.objects.create_user(
+        username='milestoneguest', email='milestone@example.com',
+        password='irrelevant-for-force-login', role='customer',
+    )
+    client.force_login(guest, backend='home.auth_backend.CustomUserBackend')
+
+    with patch('home.views.User.objects.select_for_update') as locked:
+        client.post(reverse('reservation'), {
+            'name': 'Milestone Guest', 'email': 'milestone@example.com',
+            'phone': '123',
+            'checkin_date': _CHECK_IN.strftime('%m/%d/%Y'),
+            'checkout_date': (_CHECK_IN + timedelta(days=2)).strftime('%m/%d/%Y'),
+            'adults': '1', 'children': '0', 'room_type': 'deluxe',
+        })
+
+    assert locked.called, 'the milestone count ran without locking the guest row'
+
+
 def test_milestone_check_counts_bookings_by_authenticated_user_not_email():
     """Loyalty milestones must be counted against request.user.
 

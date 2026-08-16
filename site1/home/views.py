@@ -208,21 +208,41 @@ def get_reservation(request):
             
             # Milestone check: intercept before booking if this is a loyalty milestone
             # and the guest hasn't yet decided whether to redeem it.
+            #
+            # This first count is deliberately unlocked. It only decides whether
+            # to interrupt and ask the guest, and nothing is written on that
+            # path, so a stale answer costs nothing.
             milestone_decision = request.POST.get('milestone_decision', '')
-            existing_count = CustomerBookingInfo.objects.filter(user=request.user).count()
-            milestone_booking_number = existing_count + 1
-            milestone_eligible = milestone_booking_number % 3 == 0
-            if not milestone_decision and milestone_eligible:
-                return JsonResponse({
-                    'status': 'milestone_check',
-                    'booking_number': milestone_booking_number,
-                })
+            if not milestone_decision:
+                provisional_number = CustomerBookingInfo.objects.filter(
+                    user=request.user
+                ).count() + 1
+                if provisional_number % 3 == 0:
+                    return JsonResponse({
+                        'status': 'milestone_check',
+                        'booking_number': provisional_number,
+                    })
 
-            if milestone_decision == 'redeem' and milestone_eligible:
-                reservation_data['milestone_discount_percent'] = 10
+            # Past here a booking gets written, so the count that decides the
+            # discount is taken under a lock on the guest's own row and stays in
+            # the same transaction as the booking it gates. Unlocked, two
+            # bookings from one guest around their third both read the same
+            # count, both compute booking number three, and both take 10% off.
+            # The lock goes on the user row because there is no row to lock for
+            # a booking that does not exist yet.
+            from django.db import transaction
+            with transaction.atomic():
+                User.objects.select_for_update().filter(pk=request.user.pk).first()
+                milestone_booking_number = CustomerBookingInfo.objects.filter(
+                    user=request.user
+                ).count() + 1
 
-            # Create reservation using the service
-            booking = ReservationService.create_reservation(reservation_data)
+                if milestone_decision == 'redeem' and milestone_booking_number % 3 == 0:
+                    reservation_data['milestone_discount_percent'] = 10
+
+                # Create reservation using the service, inside the same block so
+                # the lock is still held when the row lands.
+                booking = ReservationService.create_reservation(reservation_data)
 
             # Audit log
             log_booking_create(request.user, booking, request)
