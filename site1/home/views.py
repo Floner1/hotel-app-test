@@ -974,6 +974,16 @@ def manage_accounts(request):
                 messages.error(request, err_msg)
                 return redirect('manage_accounts')
 
+            # The same validators register_view runs. The unsaved User is what
+            # gives UserAttributeSimilarityValidator anything to work with: it
+            # returns immediately on a None user, so passing the password alone
+            # would leave one of the four configured validators inert.
+            try:
+                validate_password(password or '', User(username=username, email=email))
+            except ValidationError as e:
+                messages.error(request, ' '.join(e.messages))
+                return redirect('manage_accounts')
+
             try:
                 from django.utils import timezone
                 # Create new user
@@ -1018,8 +1028,15 @@ def manage_accounts(request):
                 user.email = email
                 user.role = new_role
 
-                # Only update password if provided
+                # Only update password if provided, and hold it to the same bar
+                # as creation. Validating one branch and not the other just
+                # moves the hole to the next button on the same screen.
                 if password:
+                    try:
+                        validate_password(password, user)
+                    except ValidationError as e:
+                        messages.error(request, ' '.join(e.messages))
+                        return redirect('manage_accounts')
                     user.set_password(password)
 
                 user.save()
