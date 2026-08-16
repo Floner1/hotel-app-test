@@ -716,6 +716,30 @@ def admin_reservations(request):
     return render(request, 'admin_reservations.html', context)
 
 
+def _display_status(room, assignment, today):
+    """The one derivation of what a room's card shows.
+
+    Both the dashboard render and the manual-status POST call this. They used
+    to hold separate copies and disagree: the POST wrote reservation_status
+    while the render preferred an active RoomAssignment covering today, so
+    'Empty Clean' on a booked room saved and then reloaded as 'Occupied' with
+    nothing to say why. An active assignment is what availability checks read,
+    so it outranks the room's own fields; out_of_order outranks everything,
+    because a room can be broken while a guest is booked into it.
+    """
+    if room.housekeeping_status == 'out_of_order':
+        return 'out_of_order'
+    if assignment and assignment.check_in <= today <= assignment.check_out:
+        return 'occupied'
+    if assignment and assignment.check_in > today:
+        return 'reserved'
+    if room.reservation_status == 'vacant' and room.housekeeping_status == 'dirty':
+        return 'dirty'
+    if room.reservation_status == 'vacant':
+        return 'vacant'
+    return room.reservation_status
+
+
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def room_dashboard(request):
@@ -726,7 +750,8 @@ def room_dashboard(request):
     if request.method == 'POST':
         room_id = request.POST.get('room_id')
         new_status = request.POST.get('new_status') # backwards-compatibility
-        
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
         if room_id and new_status:
             try:
                 room = Room.objects.get(room_id=room_id)
@@ -742,12 +767,36 @@ def room_dashboard(request):
                     room.reservation_status = 'reserved'
                 elif new_status == 'out_of_order':
                     room.housekeeping_status = 'out_of_order'
+
+                # Run the pending write through the same derivation the page
+                # renders. If the card would not come back showing what was
+                # asked for, refuse and say which booking holds the room,
+                # rather than saving a value the next render discards.
+                assignment = (
+                    RoomAssignment.objects
+                    .filter(room_id=room.room_id, status='active')
+                    .select_related('booking')
+                    .first()
+                )
+                requested = 'dirty' if new_status == 'empty_dirty' else new_status
+                if _display_status(room, assignment, date.today()) != requested:
+                    msg = (
+                        f'Room {room.room_code} is assigned to booking '
+                        f'#{assignment.booking_id} ({assignment.check_in} to '
+                        f'{assignment.check_out}). Change that booking to free '
+                        f'the room.'
+                    )
+                    if is_ajax:
+                        return JsonResponse({'status': 'error', 'message': msg}, status=409)
+                    messages.error(request, msg)
+                    return redirect('room_dashboard')
+
                 room.save()
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                if is_ajax:
                     return JsonResponse({'status': 'ok'})
                 messages.success(request, f'Room {room.room_code} updated status.')
             except Room.DoesNotExist:
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                if is_ajax:
                     return JsonResponse({'status': 'error', 'message': 'Room not found.'}, status=404)
                 messages.error(request, 'Room not found.')
         return redirect('room_dashboard')
@@ -769,27 +818,15 @@ def room_dashboard(request):
     status_counts = {
         'vacant': 0, 'dirty': 0, 'occupied': 0, 'out_of_order': 0, 'reserved': 0,
     }
+    today = date.today()
     for room in rooms:
         assignment = assignment_map.get(room.room_id)
         duration = None
         if assignment:
             duration = (assignment.check_out - assignment.check_in).days
 
-        # Mapping to old format for UI rendering
-        from datetime import date
-        today = date.today()
-        disp_status = room.reservation_status # defaults to vacant/occupied/reserved
-        if room.housekeeping_status == 'out_of_order':
-            disp_status = 'out_of_order'
-        elif assignment and assignment.check_in <= today <= assignment.check_out:
-            disp_status = 'occupied'
-        elif assignment and assignment.check_in > today:
-            disp_status = 'reserved'
-        elif room.reservation_status == 'vacant' and room.housekeeping_status == 'dirty':
-            disp_status = 'dirty'
-        elif room.reservation_status == 'vacant':
-            disp_status = 'vacant'
-        
+        disp_status = _display_status(room, assignment, today)
+
         status_counts[disp_status] = status_counts.get(disp_status, 0) + 1
 
         room_data = {
@@ -1344,6 +1381,7 @@ def edit_reservation(request, booking_id):
 
         # Capture old data for audit
         old_status = booking.status
+        old_allocation = (booking.check_in, booking.check_out, booking.room_type)
         old_data = {
             'guest_name': booking.guest_name,
             'room_type': booking.room_type,
@@ -1439,8 +1477,29 @@ def edit_reservation(request, booking_id):
         # artefacts) arrives as IntegrityError. Catch it here so it returns a real
         # 400 naming the value, instead of falling through to the generic
         # `except Exception` below and reporting an opaque 500.
+        #
+        # The assignment re-sync shares this transaction with the save.
+        # allocate_room cancels the stale assignment before it looks for a free
+        # room, so a booking moved onto dates with nothing available has to
+        # roll the save back too. Without that, the booking keeps its new dates
+        # and loses its room. Status transitions are handled further down; this
+        # covers the case the old code missed entirely, where dates or room
+        # type move while status stays put.
+        from django.db import transaction
+        needs_resync = (
+            (booking.check_in, booking.check_out, booking.room_type) != old_allocation
+            and booking.status not in ('cancelled', 'rejected', 'checked_out')
+        )
         try:
-            booking.save()
+            with transaction.atomic():
+                booking.save()
+                if needs_resync:
+                    RoomService.allocate_room(booking, assigned_by=request.user)
+        except ValidationError as room_err:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(room_err),
+            }, status=400)
         except IntegrityError:
             logger.exception(
                 'Booking #%s rejected by a DB constraint (status=%r)',

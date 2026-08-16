@@ -461,10 +461,22 @@ class RoomService:
         """
         from django.db import transaction
 
-        # Guard: don't double-allocate
+        # Guard: don't double-allocate. An existing assignment only counts if
+        # it still describes the booking. This used to return any active row,
+        # so moving a booking's dates or room type left the assignment, and
+        # every availability check that reads it, on the old values, with no
+        # later status transition able to repair it.
         existing = RoomRepository.get_active_assignment_for_booking(booking.booking_id)
         if existing:
-            return existing
+            if (existing.check_in == booking.check_in
+                    and existing.check_out == booking.check_out
+                    and existing.room.room_type == booking.room_type):
+                return existing
+            # Release it before looking for a room. The availability query
+            # excludes rooms with an overlapping active assignment, so this
+            # booking's own stale row would otherwise hide the room it is
+            # already holding.
+            cls.deallocate_room(booking)
 
         with transaction.atomic():
             candidates = (

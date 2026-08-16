@@ -441,7 +441,16 @@ body {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
       // Stays locked through the reload on success.
       success: function() { $('#roomModal').modal('hide'); location.reload(); },
-      error: function() { alert('Failed to update room status.'); release(); }
+      // A 409 carries the reason the room's booking outranked this click.
+      // Showing the generic message instead would leave staff exactly where
+      // the silent override left them: no idea why nothing changed.
+      error: function(xhr) {
+        var msg = (xhr.responseJSON && xhr.responseJSON.message)
+          ? xhr.responseJSON.message
+          : 'Failed to update room status.';
+        alert(msg);
+        release();
+      }
     });
   }
 </script>
