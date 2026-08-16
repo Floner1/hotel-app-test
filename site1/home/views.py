@@ -340,14 +340,17 @@ def newsletter_signup(request):
                 logger.exception('queue_welcome_discount failed for %s', email)
 
         if discount:
+            # The code goes out by email only. newsletter-discount-plan.md's
+            # implementation note C1 rejected re-displaying it, and neither the
+            # popup nor the footer handler reads a 'code' key, so returning one
+            # only put it on the wire.
             if code_created:
                 msg = 'Subscribed! Your 10% discount code is on its way to your inbox.'
             else:
-                msg = 'You are already subscribed. Here is your existing discount code.'
+                msg = 'You are already subscribed. Check your inbox for the original email.'
             return JsonResponse({
                 'status': 'ok',
                 'message': msg,
-                'code': discount.code,
                 'already': not code_created,
             })
 
