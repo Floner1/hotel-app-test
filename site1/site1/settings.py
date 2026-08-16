@@ -195,6 +195,18 @@ STORAGES = {
     },
 }
 
+# The manifest backend refuses to resolve {% static %} unless
+# staticfiles/staticfiles.json exists, and that file is only written by
+# collectstatic. staticfiles/ is untracked, so on a fresh clone every test that
+# renders a template dies with "Missing staticfiles manifest entry" before it
+# gets anywhere near what it was written to check. Nothing under test cares
+# about hashed filenames. Overridden here rather than in the block above
+# because STORAGES is not defined until this point.
+if 'pytest' in sys.modules:
+    STORAGES['staticfiles']['BACKEND'] = (
+        'django.contrib.staticfiles.storage.StaticFilesStorage'
+    )
+
 # Login/Logout URLs
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
