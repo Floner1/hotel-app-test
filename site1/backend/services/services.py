@@ -449,6 +449,25 @@ class ReservationService:
 class RoomService:
     """Handles physical room allocation tied to booking status transitions."""
 
+    @staticmethod
+    def _assignment_matches(assignment, booking) -> bool:
+        """Does this assignment still describe the booking?
+
+        room_type is compared case-insensitively on purpose. rooms.room_type
+        holds the seeded value as written, '1 Bed With Balcony', while
+        booking.room_type holds what _canonicalise_room_type returned, which is
+        lower-cased. A plain == is therefore false for every real room type and
+        would call every assignment stale, re-rolling guests into a different
+        room on any status change. It only looked correct in tests because the
+        fixtures use an all-lowercase room type.
+        """
+        return (
+            assignment.check_in == booking.check_in
+            and assignment.check_out == booking.check_out
+            and (assignment.room.room_type or '').strip().lower()
+            == (booking.room_type or '').strip().lower()
+        )
+
     @classmethod
     def allocate_room(cls, booking, assigned_by=None):
         """
@@ -462,18 +481,19 @@ class RoomService:
         # every availability check that reads it, on the old values, with no
         # later status transition able to repair it.
         existing = RoomRepository.get_active_assignment_for_booking(booking.booking_id)
-        if existing:
-            if (existing.check_in == booking.check_in
-                    and existing.check_out == booking.check_out
-                    and existing.room.room_type == booking.room_type):
-                return existing
-            # Release it before looking for a room. The availability query
-            # excludes rooms with an overlapping active assignment, so this
-            # booking's own stale row would otherwise hide the room it is
-            # already holding.
-            cls.deallocate_room(booking)
+        if existing and cls._assignment_matches(existing, booking):
+            return existing
 
         with transaction.atomic():
+            if existing:
+                # Released inside the transaction, not before it. The search
+                # below can come up empty, and a release that has already
+                # committed would leave the booking holding nothing at all.
+                # It has to happen first either way: the availability query
+                # excludes rooms with an overlapping active assignment, so this
+                # booking's own stale row would hide the room it already has.
+                cls.deallocate_room(booking)
+
             candidates = (
                 RoomRepository.get_available_rooms_by_type(
                     booking.room_type, booking.check_in, booking.check_out

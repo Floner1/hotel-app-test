@@ -705,6 +705,31 @@ def admin_reservations(request):
     return render(request, 'admin_reservations.html', context)
 
 
+def _pick_assignment(assignments, today):
+    """Which active assignment speaks for a room when it has more than one.
+
+    A room can hold a stay in progress and a booking for next week at the same
+    time. The render used to keep whichever row came last out of an unordered
+    queryset while the POST guard took an unordered .first(), which are
+    opposite rules over a set with no defined order. Left alone they can judge
+    the same room against different bookings, which is the silent override this
+    was meant to close.
+
+    Current stay first, then the soonest upcoming one, then anything still
+    marked active whose dates have passed.
+    """
+    def rank(assignment):
+        if assignment.check_in <= today <= assignment.check_out:
+            stage = 0
+        elif assignment.check_in > today:
+            stage = 1
+        else:
+            stage = 2
+        return stage, assignment.check_in, assignment.pk
+
+    return min(assignments, key=rank) if assignments else None
+
+
 def _display_status(room, assignment, today):
     """The one derivation of what a room's card shows.
 
@@ -761,19 +786,29 @@ def room_dashboard(request):
                 # renders. If the card would not come back showing what was
                 # asked for, refuse and say which booking holds the room,
                 # rather than saving a value the next render discards.
-                assignment = (
-                    RoomAssignment.objects
-                    .filter(room_id=room.room_id, status='active')
-                    .select_related('booking')
-                    .first()
+                assignment = _pick_assignment(
+                    list(
+                        RoomAssignment.objects
+                        .filter(room_id=room.room_id, status='active')
+                        .select_related('booking')
+                    ),
+                    date.today(),
                 )
                 requested = 'dirty' if new_status == 'empty_dirty' else new_status
                 if _display_status(room, assignment, date.today()) != requested:
-                    # An assignment is the usual thing standing in the way, but
-                    # not the only one: out_of_order outranks everything in the
-                    # derivation, so Occupied or Reserved on a broken room with
-                    # no booking loses here too.
-                    if assignment is not None:
+                    # Name whatever actually outranked the write. out_of_order
+                    # comes first in the derivation, so when a room is both
+                    # broken and booked it is the housekeeping status blocking
+                    # this, and pointing staff at the booking sends them
+                    # somewhere that will not help. A room being cleared with
+                    # Empty Clean or Empty Dirty has already had housekeeping
+                    # reset above, so it never lands here.
+                    if room.housekeeping_status == 'out_of_order':
+                        msg = (
+                            f'Room {room.room_code} is out of order. Clear that '
+                            f'first, with Empty Clean or Empty Dirty.'
+                        )
+                    elif assignment is not None:
                         msg = (
                             f'Room {room.room_code} is assigned to booking '
                             f'#{assignment.booking_id} ({assignment.check_in} to '
@@ -781,9 +816,15 @@ def room_dashboard(request):
                             f'the room.'
                         )
                     else:
+                        # Not reachable today: with no assignment and nothing
+                        # out of order, every button's write matches what the
+                        # derivation returns. Kept honest rather than repeating
+                        # one of the reasons above and misleading whoever finds
+                        # a way here.
                         msg = (
-                            f'Room {room.room_code} is out of order. Clear that '
-                            f'first, with Empty Clean or Empty Dirty.'
+                            f'Room {room.room_code} cannot be set to '
+                            f'{requested}. Reload the dashboard to see its '
+                            f'current status.'
                         )
                     if is_ajax:
                         return JsonResponse({'status': 'error', 'message': msg}, status=409)
@@ -808,9 +849,12 @@ def room_dashboard(request):
         status='active'
     ).select_related('booking', 'room')
 
-    assignment_map = {}
+    # Grouped, then resolved through the same picker the POST guard uses, so a
+    # room holding both a current stay and a future booking is judged and
+    # rendered against the same one.
+    by_room = {}
     for a in active_assignments:
-        assignment_map[a.room_id] = a
+        by_room.setdefault(a.room_id, []).append(a)
 
     # Group rooms by floor
     floors = {}
@@ -819,7 +863,7 @@ def room_dashboard(request):
     }
     today = date.today()
     for room in rooms:
-        assignment = assignment_map.get(room.room_id)
+        assignment = _pick_assignment(by_room.get(room.room_id), today)
         duration = None
         if assignment:
             duration = (assignment.check_out - assignment.check_in).days
@@ -1512,9 +1556,12 @@ def edit_reservation(request, booking_id):
                 if needs_resync:
                     RoomService.allocate_room(booking, assigned_by=request.user)
         except ValidationError as room_err:
+            # str() on a ValidationError renders its message list, brackets and
+            # quotes included, so the guest-facing text arrived as
+            # ["No available ... rooms"]. get_reservation already joins.
             return JsonResponse({
                 'status': 'error',
-                'message': str(room_err),
+                'message': '; '.join(room_err.messages),
             }, status=400)
         except IntegrityError:
             logger.exception(

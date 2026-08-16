@@ -24,6 +24,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
@@ -44,10 +45,11 @@ def staff_client(client, db):
     return client
 
 
-def _booking(hotel, check_in, check_out, status='confirmed', name='Test Guest'):
+def _booking(hotel, check_in, check_out, status='confirmed', name='Test Guest',
+             room_type='deluxe'):
     now = timezone.now()
     return CustomerBookingInfo.objects.create(
-        hotel=hotel, guest_name=name, room_type='deluxe', booking_date=now,
+        hotel=hotel, guest_name=name, room_type=room_type, booking_date=now,
         check_in=check_in, check_out=check_out,
         booked_rate=Decimal('500000'), total_price=Decimal('1000000'),
         status=status, created_at=now, updated_at=now,
@@ -411,3 +413,191 @@ def test_allocate_room_still_returns_a_matching_assignment_unchanged(
 
     assert RoomService.allocate_room(booking).pk == original.pk
     assert RoomAssignment.objects.filter(booking=booking).count() == 1
+
+
+@pytest.fixture
+def seeded_case_mismatch(hotel):
+    """The casing the real database actually has.
+
+    rooms.room_type and room_price.room_type hold the seeded title-case value,
+    '1 Bed With Balcony'. _canonicalise_room_type lower-cases whatever it is
+    given, so booking.room_type holds '1 bed with balcony'. Every fixture above
+    uses all-lowercase 'deluxe', where the two happen to be identical, which is
+    exactly why this went unnoticed.
+    """
+    RoomPrice.objects.create(
+        hotel=hotel, room_type='1 Bed With Balcony',
+        price_per_night=Decimal('1150000'),
+    )
+    room = Room.objects.create(
+        hotel=hotel, room_code='701', floor_number=7, room_number=701,
+        room_type='1 Bed With Balcony',
+    )
+    Room.objects.create(
+        hotel=hotel, room_code='702', floor_number=7, room_number=702,
+        room_type='1 Bed With Balcony',
+    )
+    booking = _booking(
+        hotel, date(2027, 5, 10), date(2027, 5, 12), name='Case Mismatch',
+        room_type='1 bed with balcony',
+    )
+    assignment = RoomAssignment.objects.create(
+        booking=booking, room=room, status='active',
+        check_in=booking.check_in, check_out=booking.check_out,
+    )
+    return booking, assignment
+
+
+@pytest.mark.django_db
+def test_allocate_room_keeps_an_assignment_that_differs_only_in_casing(
+    seeded_case_mismatch
+):
+    """Comparing the two room_type values with == judged every real booking's
+    assignment stale, so any status transition re-rolled the guest into a
+    different room for no reason."""
+    from backend.services.services import RoomService
+
+    booking, original = seeded_case_mismatch
+
+    assert RoomService.allocate_room(booking).pk == original.pk, (
+        'the guest was moved to another room by a case difference'
+    )
+    assert RoomAssignment.objects.filter(booking=booking, status='active').count() == 1
+
+
+@pytest.mark.django_db
+def test_a_failed_reallocation_leaves_the_booking_holding_its_room(hotel):
+    """allocate_room releases the stale assignment before it searches. If that
+    release is not inside the same transaction as the search, a booking moved
+    onto full dates loses the room it had and gains nothing.
+
+    Called with no enclosing transaction, which is how the status-transition
+    path in edit_reservation calls it.
+    """
+    from backend.services.services import RoomService
+
+    RoomPrice.objects.create(
+        hotel=hotel, room_type='deluxe', price_per_night=Decimal('500000')
+    )
+    only_room = Room.objects.create(
+        hotel=hotel, room_code='801', floor_number=8, room_number=801,
+        room_type='deluxe',
+    )
+    mover = _booking(hotel, date(2027, 7, 10), date(2027, 7, 12), name='Mover')
+    held = RoomAssignment.objects.create(
+        booking=mover, room=only_room, status='active',
+        check_in=mover.check_in, check_out=mover.check_out,
+    )
+    blocker = _booking(hotel, date(2027, 7, 20), date(2027, 7, 22), name='Blocker')
+    RoomAssignment.objects.create(
+        booking=blocker, room=only_room, status='active',
+        check_in=blocker.check_in, check_out=blocker.check_out,
+    )
+
+    mover.check_in = date(2027, 7, 20)
+    mover.check_out = date(2027, 7, 22)
+    mover.save()
+
+    with pytest.raises(ValidationError):
+        RoomService.allocate_room(mover)
+
+    held.refresh_from_db()
+    assert held.status == 'active', (
+        'the room was released and never replaced, so the booking has none'
+    )
+
+
+@pytest.mark.django_db
+def test_a_room_with_a_current_and_a_future_booking_is_judged_on_the_current_one(
+    staff_client, room, hotel
+):
+    """A room can hold a stay in progress and a booking for next week at once.
+
+    The render kept whichever assignment came last and the POST guard took an
+    unordered .first(), so the two could judge the same room against different
+    bookings. The future one is created first here, which is the order that
+    made them disagree.
+    """
+    future = _booking(
+        hotel, date.today() + timedelta(days=5), date.today() + timedelta(days=7),
+        name='Next Week',
+    )
+    RoomAssignment.objects.create(
+        booking=future, room=room, status='active',
+        check_in=future.check_in, check_out=future.check_out,
+    )
+    current = _booking(
+        hotel, date.today() - timedelta(days=1), date.today() + timedelta(days=2),
+        status='checked_in', name='In House Now',
+    )
+    RoomAssignment.objects.create(
+        booking=current, room=room, status='active',
+        check_in=current.check_in, check_out=current.check_out,
+    )
+
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'vacant'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 409, response.content
+    assert str(current.booking_id) in response.json()['message'], (
+        f'judged against the wrong booking: {response.json()!r}'
+    )
+
+
+@pytest.mark.django_db
+def test_an_out_of_order_room_with_a_booking_blames_the_out_of_order(
+    staff_client, room, occupied_today
+):
+    """out_of_order outranks the assignment in the derivation, so when both are
+    present it is the thing actually blocking the write. Telling staff to go
+    and change the booking sends them somewhere that will not help."""
+    room.housekeeping_status = 'out_of_order'
+    room.save()
+
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'occupied'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 409, response.content
+    assert 'out of order' in response.json()['message'].lower(), (
+        f'blamed the booking for an out-of-order room: {response.json()!r}'
+    )
+
+
+@pytest.mark.django_db
+def test_a_rejected_edit_reports_a_readable_message(hotel, staff_client):
+    """str() on a Django ValidationError renders its message list, brackets and
+    quotes included, so the guest-facing text arrived as ["No available ..."].
+    """
+    RoomPrice.objects.create(
+        hotel=hotel, room_type='deluxe', price_per_night=Decimal('500000')
+    )
+    only_room = Room.objects.create(
+        hotel=hotel, room_code='901', floor_number=9, room_number=901,
+        room_type='deluxe',
+    )
+    mover = _booking(hotel, date(2027, 8, 10), date(2027, 8, 12), name='Mover')
+    RoomAssignment.objects.create(
+        booking=mover, room=only_room, status='active',
+        check_in=mover.check_in, check_out=mover.check_out,
+    )
+    blocker = _booking(hotel, date(2027, 8, 20), date(2027, 8, 22), name='Blocker')
+    RoomAssignment.objects.create(
+        booking=blocker, room=only_room, status='active',
+        check_in=blocker.check_in, check_out=blocker.check_out,
+    )
+
+    response = _edit(
+        staff_client, mover,
+        checkin_date='2027-08-20', checkout_date='2027-08-22',
+    )
+
+    assert response.status_code == 400, response.content
+    message = response.json()['message']
+    assert not message.startswith('['), f'raw list repr reached the user: {message!r}'
+    assert 'No available' in message
