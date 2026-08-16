@@ -101,10 +101,6 @@ def _get_room_images():
 
 # Create your views here.
 def get_home(request):
-    
-
-    
-
     # Get available room types with pricing from database
     room_types = HotelService.get_available_room_types()
 
@@ -119,19 +115,12 @@ def get_home(request):
 
     return render(request, 'home.html', {
         'active_page': 'home',
-        
-        
-        
         'room_types': room_types,
         'db_images': db_images,
         'room_images': _get_room_images(),
         })
 
 def get_about(request):
-    
-    
-    
-    
     # Resolve image sources: DB if uploaded, otherwise static
     db_images = _db_images_exist(['food-1', 'img-1'])
     db_images = {
@@ -147,8 +136,6 @@ def get_about(request):
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def get_contact(request):
-    
-
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         email = request.POST.get('email', '').strip()
@@ -167,15 +154,10 @@ def get_contact(request):
 
     return render(request, 'contact.html', {
         'active_page': 'contact',
-        
-        
-        
         })
 
 @ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def get_reservation(request):
-    
-    
     # Handle POST request (form submission) - requires login
     if request.method == 'POST':
         # Check if user is logged in before processing reservation
@@ -284,34 +266,22 @@ def get_reservation(request):
                 'status': 'error',
                 'message': 'An unexpected error occurred. Please try again later.'
             }, status=500)
-    
-    
-    
+
     # Get available room types from database
     room_types = HotelService.get_available_room_types()
-    
+
     # Handle GET request (display form)
     return render(request, 'reservation.html', {
         'active_page': 'reservation',
-        
-        
-        
         'room_types': room_types
     })
 
 def get_rooms(request):
-    
-    
-    
-    
     # Get available room types with pricing from database
     room_types = HotelService.get_available_room_types()
-    
+
     return render(request, 'rooms.html', {
         'active_page': 'rooms',
-        
-        
-        
         'room_types': room_types,
         'room_images': _get_room_images(),
         })
@@ -721,7 +691,6 @@ def admin_reservations(request):
     
     # Prepare context data
     context = {
-        
         'reservations': reservations,
         'total_reservations': total_reservations,
         'today_checkins': today_checkins,

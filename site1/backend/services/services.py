@@ -182,9 +182,6 @@ class ReservationService:
         if not canonical_room_type:
             raise ValidationError('Invalid room type selected.')
 
-        from django.db import transaction
-        from data.models.hotel import CustomerBookingInfo
-
         with transaction.atomic():
             # 1. Lock the room rate row for serializing bookings to prevent race conditions
             #    This ensures no two users can book simultaneously using the same room type.
@@ -459,8 +456,6 @@ class RoomService:
         Uses select_for_update() to prevent two concurrent confirmations
         from grabbing the same room.
         """
-        from django.db import transaction
-
         # Guard: don't double-allocate. An existing assignment only counts if
         # it still describes the booking. This used to return any active row,
         # so moving a booking's dates or room type left the assignment, and
