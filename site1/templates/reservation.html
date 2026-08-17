@@ -392,7 +392,11 @@
           url: '{% url "validate_discount_code" %}',
           type: 'POST',
           headers: {'X-Requested-With': 'XMLHttpRequest'},
-          data: { code: code, csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val() },
+          data: {
+            code: code,
+            email: $('#email').val().trim(),
+            csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+          },
           success: function(data) {
             if (data.valid) {
               discountPercent = parseFloat(data.discount_percent) || 0;
