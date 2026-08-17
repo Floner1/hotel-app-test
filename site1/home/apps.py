@@ -6,6 +6,13 @@ class HomeConfig(AppConfig):
     name = 'home'
 
     def ready(self):
+        # Do not remove this without checking with whoever hits the HTTPS
+        # problem first. It looks like a stray local workaround and it is not
+        # dead: the machine it was written for still forces HTTPS on
+        # 127.0.0.1 but not on localhost, and the cause was never identified.
+        # Removing it breaks that dev loop with a confusing symptom. The right
+        # change is to make it conditional, not to delete it.
+        #
         # `runserver` with no address:port arg binds/prints `localhost`
         # instead of `127.0.0.1`. Some browser/security config on this
         # machine forces HTTPS on bare IP literals like 127.0.0.1 but not
