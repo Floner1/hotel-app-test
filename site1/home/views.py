@@ -812,11 +812,45 @@ def room_dashboard(request):
                 return redirect('room_dashboard')
             try:
                 room = Room.objects.get(room_id=room_id)
+
+                # Resolved before the writes below, because whether this click
+                # is a maintenance clear depends on the room as it stands now,
+                # not as it is about to be.
+                assignment = _pick_assignment(
+                    list(
+                        RoomAssignment.objects
+                        .filter(room_id=room.room_id, status='active')
+                        .select_related('booking')
+                    ),
+                    date.today(),
+                )
+
+                # Clearing out_of_order on a room an assignment still holds is a
+                # maintenance write, not an occupancy one. The click means the
+                # fault is fixed, not that the guest has gone. So it writes
+                # housekeeping and leaves reservation_status to the assignment,
+                # which is what the derivation already reads for every other
+                # occupied room.
+                #
+                # Without this a broken occupied room could never be returned to
+                # service: both clearing buttons refused, because the derivation
+                # correctly came back 'occupied' and the guard compared that
+                # against the 'vacant' the button asked for. The maintenance log
+                # flow walks straight into it, since Out of Order is allowed on
+                # an occupied room in the first place.
+                clearing_maintenance = (
+                    room.housekeeping_status == 'out_of_order'
+                    and assignment is not None
+                    and new_status in ('vacant', 'empty_dirty')
+                )
+
                 if new_status == 'vacant':
-                    room.reservation_status = 'vacant'
+                    if not clearing_maintenance:
+                        room.reservation_status = 'vacant'
                     room.housekeeping_status = 'clean'
                 elif new_status == 'empty_dirty': # keeping old mappings
-                    room.reservation_status = 'vacant'
+                    if not clearing_maintenance:
+                        room.reservation_status = 'vacant'
                     room.housekeeping_status = 'dirty'
                 elif new_status == 'occupied':
                     room.reservation_status = 'occupied'
@@ -828,24 +862,19 @@ def room_dashboard(request):
                 # Run the pending write through the same derivation the page
                 # renders. If the card would not come back showing what was
                 # asked for, refuse and say which booking holds the room,
-                # rather than saving a value the next render discards.
-                assignment = _pick_assignment(
-                    list(
-                        RoomAssignment.objects
-                        .filter(room_id=room.room_id, status='active')
-                        .select_related('booking')
-                    ),
-                    date.today(),
-                )
+                # rather than saving a value the next render discards. A
+                # maintenance clear is exempt: it never claimed the card would
+                # read 'vacant', only that the fault is gone.
                 requested = 'dirty' if new_status == 'empty_dirty' else new_status
-                if _display_status(room, assignment, date.today()) != requested:
+                if not clearing_maintenance and _display_status(room, assignment, date.today()) != requested:
                     # Name whatever actually outranked the write. out_of_order
                     # comes first in the derivation, so when a room is both
                     # broken and booked it is the housekeeping status blocking
                     # this, and pointing staff at the booking sends them
                     # somewhere that will not help. A room being cleared with
-                    # Empty Clean or Empty Dirty has already had housekeeping
-                    # reset above, so it never lands here.
+                    # Empty Clean or Empty Dirty never lands here: with an
+                    # assignment it took the exemption above, and without one
+                    # housekeeping has already been reset.
                     if room.housekeeping_status == 'out_of_order':
                         msg = (
                             f'Room {room.room_code} is out of order. Clear that '

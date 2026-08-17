@@ -11,11 +11,14 @@ was written:
   - the schema's 'in_progress' status stays unused, because nothing drives it
 """
 
+from datetime import date, timedelta
+from decimal import Decimal
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from data.models import Room
+from data.models import CustomerBookingInfo, Room, RoomAssignment
 from data.models.hotel import RoomMaintenanceLog
 from data.repos.repositories import RoomMaintenanceRepository
 
@@ -310,3 +313,149 @@ def test_resolved_issues_do_not_reach_the_dashboard(staff_client, room):
 
     assert 'already fixed thing' not in body
 
+
+# ── Returning a broken occupied room to service ──
+
+
+@pytest.fixture
+def broken_and_occupied(room, hotel):
+    """A room a guest is in right now, taken out of order for a fault.
+
+    Out of Order outranks the assignment in the derivation, so marking it is
+    allowed on an occupied room and this is exactly what the maintenance flow
+    encourages. Getting it back afterwards is the part that was stuck.
+    """
+    now = timezone.now()
+    booking = CustomerBookingInfo.objects.create(
+        hotel=hotel, guest_name='In House', room_type='deluxe', booking_date=now,
+        check_in=date.today() - timedelta(days=1),
+        check_out=date.today() + timedelta(days=2),
+        booked_rate=Decimal('500000'), total_price=Decimal('1000000'),
+        status='checked_in', created_at=now, updated_at=now,
+    )
+    RoomAssignment.objects.create(
+        booking=booking, room=room, status='active',
+        check_in=booking.check_in, check_out=booking.check_out,
+    )
+    room.reservation_status = 'occupied'
+    room.housekeeping_status = 'out_of_order'
+    room.save()
+    return booking
+
+
+def _disp_status(staff_client, room):
+    response = staff_client.get(reverse('room_dashboard'))
+    item = next(
+        i for floor in response.context['floors'].values()
+        for i in floor if i['room'].room_id == room.room_id
+    )
+    return item['disp_status']
+
+
+@pytest.mark.django_db
+def test_empty_clean_returns_a_broken_occupied_room_to_service(
+    staff_client, room, broken_and_occupied
+):
+    """The reported case. Both clearing buttons used to refuse with a 409
+    blaming the booking, so a fault reported on an occupied room could be
+    marked and resolved but the room could never come back.
+
+    Clearing is a maintenance write, not an occupancy one. It writes
+    housekeeping and leaves reservation_status to the assignment.
+    """
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'vacant'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 200, response.content
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'clean'
+    assert room.reservation_status == 'occupied', (
+        'occupancy is the assignment to state, so the clearing click must not '
+        'write reservation_status'
+    )
+    assert _disp_status(staff_client, room) == 'occupied', (
+        'the guest is still in the room, so the card goes back to occupied'
+    )
+
+
+@pytest.mark.django_db
+def test_empty_dirty_returns_a_broken_occupied_room_to_service(
+    staff_client, room, broken_and_occupied
+):
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'empty_dirty'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 200, response.content
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'dirty'
+    assert room.reservation_status == 'occupied'
+    assert _disp_status(staff_client, room) == 'occupied'
+
+
+@pytest.mark.django_db
+def test_clearing_still_frees_a_room_with_no_assignment(staff_client, room):
+    """The no-assignment path is untouched: there is no booking to defer to, so
+    the clearing click owns both fields exactly as it did before."""
+    room.reservation_status = 'occupied'
+    room.housekeeping_status = 'out_of_order'
+    room.save()
+
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'vacant'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 200, response.content
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'clean'
+    assert room.reservation_status == 'vacant'
+
+
+@pytest.mark.django_db
+def test_occupied_on_a_broken_assigned_room_is_still_refused(
+    staff_client, room, broken_and_occupied
+):
+    """Only the two clearing buttons get the maintenance carve-out. Occupied
+    and Reserved still go through the guard untouched."""
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'occupied'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 409
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'out_of_order', 'nothing saved on a refusal'
+
+
+@pytest.mark.django_db
+def test_the_whole_report_fix_resolve_return_loop(staff_client, room, broken_and_occupied):
+    """End to end over the flow this feature actually creates: a guest is in the
+    room, something breaks, staff log it, maintenance fix it, room comes back."""
+    staff_client.post(reverse('room_dashboard'), {
+        'room_id': room.room_id, 'new_status': 'out_of_order',
+        'issue_description': 'Shower runs cold',
+    }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+    log = RoomMaintenanceLog.objects.get(room_id=room.room_id)
+
+    staff_client.post(reverse('room_dashboard'), {
+        'action': 'resolve_issue', 'log_id': log.log_id,
+    }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+    back = staff_client.post(reverse('room_dashboard'), {
+        'room_id': room.room_id, 'new_status': 'vacant',
+    }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+    assert back.status_code == 200, back.content
+    log.refresh_from_db()
+    room.refresh_from_db()
+    assert log.status == 'resolved'
+    assert room.housekeeping_status == 'clean'
+    assert _disp_status(staff_client, room) == 'occupied'
