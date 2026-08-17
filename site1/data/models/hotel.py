@@ -308,6 +308,43 @@ class RoomAssignment(models.Model):
         return f"Assignment #{self.assignment_id} — Room {self.room.room_code} for Booking #{self.booking_id}"
 
 
+class RoomMaintenanceLog(models.Model):
+    """A maintenance issue reported against a physical room.
+
+    The schema's CHECK allows 'in_progress' but nothing in the app sets it: the
+    dashboard flow is open -> resolved. Resolving an issue deliberately does not
+    clear the room's out_of_order status either. Staff return a room to service
+    with Empty Clean or Empty Dirty, so _display_status keeps one driver instead
+    of quietly gaining a second one in this table.
+    """
+
+    log_id = models.AutoField(primary_key=True)
+    room = models.ForeignKey('Room', models.DO_NOTHING, related_name='maintenance_logs')
+    reported_by = models.ForeignKey(
+        'User', models.DO_NOTHING, null=True, blank=True, db_column='reported_by'
+    )
+    issue_description = models.TextField()
+    status = models.CharField(
+        max_length=50,
+        default='open',
+        choices=[
+            ('open', 'Open'),
+            ('in_progress', 'In Progress'),
+            ('resolved', 'Resolved'),
+        ]
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'room_maintenance_logs'
+        managed = False
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f"Issue #{self.log_id} on Room {self.room.room_code} ({self.get_status_display()})"
+
+
 class HotelServices(models.Model):
     """Model mapped to the SQL Server `hotel_services` table."""
 

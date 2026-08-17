@@ -12,7 +12,7 @@ from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService
 from data.models import User, CustomerBookingInfo
 from data.models.hotel import BookingStatus
-from data.repos.repositories import DiscountRepository
+from data.repos.repositories import DiscountRepository, RoomMaintenanceRepository
 from django.db import IntegrityError
 from django.db.models import Sum
 from datetime import date, datetime
@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 # this check and the model field cannot drift apart. The DB's chk_booking_status
 # constraint is still a separate artefact and must be ALTERed by hand to match.
 BOOKING_STATUSES = set(BookingStatus.values)
+
+# Free text from a staff form into an NVARCHAR(MAX) column. The column will take
+# anything; the form should not.
+MAX_ISSUE_DESCRIPTION = 1000
 
 def is_admin(user):
     """Check if user has admin role."""
@@ -766,7 +770,46 @@ def room_dashboard(request):
         new_status = request.POST.get('new_status') # backwards-compatibility
         is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
 
+        # Resolving a maintenance issue is its own action, not a room status
+        # write, so it answers and returns before the status machinery below.
+        # Resolving deliberately leaves the room out of order: staff bring it
+        # back with Empty Clean or Empty Dirty, which keeps _display_status
+        # driven from one place instead of quietly gaining a second source.
+        if request.POST.get('action') == 'resolve_issue':
+            log_id = request.POST.get('log_id', '')
+            # A non-numeric log_id would raise ValueError out of the queryset,
+            # so it is screened here rather than caught downstream. isdecimal,
+            # not isdigit: isdigit is True for superscripts like '²', which
+            # int() then refuses, turning a bad request into a 500.
+            log = (
+                RoomMaintenanceRepository.resolve(int(log_id))
+                if log_id.isdecimal() else None
+            )
+            if log is None:
+                msg = 'That issue is not open, or no longer exists.'
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': msg}, status=404)
+                messages.error(request, msg)
+                return redirect('room_dashboard')
+            if is_ajax:
+                return JsonResponse({'status': 'ok'})
+            messages.success(request, f'Issue #{log.log_id} resolved.')
+            return redirect('room_dashboard')
+
         if room_id and new_status:
+            # Screened before any write, so an over-long description refuses the
+            # whole click rather than leaving the room changed and the issue
+            # unrecorded.
+            issue = request.POST.get('issue_description', '').strip()
+            if len(issue) > MAX_ISSUE_DESCRIPTION:
+                msg = (
+                    f'Issue description is too long ({len(issue)} characters, '
+                    f'limit {MAX_ISSUE_DESCRIPTION}).'
+                )
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': msg}, status=400)
+                messages.error(request, msg)
+                return redirect('room_dashboard')
             try:
                 room = Room.objects.get(room_id=room_id)
                 if new_status == 'vacant':
@@ -832,6 +875,11 @@ def room_dashboard(request):
                     return redirect('room_dashboard')
 
                 room.save()
+                # After the save, not before: the guard above can still refuse
+                # this click with a 409, and an open issue against a room that
+                # never went offline is worse than no record at all.
+                if issue and new_status == 'out_of_order':
+                    RoomMaintenanceRepository.report(room, issue, request.user)
                 if is_ajax:
                     return JsonResponse({'status': 'ok'})
                 messages.success(request, f'Room {room.room_code} updated status.')
@@ -856,6 +904,9 @@ def room_dashboard(request):
     for a in active_assignments:
         by_room.setdefault(a.room_id, []).append(a)
 
+    # One query for both the card badges and the modal lists.
+    open_issues = RoomMaintenanceRepository.open_by_room()
+
     # Group rooms by floor
     floors = {}
     status_counts = {
@@ -877,10 +928,27 @@ def room_dashboard(request):
             'assignment': assignment,
             'duration': duration,
             'disp_status': disp_status, # Include disp_status
+            'open_issue_count': len(open_issues.get(room.room_id, [])),
         }
         floors.setdefault(room.floor_number, []).append(room_data)
-            
+
     status_filter = request.GET.get('status', 'all')
+
+    # Keyed by string because JSON object keys are strings once this reaches JS.
+    # Rendered through the json_script filter in the template, which escapes the
+    # free-text description so it cannot break out of the script tag.
+    issues_json = {
+        str(room_id): [
+            {
+                'log_id': log.log_id,
+                'description': log.issue_description,
+                'reported_by': log.reported_by.username if log.reported_by else 'Unknown',
+                'created_at': log.created_at.strftime('%d %b') if log.created_at else '',
+            }
+            for log in logs
+        ]
+        for room_id, logs in open_issues.items()
+    }
 
     context = {
         'floors': dict(sorted(floors.items())),
@@ -888,6 +956,7 @@ def room_dashboard(request):
         'total_rooms': len(rooms),
         'status_filter': status_filter,
         'hotel': HotelService.get_hotel_info(),
+        'open_issues_json': issues_json,
     }
     return render(request, 'room_dashboard.html', context)
 

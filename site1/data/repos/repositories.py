@@ -4,7 +4,7 @@ from datetime import timedelta
 import nh3
 from django.conf import settings
 
-from data.models.hotel import Hotel, Room, RoomAssignment
+from data.models.hotel import Hotel, Room, RoomAssignment, RoomMaintenanceLog
 from data.models import CustomerBookingInfo, EmailQueue, EmailSubscriber, EmailCampaign, DiscountCode
 from django.db.models import Q, Exists, OuterRef
 from django.utils import timezone
@@ -257,6 +257,58 @@ class RoomRepository:
         room.updated_at = timezone.now()
         room.save()
         return room
+
+
+class RoomMaintenanceRepository:
+    """Repository for room maintenance issue logs."""
+
+    @staticmethod
+    def report(room, description, reported_by=None):
+        """Log an open maintenance issue against a room."""
+        return RoomMaintenanceLog.objects.create(
+            room=room,
+            issue_description=description,
+            reported_by=reported_by,
+            status='open',
+            # created_at is DEFAULT GETDATE() in the schema, but Django names
+            # every field in the INSERT, so an unset value writes NULL and the
+            # default never fires. Bookings set their own timestamps for the
+            # same reason.
+            created_at=timezone.now(),
+        )
+
+    @staticmethod
+    def resolve(log_id):
+        """Mark an open issue resolved, returning it.
+
+        Returns None if it was not open, which covers a bad id and a double
+        click on Resolve with the same answer: nothing to do.
+        """
+        log = RoomMaintenanceLog.objects.filter(log_id=log_id, status='open').first()
+        if log is None:
+            return None
+        log.status = 'resolved'
+        log.resolved_at = timezone.now()
+        log.save()
+        return log
+
+    @staticmethod
+    def open_by_room():
+        """room_id -> list of open logs, in one query.
+
+        The dashboard needs the rows for the modal and their count for the card
+        badge. Returning the rows and letting the caller take len() beats a
+        second grouped count query for the same answer.
+        """
+        by_room = {}
+        for log in (
+            RoomMaintenanceLog.objects
+            .filter(status='open')
+            .select_related('reported_by')
+            .order_by('created_at')
+        ):
+            by_room.setdefault(log.room_id, []).append(log)
+        return by_room
 
 
 class EmailRepository:
