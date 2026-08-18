@@ -286,13 +286,28 @@ class ReservationService:
             # booking with no room and still report success to the guest.
             RoomService.allocate_room(booking, assigned_by=user)
 
-        # Fire booking confirmation email AFTER the transaction commits so
-        # the row is guaranteed visible to the email service. Failure is
-        # logged into email_queue and never bubbles up to the caller.
-        try:
-            EmailService.queue_booking_confirmation(booking.booking_id)
-        except Exception:
-            logger.exception("queue_booking_confirmation failed for #%s", booking.booking_id)
+        # Fire booking confirmation email AFTER the transaction commits, so the
+        # row is guaranteed visible to the email service and no lock the caller
+        # holds is waiting on SMTP.
+        #
+        # Sitting below the atomic() above is not enough on its own.
+        # get_reservation wraps this whole call in a second atomic() to keep the
+        # milestone count and the booking under one row lock, which demotes ours
+        # to a savepoint and leaves this line inside the outer transaction. The
+        # send is synchronous, twice over, at EMAIL_TIMEOUT seconds each.
+        # on_commit is measured against the outermost block, so it waits for the
+        # real commit when there is an outer transaction and runs inline when
+        # there is not. Failure is logged into email_queue, never raised: after
+        # commit there is no caller left to hand it to, and the booking stands.
+        def _send_confirmation():
+            try:
+                EmailService.queue_booking_confirmation(booking.booking_id)
+            except Exception:
+                logger.exception(
+                    "queue_booking_confirmation failed for #%s", booking.booking_id
+                )
+
+        transaction.on_commit(_send_confirmation)
 
         return booking
 
