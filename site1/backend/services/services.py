@@ -502,15 +502,42 @@ class RoomService:
             )
             candidate_list = list(candidates)  # evaluate under lock
 
-            if not candidate_list:
-                raise ValidationError(
-                    f'No available {booking.room_type.replace("_", " ")} rooms '
-                    f'for {booking.check_in} – {booking.check_out}.'
-                )
+            # Prefer the room the booking already holds. Only its dates or type
+            # moved, which is no reason to shuffle the guest, and the release
+            # above deliberately put that room back into the pool, so it is a
+            # candidate like any other. Left to random.choice a guest kept the
+            # room they were already in with probability 1/N.
+            room = next(
+                (r for r in candidate_list if r.room_id == existing.room_id),
+                None,
+            ) if existing else None
 
-            room = random.choice(candidate_list)
+            if room is None:
+                if existing and booking.status == 'checked_in':
+                    # There is a guest asleep in that room. Extending a booking
+                    # is not authority to move them, so refuse and let the
+                    # caller's transaction take the new dates back out.
+                    raise ValidationError(
+                        f'{booking.guest_name} is checked in to room '
+                        f'{existing.room.room_code}, which is not free for '
+                        f'{booking.check_in} – {booking.check_out}. '
+                        f'Move the guest before changing these dates.'
+                    )
+                if not candidate_list:
+                    raise ValidationError(
+                        f'No available {booking.room_type.replace("_", " ")} rooms '
+                        f'for {booking.check_in} – {booking.check_out}.'
+                    )
+                room = random.choice(candidate_list)
+
             assignment = RoomRepository.create_assignment(booking, room, assigned_by)
-            RoomRepository.update_room_status(room.room_id, 'reserved')
+            # deallocate_room marked the room vacant on its way past. A guest who
+            # is checked in is still physically in it, so 'reserved' would hand
+            # the dashboard a room that reads bookable with someone asleep in it.
+            RoomRepository.update_room_status(
+                room.room_id,
+                'occupied' if booking.status == 'checked_in' else 'reserved',
+            )
             return assignment
 
     @classmethod
