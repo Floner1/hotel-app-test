@@ -1745,12 +1745,15 @@ def edit_reservation(request, booking_id):
 @require_POST
 @ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def chat_message(request):
-    """Guest chat endpoint. POST only, CSRF-protected by the site-wide middleware.
+"""Guest chat endpoint. POST only, CSRF-protected by the site-wide middleware.
 
-    Rate limit matches newsletter_signup: this one runs a local model, so an
-    unthrottled caller costs GPU time rather than just a database row.
-    """
-    message = request.POST.get('message', '')
+Rate limit is 10/m (consistent with other AJAX endpoints): this one runs a local model,
+so an unthrottled caller costs GPU time rather than just a database row.
+"""
+if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+    return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+message = request.POST.get('message', '')
     try:
         reply = ChatService.reply(message)
     except ValidationError as exc:
