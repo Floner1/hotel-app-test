@@ -9,7 +9,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
-from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService
+from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService, ChatService
 from data.models import User, CustomerBookingInfo
 from data.models.hotel import BookingStatus
 from data.repos.repositories import DiscountRepository, RoomMaintenanceRepository
@@ -1740,3 +1740,28 @@ def edit_reservation(request, booking_id):
             'status': 'error',
             'message': 'An unexpected error occurred while updating the reservation.'
         }, status=500)
+
+
+@require_POST
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+def chat_message(request):
+    """Guest chat endpoint. POST only, CSRF-protected by the site-wide middleware.
+
+    Rate limit matches newsletter_signup: this one runs a local model, so an
+    unthrottled caller costs GPU time rather than just a database row.
+    """
+    message = request.POST.get('message', '')
+    try:
+        reply = ChatService.reply(message)
+    except ValidationError as exc:
+        return JsonResponse({'status': 'error', 'message': exc.message}, status=400)
+    except Exception:
+        # Ollama down, model pulled, socket refused. The guest gets a plain
+        # sentence; the stack trace goes to the log, not onto the page.
+        logger.exception('Chat reply failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': "The assistant is unavailable right now. Please try again shortly.",
+        }, status=503)
+
+    return JsonResponse({'status': 'ok', 'reply': reply})

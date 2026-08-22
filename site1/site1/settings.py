@@ -276,6 +276,15 @@ SITE_BASE_URL = os.getenv('SITE_BASE_URL', 'http://localhost:8000')
 # Email queue retention (days) — used by retry_failed_emails cleanup pass.
 EMAIL_QUEUE_RETENTION_DAYS = int(os.getenv('EMAIL_QUEUE_RETENTION_DAYS', '90'))
 
+# ---------- Chat assistant ----------
+# Read only by backend/services/ai_providers.py, which is the single seam
+# between the app and whatever generates replies. Swapping to a cloud model
+# means adding a ChatProvider subclass there and changing AI_PROVIDER — no
+# view, template or service above that module knows the difference.
+AI_PROVIDER = os.getenv('AI_PROVIDER', 'ollama')
+AI_MODEL = os.getenv('AI_MODEL', 'qwen3:4b')
+OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
