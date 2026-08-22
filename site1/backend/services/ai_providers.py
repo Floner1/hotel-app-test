@@ -124,9 +124,17 @@ class OllamaProvider(ChatProvider):
         return strip_thinking(response["message"]["content"])
 
 
+_provider: ChatProvider | None = None
+
+
 def get_provider() -> ChatProvider:
     """Resolve the configured provider. One name today, by design."""
+    global _provider
+    if _provider is not None:
+        return _provider
+
     name = getattr(settings, "AI_PROVIDER", "ollama").lower()
     if name == "ollama":
-        return OllamaProvider()
+        _provider = OllamaProvider()
+        return _provider
     raise ValueError(f"Unknown AI_PROVIDER: {name!r}")
