@@ -27,6 +27,9 @@
     <!-- Shared Override Styles -->
     <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
 
+    <!-- Front desk chat widget -->
+    <link rel="stylesheet" href="{% static 'css/chat-widget.css' %}">
+
     {% block extra_css %}{% endblock %}
   </head>
   <body>
@@ -42,6 +45,8 @@
 
   {% include "_discount_popup.html" %}
 
+  {% include "_chat_widget.html" %}
+
     {% block content %}{% endblock %}
 
     {% block footer %}{% include "_footer.html" %}{% endblock %}
@@ -53,6 +58,7 @@
     <script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
 
     <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/chat-widget.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
 
