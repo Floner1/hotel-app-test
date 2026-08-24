@@ -148,6 +148,15 @@
           var msg = (xhr.responseJSON && xhr.responseJSON.message)
             ? xhr.responseJSON.message
             : 'Something went wrong. Please try again.';
+          // A 429 carries Retry-After. Naming the number turns "the widget is
+          // broken" into "I sent too many, I wait ten seconds".
+          if (xhr.status === 429) {
+            var wait = parseInt(xhr.getResponseHeader('Retry-After'), 10);
+            if (wait > 0) {
+              msg = 'Too many messages. Please wait ' + wait +
+                (wait === 1 ? ' second' : ' seconds') + ' and try again.';
+            }
+          }
           addMessage(msg, 'error');
         },
         complete: function () {
