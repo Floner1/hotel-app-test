@@ -60,28 +60,15 @@ def test_provider_strips_thinking_from_whatever_the_model_returns(monkeypatch):
     """The safety net runs inside the provider, so no caller can forget it."""
     provider = OllamaProvider(model="qwen3:4b")
 
-    def fake_chat(*, model, messages, options=None):
+    def fake_chat(**kw):
         return {"message": {"content": "internal monologue</think>The real answer."}}
 
     monkeypatch.setattr(provider._client, "chat", fake_chat)
     assert provider.complete("sys", "hi") == "The real answer."
 
-
-def test_provider_sends_no_think_instruction(monkeypatch):
-    """/no_think is model-level, so it has to ride in the system message."""
-    provider = OllamaProvider(model="qwen3:4b")
-    captured = {}
-
-    def fake_chat(*, model, messages, options=None):
-        captured["messages"] = messages
-        return {"message": {"content": "ok"}}
-
-    monkeypatch.setattr(provider._client, "chat", fake_chat)
-    provider.complete("You are a concierge.", "hi")
-
-    system_msg = captured["messages"][0]
-    assert system_msg["role"] == "system"
-    assert "/no_think" in system_msg["content"]
+# test_provider_sends_no_think_instruction lived here. It asserted only that the
+# marker reaches the system message, which test_no_think_rides_on_both_messages
+# below now covers along with the user message and the measurement behind it.
 
 
 # ---------------------------------------------------------------- prompt grounding
@@ -132,7 +119,10 @@ def test_get_is_rejected(client):
     assert client.get('/chat/').status_code == 405
 
 
-def test_blank_message_returns_400(client):
+def test_blank_message_returns_400(client, db):
+    # db: the endpoint checks its rate limit before it looks at the message, and
+    # the per-session counter needs a session key, which means a session write.
+    # Throttling before doing work is the point, so the DB touch comes first.
     resp = client.post('/chat/', {'message': '   '},
                        HTTP_X_REQUESTED_WITH='XMLHttpRequest')
     assert resp.status_code == 400
@@ -176,9 +166,18 @@ def test_provider_raises_when_only_reasoning_comes_back(monkeypatch):
 
 
 def test_no_think_rides_on_both_messages(monkeypatch):
-    """Measured: /no_think in the system prompt alone left ~2500 characters of
-    reasoning; on both messages it dropped to ~840, roughly a third of the
-    tokens per reply. It is a nudge, not a switch, so it goes in both places."""
+    """The marker goes on both messages. The ~840-character figure this test
+    originally cited came from a single sample and does not hold up, but neither
+    does the alternative: a paired run on 2026-08-23 (3 questions, 8 reps,
+    configurations alternated, 48 live calls) put both-messages at 11,604 ms
+    median / 13,570 ms mean against 9,010 ms median / 14,347 ms mean for the
+    user message alone. Median and mean disagree, so there is no effect.
+
+    What decided it was the tail: on "How much is a room for one night?" the
+    user-only placement returned an empty answer on 4 runs of 8, and each empty
+    costs a full retry (35-39s against a 13s median). Both-messages stays
+    because moving it is unjustified, not because it is proven faster.
+    """
     provider = OllamaProvider(model="qwen3:4b")
     captured = {}
 

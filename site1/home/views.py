@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
+from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService, ChatService
 from data.models import User, CustomerBookingInfo
@@ -1742,18 +1743,88 @@ def edit_reservation(request, booking_id):
         }, status=500)
 
 
+# Two counters, not one. Per-session is the tighter limit and does the real
+# work: it stops a single browser tab hammering the model. Per-IP is the wider
+# net for many sessions driven from one host, and it has to stay loose enough
+# not to lock out a hotel or cafe behind NAT where guests share an address.
+#
+# Sized against how a real guest behaves rather than against the other AJAX
+# endpoints. Median reply time measured 2026-08-23 was 11.6s, and the widget
+# disables its send button while a request is in flight, so a person waiting
+# for each answer tops out near 5 messages a minute. 15/m leaves roughly three
+# times that headroom, which puts it clear of anyone typing fast and keeps it
+# in range of scripted abuse. 35/m per IP is about two such sessions running
+# flat out plus room for a third, so shared addresses do not collide.
+#
+# These are deliberately looser than the 10/m the other AJAX endpoints use.
+# That is safe for accidental spam and it is NOT what protects the GPU: Ollama
+# serves one request at a time, so 35 requests a minute at 11.6s each asks for
+# roughly seven times the work the machine can do in that minute. A sustained
+# caller at the limit builds a queue that every other guest waits behind until
+# REQUEST_TIMEOUT_SECONDS starts firing. The control that actually bounds that
+# is a concurrency cap in front of the provider, which this endpoint does not
+# have. Rate limiting here is abuse control, not capacity control.
+CHAT_RATE_PER_SESSION = '15/m'
+CHAT_RATE_PER_IP = '35/m'
+
+
+def _chat_session_key(group, request):
+    return request.session.session_key
+
+
+def _chat_retry_after(request):
+    """Seconds the caller should wait, or 0 if within both limits.
+
+    get_usage() rather than the @ratelimit decorator because the decorator
+    raises Ratelimited, which the site-wide handler403 turns into a 429 with no
+    Retry-After header. Doing the check here keeps the header, and keeps the
+    change inside the chat endpoint instead of altering how the other seven
+    rate-limited views report themselves.
+    """
+    # get_usage keys a session limit off session_key, which is None until the
+    # session is written. An anonymous guest opening the widget has no session
+    # yet, and without this every one of them would share a single None bucket.
+    #
+    # create(), not save(). save() writes the row but leaves session.modified
+    # False, so SessionMiddleware never sets the cookie, so the next request
+    # arrives with no session and gets another new key — the per-session limit
+    # silently counts to one forever. create() sets modified, which is what
+    # actually gets the cookie onto the response.
+    #
+    # ponytail: a client that refuses cookies gets a fresh key every request and
+    # is therefore governed by the per-IP limit alone. That is the intended
+    # fallback; tighten only if cookie-less abuse shows up in the logs.
+    if not request.session.session_key:
+        request.session.create()
+
+    wait = 0
+    for group, key, rate in (
+        ('chat-session', _chat_session_key, CHAT_RATE_PER_SESSION),
+        ('chat-ip', 'ip', CHAT_RATE_PER_IP),
+    ):
+        usage = get_usage(request, group=group, key=key, rate=rate,
+                          method='POST', increment=True)
+        if usage and usage['should_limit']:
+            wait = max(wait, usage['time_left'])
+    return wait
+
+
 @require_POST
-@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def chat_message(request):
-"""Guest chat endpoint. POST only, CSRF-protected by the site-wide middleware.
+    """Guest chat endpoint. POST only, CSRF-protected by the site-wide middleware."""
+    if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
 
-Rate limit is 10/m (consistent with other AJAX endpoints): this one runs a local model,
-so an unthrottled caller costs GPU time rather than just a database row.
-"""
-if request.headers.get('x-requested-with') != 'XMLHttpRequest':
-    return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+    wait = _chat_retry_after(request)
+    if wait:
+        response = JsonResponse({
+            'status': 'error',
+            'message': 'Too many messages. Please wait a moment and try again.',
+        }, status=429)
+        response['Retry-After'] = str(max(1, wait))
+        return response
 
-message = request.POST.get('message', '')
+    message = request.POST.get('message', '')
     try:
         reply = ChatService.reply(message)
     except ValidationError as exc:
