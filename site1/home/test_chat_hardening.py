@@ -11,6 +11,9 @@ guest message carrying <|im_end|><|im_start|>system forged a real system turn
 and the model read back a planted secret verbatim.
 """
 
+import threading
+import time
+
 import pytest
 from django.core.cache import cache
 from django.test import Client
@@ -87,14 +90,35 @@ def test_chat_answers_429_not_403_when_the_ip_limit_is_exceeded(client, no_model
     assert 403 not in codes
 
 
-def test_chat_429_carries_a_sane_retry_after_header(client, no_model, db):
-    for _ in range(OVER_IP):
-        resp = post(client)
+def _throttle_the_ip():
+    """Send from a fresh session each time until the IP counter trips.
+
+    One session per request, so the session counter never reaches its own limit
+    and the 429 can only have come from the IP counter. That separation matters
+    because the two limits no longer answer the same way: only the IP one still
+    hands out a countdown.
+
+    Loops well past the limit rather than exactly to it, because a rate-limit
+    window rolling part way through can double how many requests it takes.
+    """
+    for sent in range(1, 2 * IP_LIMIT + 2):
+        resp = post(Client())
         if resp.status_code == 429:
-            break
-    assert resp.status_code == 429
+            assert sent > IP_LIMIT, (
+                f'throttled after {sent}, too early to be the IP counter')
+            return resp
+    pytest.fail(f'never throttled in {2 * IP_LIMIT + 1} requests from one IP')
+
+
+def test_chat_429_carries_a_sane_retry_after_header(no_model, db):
+    """Pinned to the IP path. This used to send from a single session and
+    assert on whichever 429 came back first, which was fine while both limits
+    answered identically. The session limit now hands out a phone number and
+    deliberately no Retry-After, so a single-session loop would be asserting
+    the header on the one response that is specified not to carry it."""
+    resp = _throttle_the_ip()
     retry = resp.headers.get('Retry-After')
-    assert retry is not None, 'no Retry-After on a 429'
+    assert retry is not None, 'no Retry-After on an IP-limit 429'
     assert 0 < int(retry) <= 60
 
 
@@ -384,3 +408,233 @@ def test_the_request_timeout_can_actually_accommodate_the_largest_budget():
         f'timeout {ap.REQUEST_TIMEOUT_SECONDS}s cannot fit '
         f'{ap.NUM_PREDICT_RETRY} tokens at {ap.TOKENS_PER_SECOND_FLOOR} tok/s '
         f'({slowest:.0f}s)')
+
+
+# ----------------------------------------------------------- concurrency cap
+#
+# Rate limiting is abuse control. It counts requests per minute and knows
+# nothing about how many are inside the machine at once. Measured on this host:
+# Ollama logs OLLAMA_NUM_PARALLEL:1 at every server start, so it serves one
+# request at a time and everything else waits in its queue. Twenty requests a
+# minute at an 11.6s median is roughly four times the work the GPU can do in
+# that minute, so the counters alone still let a queue build that every other
+# guest sits behind until REQUEST_TIMEOUT_SECONDS starts firing.
+#
+# The cap is what bounds that: a guest who cannot get a slot is told so now,
+# rather than parked in a queue that will time out anyway.
+
+def _hold_the_only_slot(monkeypatch):
+    """Fill the cap, the way one in-flight request would.
+
+    Pins the cap to 1 rather than filling whatever the real one is, because
+    MAX_CONCURRENT_MODEL_CALLS follows OLLAMA_NUM_PARALLEL. On a machine that
+    sets that to 4, a single acquire would leave slots free, the request under
+    test would sail through, and a test about refusing work would quietly
+    become a live call to Ollama.
+    """
+    from backend.services import ai_providers as ap
+    slots = threading.BoundedSemaphore(1)
+    monkeypatch.setattr(ap, '_model_slots', slots)
+    assert slots.acquire(blocking=False)
+    return slots
+
+
+def test_a_second_caller_is_refused_rather_than_queued_when_the_cap_is_full(monkeypatch):
+    """Two real threads, cap of one. The second must come back with
+    ProviderBusy straight away instead of waiting for the first to finish.
+
+    "Immediately" is the point, and the timing assertion is what checks it. An
+    acquire with a timeout would also eventually raise, and would also be
+    wrong: the guest would sit through the wait the cap exists to prevent and
+    then get an error anyway.
+    """
+    from backend.services import ai_providers as ap
+    monkeypatch.setattr(ap, '_model_slots', threading.BoundedSemaphore(1))
+
+    holding, release = threading.Event(), threading.Event()
+
+    def hold_a_slot():
+        with ap.model_slot():
+            holding.set()
+            release.wait(10)
+
+    first = threading.Thread(target=hold_a_slot)
+    first.start()
+    try:
+        assert holding.wait(10), 'first thread never took its slot'
+
+        started = time.monotonic()
+        with pytest.raises(ap.ProviderBusy):
+            with ap.model_slot():
+                pytest.fail('handed out a slot that was already taken')
+        waited = time.monotonic() - started
+    finally:
+        release.set()
+        first.join(10)
+
+    assert waited < 1, f'second caller waited {waited:.1f}s instead of failing fast'
+
+
+def test_the_slot_goes_back_when_the_call_fails_so_one_error_cannot_wedge_the_endpoint(monkeypatch):
+    """A leaked slot is worse than no cap at all: one socket error would lock
+    every guest out until the process restarted."""
+    from backend.services import ai_providers as ap
+    monkeypatch.setattr(ap, '_model_slots', threading.BoundedSemaphore(1))
+
+    with pytest.raises(ConnectionError):
+        with ap.model_slot():
+            raise ConnectionError('socket refused')
+
+    with ap.model_slot():
+        pass  # Reached only if the failed call gave its slot back.
+
+
+def test_the_slot_is_held_while_the_model_answers(client, db, monkeypatch):
+    """The cap has to cover the expensive part, and both attempts of it.
+
+    Replaces a test that checked complete() held one slot across its own retry
+    loop. The slot moved out to the view so it could be attempted before the
+    rate-limit counters, which puts the whole request inside one block and
+    makes the across-the-retry property structural. What can still regress is
+    the cap being released too early, so that is what this pins: while the
+    model is answering, nobody else can get in.
+    """
+    from backend.services import ai_providers as ap
+    from backend.services.services import ChatService
+    monkeypatch.setattr(ap, '_model_slots', threading.BoundedSemaphore(1))
+
+    seen = {}
+
+    def answer_and_check(message):
+        seen['slot_held'] = not ap._model_slots.acquire(blocking=False)
+        return 'Sure.'
+
+    monkeypatch.setattr(ChatService, 'reply', staticmethod(answer_and_check))
+
+    assert post(client).status_code == 200
+    assert seen.get('slot_held'), 'the model was asked without a slot held'
+
+
+@pytest.mark.parametrize('num_parallel, expected', [
+    ('4', 4),        # the value Ollama was given, matched exactly
+    ('', 1),         # unset, which is the case on this machine
+    ('0', 1),        # Ollama reads 0 as "decide for me", not "serve nothing"
+    ('auto', 1),     # and a typo must not stop Django importing
+])
+def test_the_cap_never_comes_out_as_zero(num_parallel, expected):
+    """Both zero cases refuse every guest on a machine where nothing is broken,
+    which is the worst kind of failure this file can prevent.
+
+    Tests the parse rather than the constant. The constant is derived from an
+    environment variable that is unset here, so asserting on it would pass
+    whatever the expression behind it said."""
+    from backend.services.ai_providers import _cap_from_num_parallel
+    assert _cap_from_num_parallel(num_parallel) == expected
+
+
+# -------------------------------------------------- which 429 the guest gets
+#
+# Two limits, two different pieces of advice. A session that has spent its
+# minute, or a guest who arrives while the GPU is full, is told to phone the
+# hotel: that wait is either unknown or long enough that a countdown is not
+# useful. A shared IP over its budget keeps the countdown, because the other
+# guest behind that NAT has done nothing wrong and a number they can act on
+# beats being pushed to the phone.
+#
+# The handoff deliberately carries no Retry-After. chat-widget.js replaces the
+# body message with its own "wait N seconds" copy whenever that header is
+# present, so a phone number sent alongside one never reaches the guest.
+
+@pytest.fixture
+def hotel_phone(db):
+    """A number distinct from settings.HOTEL_DEFAULT_PHONE, so these tests
+    prove the handoff reads the hotel record rather than a literal written
+    into the view."""
+    from data.models import Hotel
+    number = '+84 28 5555 0199'
+    Hotel.objects.create(hotel_name='Thien Tai Hotel', phone=number)
+    return number
+
+
+def test_the_busy_response_hands_the_guest_the_phone_number(client, db, hotel_phone, monkeypatch):
+    """End to end with the cap full: view, ChatService, provider, semaphore. No
+    stub on ChatService.reply, so this is the real path a guest takes.
+
+    Asserts on the answer, not on how long it took to arrive. An earlier
+    version timed the request and wanted it under a second, which passed alone
+    and failed in the full suite at 1.7s: most of that is the system prompt
+    being rebuilt from the hotel tables before the provider is ever asked, work
+    that has nothing to do with the cap. The non-blocking guarantee is timed
+    where it can be timed cleanly, in
+    test_a_second_call_is_refused_rather_than_queued_when_the_cap_is_full.
+    """
+    slots = _hold_the_only_slot(monkeypatch)
+    try:
+        resp = post(client)
+    finally:
+        slots.release()
+
+    assert resp.status_code == 429
+    assert hotel_phone in resp.json()['message']
+
+
+def test_the_busy_response_carries_no_retry_after_or_the_widget_hides_the_number(
+        client, db, hotel_phone, monkeypatch):
+    slots = _hold_the_only_slot(monkeypatch)
+    try:
+        resp = post(client)
+    finally:
+        slots.release()
+
+    assert resp.status_code == 429
+    assert 'Retry-After' not in resp.headers
+
+
+def test_a_busy_refusal_does_not_spend_the_guests_session_budget(
+        client, no_model, db, hotel_phone, monkeypatch):
+    """Being turned away because the GPU is full is not the guest's doing, so
+    it must not count against their 8/m.
+
+    The ordering is what makes this true: the slot is attempted before
+    get_usage() is ever called, so a refused request never touches a counter.
+    Send more refusals than the whole session budget, then free the cap. A
+    guest who had been charged for them would still be locked out here.
+    """
+    slots = _hold_the_only_slot(monkeypatch)
+    try:
+        for _ in range(SESSION_LIMIT + 2):
+            resp = post(client)
+            assert resp.status_code == 429
+            assert hotel_phone in resp.json()['message']
+    finally:
+        slots.release()
+
+    assert post(client).status_code == 200, (
+        'the guest was locked out, so the refusals were charged to their budget')
+
+
+def test_the_session_limit_hands_out_the_phone_number_not_a_countdown(
+        client, no_model, db, hotel_phone):
+    """A session that has spent its minute gets the same advice as a busy GPU.
+    Stays inside the IP budget throughout, so the 429 can only be the session
+    counter."""
+    for sent in range(1, IP_LIMIT):
+        resp = post(client)
+        if resp.status_code == 429:
+            break
+    else:
+        pytest.fail(f'never throttled in {IP_LIMIT - 1} requests from one session')
+
+    assert sent <= 2 * SESSION_LIMIT + 1, (
+        f'took {sent} requests to throttle, more than the session limit explains')
+    assert hotel_phone in resp.json()['message']
+    assert 'Retry-After' not in resp.headers
+
+
+def test_the_ip_limit_keeps_the_generic_countdown(no_model, db, hotel_phone):
+    """A shared address is the NAT case: the guest on the other side of it has
+    not misbehaved, and a wait they can act on beats being sent to the phone.
+
+    The header itself is covered by test_chat_429_carries_a_sane_retry_after_header;
+    this one owns the copy."""
+    assert hotel_phone not in _throttle_the_ip().json()['message']

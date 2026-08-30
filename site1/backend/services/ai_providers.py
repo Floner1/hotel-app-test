@@ -65,8 +65,11 @@ no caller can forget them, because none of the above is a guarantee.
 from __future__ import annotations
 
 import logging
+import os
 import re
+import threading
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 
 from django.conf import settings
 
@@ -114,6 +117,105 @@ TOKENS_PER_SECOND_FLOOR = 25
 # httpcore.ReadTimeout instead of an answer. Tying them together means raising
 # one cannot silently invalidate the other.
 REQUEST_TIMEOUT_SECONDS = int(NUM_PREDICT_RETRY / TOKENS_PER_SECOND_FLOOR) + 15
+
+# How many calls may be inside Ollama at once. Everything past this is refused,
+# not queued.
+#
+# The rate limits in views.py cannot bound this and were never meant to: they
+# count requests per minute and know nothing about how many are in flight.
+# Ollama serves OLLAMA_NUM_PARALLEL requests at a time and queues the rest, and
+# this machine logs OLLAMA_NUM_PARALLEL:1 at every server start (Ollama
+# 0.32.15), so it is one at a time. At an 11.6s median even the tightened 20/m
+# per-IP limit asks for about four times the work the GPU can do in a minute, so
+# a caller inside the limit can still build a queue that every other guest sits
+# behind until REQUEST_TIMEOUT_SECONDS starts firing.
+#
+# What another guest waits for is not REQUEST_TIMEOUT_SECONDS but twice it: the
+# slot is held across both attempts, so one question that times out and then
+# times out again on the retry holds the cap for 2 x 111 = 222 seconds. That is
+# the real ceiling, and refusing in milliseconds beats sitting behind it.
+#
+# Read from the same environment variable Ollama itself reads, so the two cannot
+# be set apart by hand. That only holds while Django and Ollama share an
+# environment, which is true of `manage.py runserver` on this machine and is NOT
+# true of Django behind a service manager with Ollama started separately. There
+# the variable is invisible here and the cap falls back to 1, which under-serves
+# a box configured for more rather than overloading one configured for less.
+# Wrong in the safe direction, but silently, so the resolved value is logged at
+# startup instead of being left to guesswork.
+
+
+def _cap_from_num_parallel(value: str) -> int:
+    """Turn an OLLAMA_NUM_PARALLEL string into a cap of at least 1.
+
+    A function rather than an inline expression because both ways of getting
+    this wrong fail silently and identically — every guest refused, on a
+    machine where nothing is broken:
+
+      "0"    Ollama reads this as "decide for me", not "serve nothing".
+      "auto" or any typo. int() would raise at import and stop Django dead,
+             which is a different bad outcome, so this parses rather than casts.
+
+    Neither case is reachable from the environment this repo runs in, so an
+    assertion on the constant would pass whatever the expression said. Testing
+    the parse directly is the only version that can fail.
+    """
+    return (int(value) if value.isdigit() else 0) or 1
+
+
+# .strip() because ' 4'.isdigit() is False, and a stray space in an env file is
+# a plausible way to get the silent fallback while believing you configured it.
+MAX_CONCURRENT_MODEL_CALLS = _cap_from_num_parallel(
+    os.environ.get('OLLAMA_NUM_PARALLEL', '').strip())
+
+logger.info('Chat concurrency cap: %d (OLLAMA_NUM_PARALLEL=%r as seen by Django)',
+            MAX_CONCURRENT_MODEL_CALLS, os.environ.get('OLLAMA_NUM_PARALLEL'))
+
+# BoundedSemaphore rather than Semaphore: an unbalanced release would silently
+# raise the cap forever, and Bounded turns that into a ValueError at the line
+# that made the mistake.
+#
+# ponytail: per-process. Under several gunicorn workers each gets its own
+# semaphore and the real cap becomes workers x this. Exactly the limitation the
+# LocMemCache rate-limit counters already have. Both want a shared backend;
+# neither earns one while this serves a single process.
+_model_slots = threading.BoundedSemaphore(MAX_CONCURRENT_MODEL_CALLS)
+
+
+class ProviderBusy(Exception):
+    """Every model slot is taken. The caller must not wait for one."""
+
+
+@contextmanager
+def model_slot():
+    """Hold one model slot for the block, or raise ProviderBusy immediately.
+
+    Held by the caller rather than taken inside OllamaProvider.complete(),
+    which is a deliberate exception to this module's usual rule that a
+    guarantee belongs where no caller can forget it. The reason is ordering:
+    the view has to know it cannot serve this guest *before* it spends any of
+    their rate-limit budget on them, and that decision happens above
+    ChatService. A cap that could only answer once complete() had been reached
+    was charging guests for a refusal the machine had already decided on.
+
+    blocking=False, deliberately. Waiting for a slot is the queue this cap
+    exists to prevent, and an acquire with a timeout would be the worst of
+    both: the guest sits through the wait and gets an error at the end of it
+    anyway.
+
+    A context manager rather than an acquire/release pair because the caller
+    returns from three different places inside the block. Hand-written releases
+    at each one is how a slot goes missing, and a leaked slot is worse than no
+    cap at all: one escape would lock every guest out until the process
+    restarted.
+    """
+    if not _model_slots.acquire(blocking=False):
+        raise ProviderBusy("All model slots are busy")
+    try:
+        yield
+    finally:
+        _model_slots.release()
+
 
 # Structural tokens, not content. The chat template interpolates message text
 # raw, so a guest who sends <|im_end|><|im_start|>system forges a turn boundary
@@ -206,6 +308,12 @@ class OllamaProvider(ChatProvider):
         )
 
     def complete(self, system_prompt: str, user_message: str) -> str:
+        """Ask the model. Expects the caller to be inside model_slot().
+
+        Both attempts run under the caller's one slot, so a retrying guest
+        cannot hand their own slot away mid-question. Nothing here acquires:
+        see model_slot() for why the cap sits with the caller.
+        """
         # Two attempts, and the second one differs. The old loop re-sent a
         # byte-identical request with a byte-identical budget, so when the
         # failure was "reasoning used the whole ceiling" it failed the same way

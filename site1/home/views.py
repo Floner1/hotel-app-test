@@ -13,7 +13,8 @@ from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService, ChatService
 from data.models import User, CustomerBookingInfo
 from data.models.hotel import BookingStatus
-from data.repos.repositories import DiscountRepository, RoomMaintenanceRepository
+from data.repos.repositories import DiscountRepository, HotelRepository, RoomMaintenanceRepository
+from backend.services.ai_providers import ProviderBusy, model_slot
 from django.db import IntegrityError
 from django.db.models import Sum
 from datetime import date, datetime
@@ -1751,29 +1752,51 @@ def edit_reservation(request, booking_id):
 # Sized against how a real guest behaves rather than against the other AJAX
 # endpoints. Median reply time measured 2026-08-23 was 11.6s, and the widget
 # disables its send button while a request is in flight, so a person waiting
-# for each answer tops out near 5 messages a minute. 15/m leaves roughly three
-# times that headroom, which puts it clear of anyone typing fast and keeps it
-# in range of scripted abuse. 35/m per IP is about two such sessions running
-# flat out plus room for a third, so shared addresses do not collide.
+# for each answer tops out near 5 messages a minute. 8/m sits just above that:
+# a guest reading the answers never reaches it, and a script has to be visibly
+# scripted to. 20/m per IP is about two and a half such sessions, so a shared
+# address does not collide.
 #
-# These are deliberately looser than the 10/m the other AJAX endpoints use.
-# That is safe for accidental spam and it is NOT what protects the GPU: Ollama
-# serves one request at a time, so 35 requests a minute at 11.6s each asks for
-# roughly seven times the work the machine can do in that minute. A sustained
-# caller at the limit builds a queue that every other guest waits behind until
-# REQUEST_TIMEOUT_SECONDS starts firing. The control that actually bounds that
-# is a concurrency cap in front of the provider, which this endpoint does not
-# have. Rate limiting here is abuse control, not capacity control.
-CHAT_RATE_PER_SESSION = '15/m'
-CHAT_RATE_PER_IP = '35/m'
+# These were 15/m and 35/m, sized to leave headroom that nothing needed. They
+# came down when MAX_CONCURRENT_MODEL_CALLS landed: the counters were carrying
+# an argument about GPU capacity they were never able to win, because a minute
+# is not the unit that matters when Ollama serves one request at a time. The
+# cap in ai_providers.py bounds capacity now, so these are free to be what they
+# should always have been, which is a bound on how fast one guest can talk.
+CHAT_RATE_PER_SESSION = '8/m'
+CHAT_RATE_PER_IP = '20/m'
 
 
 def _chat_session_key(group, request):
     return request.session.session_key
 
 
-def _chat_retry_after(request):
-    """Seconds the caller should wait, or 0 if within both limits.
+def _chat_phone_handoff(lead):
+    """429 that gives the guest a phone number instead of a countdown.
+
+    Used where a countdown is no use: the session has spent its minute, or the
+    model has no free slot and nobody can say when one frees up.
+
+    No Retry-After, and that is load-bearing rather than an omission.
+    chat-widget.js replaces the response body with its own "wait N seconds"
+    copy whenever that header is present, so a phone number sent alongside one
+    never reaches the guest. Sending no header is what lets the widget fall
+    through to this message.
+
+    The number comes from the hotel row, same source as the contact page, with
+    settings.HOTEL_DEFAULT_PHONE behind it. Not a literal here, which would go
+    stale the first time the hotel changed its number.
+    """
+    phone = (HotelRepository.get_hotel_info() or {}).get('phone')
+    where = f'call us on {phone}' if phone else 'call the hotel'
+    return JsonResponse({
+        'status': 'error',
+        'message': f'{lead} Please {where} and the front desk will help you straight away.',
+    }, status=429)
+
+
+def _chat_rate_limit(request):
+    """(session limit tripped?, seconds to wait). (False, 0) if within both.
 
     get_usage() rather than the @ratelimit decorator because the decorator
     raises Ratelimited, which the site-wide handler403 turns into a 429 with no
@@ -1797,6 +1820,10 @@ def _chat_retry_after(request):
     if not request.session.session_key:
         request.session.create()
 
+    # Both counters are read every call, whichever trips first. Short-circuiting
+    # on the session limit would stop incrementing the IP counter, and a caller
+    # cycling sessions would then never fill the wider bucket at all.
+    session_hit = False
     wait = 0
     for group, key, rate in (
         ('chat-session', _chat_session_key, CHAT_RATE_PER_SESSION),
@@ -1806,7 +1833,8 @@ def _chat_retry_after(request):
                           method='POST', increment=True)
         if usage and usage['should_limit']:
             wait = max(wait, usage['time_left'])
-    return wait
+            session_hit = session_hit or group == 'chat-session'
+    return session_hit, wait
 
 
 @require_POST
@@ -1815,23 +1843,57 @@ def chat_message(request):
     if request.headers.get('x-requested-with') != 'XMLHttpRequest':
         return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
 
-    wait = _chat_retry_after(request)
-    if wait:
-        response = JsonResponse({
-            'status': 'error',
-            'message': 'Too many messages. Please wait a moment and try again.',
-        }, status=429)
-        response['Retry-After'] = str(max(1, wait))
-        return response
-
-    message = request.POST.get('message', '')
+    # The capacity check comes first, ahead of the counters, and the order is
+    # the whole point. get_usage(increment=True) spends a request from the
+    # guest's budget the moment it is called, so asking it before knowing
+    # whether the machine can serve anyone charged guests for refusals they had
+    # no part in. A busy box now answers without touching a counter, which
+    # means a guest turned away during a busy spell still has their full 8/m
+    # once it clears.
+    #
+    # The slot is held across the rate-limit check too. That is a few
+    # milliseconds of session write and cache reads inside the cap, which is
+    # nothing against an 11.6s model call, and it is what lets the check run
+    # knowing a slot is already reserved for the answer.
     try:
-        reply = ChatService.reply(message)
+        with model_slot():
+            session_hit, wait = _chat_rate_limit(request)
+            if session_hit:
+                # This guest has spent their minute. Telling them to wait 40
+                # seconds invites them to sit and watch the widget; the front
+                # desk answers now. Returning here releases the slot on the way
+                # out, so a throttled guest never holds capacity.
+                return _chat_phone_handoff('I cannot take any more messages just now.')
+            if wait:
+                # The IP counter, which means a shared address: NAT, hotel
+                # wifi, a cafe. The guest on the other side of it has not done
+                # anything wrong, so they keep the countdown rather than being
+                # pushed to the phone.
+                response = JsonResponse({
+                    'status': 'error',
+                    'message': 'Too many messages. Please wait a moment and try again.',
+                }, status=429)
+                response['Retry-After'] = str(max(1, wait))
+                return response
+
+            reply = ChatService.reply(request.POST.get('message', ''))
+    except ProviderBusy:
+        # No slot. Caught above the generic handler on purpose: this is not a
+        # fault, and 503 "the assistant is unavailable" would tell the guest
+        # the wrong thing about a machine that is working fine and merely full.
+        # model_slot() is the only thing that raises this, so nothing else can
+        # land here.
+        return _chat_phone_handoff('The assistant is busy with another guest right now.')
     except ValidationError as exc:
         return JsonResponse({'status': 'error', 'message': exc.message}, status=400)
     except Exception:
         # Ollama down, model pulled, socket refused. The guest gets a plain
         # sentence; the stack trace goes to the log, not onto the page.
+        #
+        # This now covers the rate-limit check as well as the model call, since
+        # both sit inside the block. A cache backend failing mid-check answers
+        # 503 instead of raising a 500 at the guest, which is the better of the
+        # two and logs the same either way.
         logger.exception('Chat reply failed')
         return JsonResponse({
             'status': 'error',
