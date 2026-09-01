@@ -10,12 +10,20 @@ logger = logging.getLogger(__name__)
 
 
 def _get_client_ip(request):
-    """Extract client IP from request."""
+    """The peer address, never a client-supplied header.
+
+    X-Forwarded-For is set by whoever sends the request. Trusting its first
+    value with no trusted-proxy allowlist let any caller choose the IP written
+    against their own logins and booking edits, in a table the schema makes
+    append-only. django-axes resolves lockout IPs from REMOTE_ADDR for the same
+    reason, so reading it here keeps the two agreeing about who did what.
+
+    ponytail: no proxy allowlist, because nothing fronts this app today. Put it
+    behind a reverse proxy and this has to honour XFF only when REMOTE_ADDR is
+    the proxy's own address.
+    """
     if request is None:
         return None
-    x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded:
-        return x_forwarded.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR')
 
 

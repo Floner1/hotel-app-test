@@ -103,12 +103,21 @@ class DiscountService:
         a default here would let a call site silently skip the one check this
         function exists for.
         """
-        if discount is None:
-            raise ValidationError('Discount code not found.')
-        if discount.status != 'active':
-            raise ValidationError('This code has already been used.')
-        if (email or '').strip().lower() != (discount.email or '').strip().lower():
-            raise ValidationError('This code was issued to a different email address.')
+        # One message for all three failures. Separate ones ("not found" /
+        # "already used" / "issued to a different email") told a caller whether
+        # a guessed code exists and what state it is in, without needing the
+        # address it is bound to. The binding itself is unchanged; only what
+        # the refusal admits to is. Ordering matters: `discount is None` has to
+        # short-circuit before anything reads .status.
+        if (
+            discount is None
+            or discount.status != 'active'
+            or (email or '').strip().lower() != (discount.email or '').strip().lower()
+        ):
+            raise ValidationError(
+                "That code isn't valid for this email address, or has already "
+                "been used."
+            )
 
 
 class ReservationService:
