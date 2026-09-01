@@ -6,7 +6,7 @@ from django.conf import settings
 
 from data.models.hotel import Hotel, Room, RoomAssignment, RoomMaintenanceLog
 from data.models import CustomerBookingInfo, EmailQueue, EmailSubscriber, EmailCampaign, DiscountCode
-from django.db.models import Q, Exists, OuterRef
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 
 _DEFAULT_PHONE = getattr(settings, 'HOTEL_DEFAULT_PHONE', '')
@@ -99,90 +99,6 @@ class ReservationRepository:
             email__iexact=email
         ).order_by('-booking_date', '-check_in')
 
-    @staticmethod
-    def email_exists(email):
-        """Check whether a reservation already exists for the email."""
-        return CustomerBookingInfo.objects.filter(email__iexact=email).exists()
-
-    @staticmethod
-    def get_upcoming_bookings():
-        """
-        Retrieve all upcoming bookings (check-in date is today or in the future)
-        """
-        today = timezone.now().date()
-        return (
-            CustomerBookingInfo.objects
-            .filter(check_in__gte=today)
-            .order_by('check_in')
-        )
-
-    @staticmethod
-    def get_bookings_by_date_range(start_date, end_date):
-        """
-        Retrieve bookings within a specific date range
-        """
-        return CustomerBookingInfo.objects.filter(
-            Q(check_in__gte=start_date, check_in__lte=end_date) |
-            Q(check_out__gte=start_date, check_out__lte=end_date)
-        ).order_by('check_in')
-
-    @staticmethod
-    def search_bookings(search_term):
-        """
-        Search bookings by name, email, or phone
-        """
-        return (
-            CustomerBookingInfo.objects
-            .filter(
-                Q(guest_name__icontains=search_term) |
-                Q(email__icontains=search_term) |
-                Q(phone__icontains=search_term)
-            )
-            .order_by('-booking_date', '-check_in')
-        )
-
-    @staticmethod
-    def get_booking_count():
-        """
-        Get the total count of all bookings
-        """
-        return CustomerBookingInfo.objects.count()
-
-    @staticmethod
-    def get_bookings_today():
-        """
-        Get bookings checking in today
-        """
-        today = timezone.now().date()
-        return CustomerBookingInfo.objects.filter(
-            check_in=today
-        ).order_by('booking_date', 'booking_id')
-
-    @staticmethod
-    def update_booking(booking_id, update_data):
-        """
-        Update an existing booking
-        """
-        try:
-            booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
-            for key, value in update_data.items():
-                setattr(booking, key, value)
-            booking.save()
-            return booking
-        except CustomerBookingInfo.DoesNotExist:
-            return None
-
-    @staticmethod
-    def delete_booking(booking_id):
-        """
-        Delete a booking by ID
-        """
-        try:
-            booking = CustomerBookingInfo.objects.get(booking_id=booking_id)
-            booking.delete()
-            return True
-        except CustomerBookingInfo.DoesNotExist:
-            return False
 
 class RoomRepository:
     """Repository for physical room and room assignment operations."""
@@ -395,15 +311,6 @@ class EmailRepository:
         deleted, _ = EmailQueue.objects.filter(created_at__lt=cutoff).delete()
         return deleted
 
-    @staticmethod
-    def list_recent(limit=200, status=None, email_type=None):
-        qs = EmailQueue.objects.all().order_by('-created_at')
-        if status:
-            qs = qs.filter(status=status)
-        if email_type:
-            qs = qs.filter(email_type=email_type)
-        return qs[:limit]
-
     # ---------------- email_subscribers ----------------
 
     @staticmethod
@@ -458,15 +365,6 @@ class EmailRepository:
     @staticmethod
     def get_by_email(email):
         return EmailSubscriber.objects.filter(email__iexact=(email or '').strip()).first()
-
-    @staticmethod
-    def list_subscribers(status=None, limit=None):
-        qs = EmailSubscriber.objects.all().order_by('-created_at')
-        if status:
-            qs = qs.filter(status=status)
-        if limit:
-            qs = qs[:limit]
-        return qs
 
     @staticmethod
     def active_subscribers():
@@ -603,42 +501,5 @@ class DiscountRepository:
         discount.redeemed_at = timezone.now()
         discount.redeemed_booking = booking
         discount.save(update_fields=['status', 'redeemed_at', 'redeemed_booking_id'])
-
-    @classmethod
-    def issue_milestone_for_email(cls, email):
-        """
-        Issue or rotate a 10% milestone voucher for this email.
-        Returns (discount, issued): issued=True when a fresh/rotated code was created.
-        If an active unused code already exists, returns (existing, False).
-        Rotates the existing row rather than creating a second one to respect
-        the email uniqueness constraint on the discount_codes table.
-        """
-        email = (email or '').strip().lower()
-        if not email:
-            return None, False
-        now = timezone.now()
-        existing = DiscountCode.objects.filter(email__iexact=email).first()
-        if existing:
-            if existing.status == 'active':
-                return existing, False
-            new_code = cls._generate_unique_code()
-            existing.code = new_code
-            existing.status = 'active'
-            existing.issued_at = now
-            existing.redeemed_at = None
-            existing.redeemed_booking = None
-            existing.save(update_fields=['code', 'status', 'issued_at', 'redeemed_at', 'redeemed_booking_id'])
-            return existing, True
-        code = cls._generate_unique_code()
-        discount = DiscountCode.objects.create(
-            code=code,
-            email=email,
-            subscriber=None,
-            discount_percent=10,
-            status='active',
-            issued_at=now,
-            created_at=now,
-        )
-        return discount, True
 
 
