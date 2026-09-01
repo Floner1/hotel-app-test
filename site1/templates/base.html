@@ -34,7 +34,8 @@
   </head>
   <body>
     <!-- Toast Notification -->
-    <div id="toast-notification" class="toast-notification">
+    <div id="toast-notification" class="toast-notification"
+         role="status" aria-live="polite" aria-atomic="true">
       <span class="toast-icon"><i class="fa fa-check-circle" aria-hidden="true"></i></span>
       <span class="toast-message"></span>
     </div>
@@ -67,6 +68,12 @@
       if (typeof window.showToast !== 'function') {
         window.showToast = function(message, isError = false) {
           var toast = $('#toast-notification');
+
+          // An error interrupts, a confirmation waits its turn. Set before the
+          // message text, because the region has to carry the right politeness
+          // at the moment its content changes, which is what triggers the
+          // announcement.
+          toast.attr('aria-live', isError ? 'assertive' : 'polite');
           toast.find('.toast-message').text(message);
 
           if (isError) {
@@ -231,6 +238,16 @@
         });
         $('#footer-gmail-no').on('click', function() {
           $('#footer-gmail-modal').css('display', 'none');
+        });
+
+        // Escape closes whichever footer dialog is open. One delegated handler
+        // rather than two, and it returns early when neither is showing so the
+        // popup's own Escape above is unaffected.
+        $(document).on('keydown', function(e) {
+          if (e.key !== 'Escape') return;
+          $('#footer-maps-modal, #footer-gmail-modal')
+            .filter(':visible')
+            .css('display', 'none');
         });
       });
     </script>
