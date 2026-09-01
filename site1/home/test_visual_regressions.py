@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from home.test_contrast import contrast_ratio, parse_color
+
 CSS_DIR = Path(__file__).resolve().parent.parent / "static" / "css"
 STYLE_CSS = CSS_DIR / "style.css"
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -174,28 +176,11 @@ def test_no_custom_property_is_used_without_being_defined():
     )
 
 
-# ponytail: this WCAG maths is a second copy — batch 3 ships the same formula in
-# home/test_contrast.py. Batch 4 branches off 4424064, where that file does not
-# exist yet, so it cannot import it. When both batches land, delete this block and
-# import from test_contrast instead.
-def _srgb_channel(value):
-    value /= 255
-    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
-
-
-def relative_luminance(hex_colour):
-    hex_colour = hex_colour.lstrip("#")
-    r, g, b = (int(hex_colour[i:i + 2], 16) for i in (0, 2, 4))
-    return (
-        0.2126 * _srgb_channel(r)
-        + 0.7152 * _srgb_channel(g)
-        + 0.0722 * _srgb_channel(b)
-    )
-
-
-def contrast_ratio(fg, bg):
-    light, dark = sorted((relative_luminance(fg), relative_luminance(bg)), reverse=True)
-    return (light + 0.05) / (dark + 0.05)
+# The WCAG maths lives in test_contrast.py, which parses colours out of the
+# shipped CSS for the accessibility fixes. It works in rgb tuples; these call
+# sites hold hex strings, so parse_color bridges the two.
+def contrast_ratio_hex(fg, bg):
+    return contrast_ratio(parse_color(fg)[0], parse_color(bg)[0])
 
 
 @pytest.mark.parametrize("background", ["#ffffff", "#f9fafb"])
@@ -206,9 +191,9 @@ def test_muted_token_clears_aa_on_its_backgrounds(style_css, background):
     alias = declared(root, "--color-muted")
     assert alias == "var(--color-text-muted)", f"unexpected --color-muted value: {alias}"
     resolved = declared(root, "--color-text-muted")
-    assert contrast_ratio(resolved, background) >= 4.5, (
+    assert contrast_ratio_hex(resolved, background) >= 4.5, (
         f"muted text {resolved} on {background} is "
-        f"{contrast_ratio(resolved, background):.2f}:1, below AA"
+        f"{contrast_ratio_hex(resolved, background):.2f}:1, below AA"
     )
 
 
