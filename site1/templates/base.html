@@ -255,7 +255,13 @@
     </script>
 
     <!-- Admin Inline Edit System -->
-    <link rel="stylesheet" href="{% static 'css/admin-edit.css' %}">
+    {% if is_admin_user %}<link rel="stylesheet" href="{% static 'css/admin-edit.css' %}">{% endif %}
+    {% comment %}
+      The script is deliberately NOT gated: AdminEdit's init runs applyOverrides()
+      for every visitor and only buildUI() is behind isAdmin, so gating it would
+      silently revert public inline-edit content. Enforced by
+      home/test_perf_admin_assets.py.
+    {% endcomment %}
     <script src="{% static 'js/admin-edit.js' %}"></script>
     <script>
       AdminEdit.init({

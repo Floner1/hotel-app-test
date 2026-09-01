@@ -95,13 +95,24 @@ def _room_image_url(db_key, static_path):
 
 
 def _get_room_images():
-    """Return resolved URLs for all 5 room images."""
+    """Return resolved URLs for all 5 room images, in one query.
+
+    This runs on /, /about/ and /rooms/, so it goes through the batched
+    _db_images_exist() rather than one EXISTS per room type.
+    """
+    from django.urls import reverse
+    from django.templatetags.static import static
+    sources = {
+        'single_bed': ('room-single-bed', 'images/single bed.png'),
+        'double':     ('room-double',      'images/double room.png'),
+        'window':     ('room-window',      'images/window room.png'),
+        'balcony':    ('room-balcony',     'images/balcony.png'),
+        'condotel':   ('room-condotel',    'images/condotel.png'),
+    }
+    in_db = _db_images_exist([db_key for db_key, _ in sources.values()])
     return {
-        'single_bed': _room_image_url('room-single-bed', 'images/single bed.png'),
-        'double':     _room_image_url('room-double',      'images/double room.png'),
-        'window':     _room_image_url('room-window',      'images/window room.png'),
-        'balcony':    _room_image_url('room-balcony',     'images/balcony.png'),
-        'condotel':   _room_image_url('room-condotel',    'images/condotel.png'),
+        key: reverse('serve_image', args=[db_key]) if in_db[db_key] else static(static_path)
+        for key, (db_key, static_path) in sources.items()
     }
 
 
@@ -597,8 +608,6 @@ def register_view(request):
                     'password1': {'errors': [errors['password1']] if 'password1' in errors else []},
                     'password2': {'errors': [errors['password2']] if 'password2' in errors else []},
                 },
-                'hotel_name': HotelService.get_hotel_name(),
-                'hotel': HotelService.get_hotel_info(),
             }
             return render(request, 'register.html', context)
         
@@ -630,16 +639,12 @@ def register_view(request):
                     'username': {'value': username},
                     'email': {'value': email},
                 },
-                'hotel_name': HotelService.get_hotel_name(),
-                'hotel': HotelService.get_hotel_info(),
             }
             return render(request, 'register.html', context)
     
     # GET request
     context = {
         'form': {},
-        'hotel_name': HotelService.get_hotel_name(),
-        'hotel': HotelService.get_hotel_info(),
     }
     return render(request, 'register.html', context)
 
@@ -986,7 +991,6 @@ def room_dashboard(request):
         'status_counts': status_counts,
         'total_rooms': len(rooms),
         'status_filter': status_filter,
-        'hotel': HotelService.get_hotel_info(),
         'open_issues_json': issues_json,
     }
     return render(request, 'room_dashboard.html', context)
@@ -1230,8 +1234,15 @@ def manage_accounts(request):
         qs = User.objects.exclude(is_active=False).filter(role='customer').order_by('-created_at')
         tab = 'customers'
 
+    # 200, matching admin_reservations rather than the email views: this page
+    # has a client-side search box, which can only ever search the rows the
+    # server rendered.
+    # get_page() is Django's own version of the PageNotAnInteger/EmptyPage
+    # ladder the three sibling views hand-roll, with identical semantics.
+    rows = Paginator(qs, 200).get_page(request.GET.get('page'))
+
     return render(request, 'manage_accounts.html', {
-        'accounts': qs,
+        'accounts': rows,
         'active_tab': tab,
     })
 
@@ -1270,7 +1281,6 @@ def email_log(request):
         'stats': stats,
         'filter_status': status or '',
         'filter_type': email_type or '',
-        'hotel': HotelService.get_hotel_info(),
     })
 
 
@@ -1318,7 +1328,6 @@ def email_subscribers(request):
         'rows': rows,
         'stats': stats,
         'filter_status': status or '',
-        'hotel': HotelService.get_hotel_info(),
     })
 
 
@@ -1330,7 +1339,6 @@ def email_campaigns(request):
     campaigns = EmailRepository.list_campaigns()
     return render(request, 'admin_email_campaigns.html', {
         'campaigns': campaigns,
-        'hotel': HotelService.get_hotel_info(),
     })
 
 
@@ -1360,7 +1368,6 @@ def email_campaign_edit(request, campaign_id=None):
                     'name': name, 'subject': subject,
                     'body_html': body_html, 'body_text': body_text,
                 },
-                'hotel': HotelService.get_hotel_info(),
             })
 
         if campaign:
@@ -1384,7 +1391,6 @@ def email_campaign_edit(request, campaign_id=None):
     return render(request, 'admin_email_campaign_edit.html', {
         'campaign': campaign,
         'form_values': None,
-        'hotel': HotelService.get_hotel_info(),
     })
 
 

@@ -493,6 +493,18 @@
         </tbody>
       </table>
     </div>
+
+    {% if accounts.has_other_pages %}
+      <div style="margin-top:1rem;text-align:center;">
+        {% if accounts.has_previous %}
+          <a href="?page={{ accounts.previous_page_number }}&tab={{ active_tab }}" class="btn btn-sm btn-outline-secondary">&laquo; Prev</a>
+        {% endif %}
+        <span style="margin: 0 8px;color:#6b7280;">Page {{ accounts.number }} of {{ accounts.paginator.num_pages }}</span>
+        {% if accounts.has_next %}
+          <a href="?page={{ accounts.next_page_number }}&tab={{ active_tab }}" class="btn btn-sm btn-outline-secondary">Next &raquo;</a>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 
   <!-- Create/Edit Modal -->
