@@ -838,9 +838,14 @@ def room_dashboard(request):
                 # against the 'vacant' the button asked for. The maintenance log
                 # flow walks straight into it, since Out of Order is allowed on
                 # an occupied room in the first place.
+                # An assignment whose dates have passed does not hold the room,
+                # and _pick_assignment returns those. today <= check_out is the
+                # test, not "covers today": it keeps the exemption for a room
+                # booked for next week, which the derivation renders Reserved.
                 clearing_maintenance = (
                     room.housekeeping_status == 'out_of_order'
                     and assignment is not None
+                    and date.today() <= assignment.check_out
                     and new_status in ('vacant', 'empty_dirty')
                 )
 

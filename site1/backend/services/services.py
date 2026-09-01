@@ -524,11 +524,19 @@ class RoomService:
     def check_out_room(cls, booking):
         """
         Mark the room as vacant (dirty) and complete the assignment on check-out.
+
+        A room already flagged out_of_order keeps that flag. The fault outlives
+        the stay, and get_available_rooms_by_type excludes on out_of_order
+        alone, so writing 'dirty' over it puts a still-broken room back on sale
+        and orphans whatever maintenance log is open against it. Staff clear it
+        from the dashboard, which keeps _display_status driven from one place.
         """
         assignment = RoomRepository.get_active_assignment_for_booking(booking.booking_id)
         if assignment:
+            broken = assignment.room.housekeeping_status == 'out_of_order'
             RoomRepository.update_room_status(
-                assignment.room_id, 'vacant', housekeeping_status='dirty'
+                assignment.room_id, 'vacant',
+                housekeeping_status=None if broken else 'dirty',
             )
             assignment.status = 'completed'
             assignment.save()
