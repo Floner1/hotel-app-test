@@ -5,7 +5,7 @@ from django.contrib.auth import logout, login
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
 from django_ratelimit.core import get_usage
@@ -683,17 +683,7 @@ def admin_reservations(request):
         total=Sum('total_price')
     )['total'] or 0
     
-    page = request.GET.get('page', 1)
-    paginator = Paginator(all_reservations, 200)
-    
-    try:
-        reservations = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page
-        reservations = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range, deliver last page
-        reservations = paginator.page(paginator.num_pages)
+    reservations = Paginator(all_reservations, 200).get_page(request.GET.get('page'))
     
     # Prepare context data
     context = {
@@ -1250,14 +1240,7 @@ def email_log(request):
     if email_type:
         qs = qs.filter(email_type=email_type)
 
-    page = request.GET.get('page', 1)
-    paginator = Paginator(qs, 25)
-    try:
-        rows = paginator.page(page)
-    except PageNotAnInteger:
-        rows = paginator.page(1)
-    except EmptyPage:
-        rows = paginator.page(paginator.num_pages)
+    rows = Paginator(qs, 25).get_page(request.GET.get('page'))
 
     stats = {
         'total': EmailQueue.objects.count(),
@@ -1298,14 +1281,7 @@ def email_subscribers(request):
     if status in ('subscribed', 'unsubscribed', 'bounced'):
         qs = qs.filter(status=status)
 
-    page = request.GET.get('page', 1)
-    paginator = Paginator(qs, 25)
-    try:
-        rows = paginator.page(page)
-    except PageNotAnInteger:
-        rows = paginator.page(1)
-    except EmptyPage:
-        rows = paginator.page(paginator.num_pages)
+    rows = Paginator(qs, 25).get_page(request.GET.get('page'))
 
     stats = {
         'total': EmailSubscriber.objects.count(),

@@ -86,19 +86,6 @@ def log_booking_delete(user, booking_id, booking_data, request=None):
     )
 
 
-def log_role_change(user, target_user, old_role, new_role, request=None):
-    """Log change of user role."""
-    return log_action(
-        user=user,
-        action_type='ROLE_CHANGE',
-        table_name='users',
-        record_id=target_user.user_id,
-        old_values={'role': old_role},
-        new_values={'role': new_role},
-        request=request,
-    )
-
-
 def log_user_login(user, request=None):
     """Log user login."""
     return log_action(
@@ -108,17 +95,3 @@ def log_user_login(user, request=None):
         record_id=user.user_id,
         request=request,
     )
-
-
-def get_recent_audit_logs(user=None, action_type=None, limit=100):
-    """Get recent audit logs with optional filters."""
-    try:
-        qs = AuditLog.objects.all()
-        if user is not None:
-            qs = qs.filter(user=user)
-        if action_type is not None:
-            qs = qs.filter(action_type=action_type)
-        return list(qs[:limit])
-    except Exception:
-        logger.exception('Failed to retrieve audit logs')
-        return []
