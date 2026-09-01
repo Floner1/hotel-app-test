@@ -27,11 +27,6 @@ class HotelService:
     """Application-facing helpers for hotel metadata."""
 
     @staticmethod
-    def get_hotel_name() -> str:
-        result = HotelRepository.get_hotel_name()
-        return result if result else 'Hotel Name Not Found'
-
-    @staticmethod
     def get_hotel_info() -> Optional[Dict[str, Any]]:
         return HotelRepository.get_hotel_info()
 

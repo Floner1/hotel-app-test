@@ -54,15 +54,6 @@ def _can_manage_target(request_user, target_user=None, target_role=None):
         return False, 'You do not have permission to manage staff or admin accounts.'
     return True, None
 
-def _db_image_exists(name):
-    """Return True if an image with this name exists in the DB."""
-    try:
-        from data.models.images import ImagesRef
-        return ImagesRef.objects.filter(ImageName=name).exists()
-    except Exception:
-        return False
-
-
 def _db_images_exist(names):
     """Batch-check which image names exist in the DB. Returns a dict {name: bool}."""
     try:
@@ -83,15 +74,6 @@ def _db_images_exist(names):
 
 
 
-
-
-def _room_image_url(db_key, static_path):
-    """Return serve_image URL if uploaded to DB, otherwise the static file URL."""
-    from django.urls import reverse
-    from django.templatetags.static import static
-    if _db_image_exists(db_key):
-        return reverse('serve_image', args=[db_key])
-    return static(static_path)
 
 
 def _get_room_images():
