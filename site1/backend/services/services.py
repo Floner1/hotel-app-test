@@ -56,6 +56,12 @@ class HotelService:
 
                     # Create a nice display name from the room_type
                     display_name = canonical.replace('_', ' ').title()
+                    # One seeded room_type carries a trailing "Room" the other four
+                    # lack. Normalised here, where the label is built, so canonical
+                    # stays intact as the rate/availability matching key. The `or`
+                    # keeps a room type that is nothing but "Room" from rendering
+                    # as a blank option.
+                    display_name = display_name.removesuffix(' Room') or display_name
 
                     # Convert price to Decimal if it's a string
                     if isinstance(price, str):

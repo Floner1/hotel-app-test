@@ -1,8 +1,11 @@
 {% load static %}
 <div id="discount-popup" class="dp-backdrop" role="dialog" aria-modal="true" aria-label="Newsletter discount offer" style="display:none;">
-  <button class="dp-close" id="dp-close" aria-label="Close">&times;</button>
-
   <div class="dp-card">
+
+    <!-- Inside the card, not the backdrop: .dp-card is the nearest positioned
+         ancestor, so the absolutely-placed close button tracks the card instead
+         of the viewport corner now that the card no longer fills the screen. -->
+    <button class="dp-close" id="dp-close" aria-label="Close">&times;</button>
 
     <div class="dp-left">
 
