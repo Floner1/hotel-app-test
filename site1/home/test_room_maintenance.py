@@ -459,3 +459,176 @@ def test_the_whole_report_fix_resolve_return_loop(staff_client, room, broken_and
     assert log.status == 'resolved'
     assert room.housekeeping_status == 'clean'
     assert _disp_status(staff_client, room) == 'occupied'
+
+
+# ── Checkout must not clear a fault ──
+
+
+@pytest.mark.django_db
+def test_checkout_leaves_a_broken_room_out_of_order(room, broken_and_occupied):
+    """check_out_room wrote housekeeping_status='dirty' unconditionally, so
+    checking a guest out of a room taken out of order mid-stay silently
+    cleared the fault. The fault outlives the stay.
+    """
+    from backend.services.services import RoomService
+
+    RoomService.check_out_room(broken_and_occupied)
+
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'out_of_order', (
+        'checkout cleared the fault flag'
+    )
+    assert room.reservation_status == 'vacant', 'the guest still left'
+
+
+@pytest.mark.django_db
+def test_a_broken_room_is_not_bookable_after_checkout(room, broken_and_occupied):
+    """The consequence that makes it critical. get_available_rooms_by_type
+    excludes on out_of_order alone, so a cleared flag puts a still-broken room
+    straight back on sale.
+    """
+    from backend.services.services import RoomService
+    from data.repos.repositories import RoomRepository
+
+    RoomService.check_out_room(broken_and_occupied)
+
+    available = RoomRepository.get_available_rooms_by_type(
+        'deluxe', date.today() + timedelta(days=5), date.today() + timedelta(days=7),
+    )
+    assert room.room_id not in [r.room_id for r in available], (
+        'a still-broken room came back on sale'
+    )
+
+
+@pytest.mark.django_db
+def test_checkout_still_marks_a_working_room_dirty(room, broken_and_occupied):
+    """The ordinary path, or the guard above is a blanket lockout on
+    housekeeping. Also covers the assignment completion the same call owns.
+    """
+    from backend.services.services import RoomService
+
+    room.housekeeping_status = 'clean'
+    room.save()
+
+    RoomService.check_out_room(broken_and_occupied)
+
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'dirty'
+    assert room.reservation_status == 'vacant'
+    assert RoomAssignment.objects.get(
+        booking=broken_and_occupied
+    ).status == 'completed', 'the assignment was left active'
+
+
+# ── A stale assignment does not hold the room ──
+
+
+@pytest.fixture
+def broken_with_stale_assignment(room, hotel):
+    """A room out of order whose only active assignment is already over.
+
+    _pick_assignment's own docstring calls this reachable: 'anything still
+    marked active whose dates have passed'. A booking checked out but never
+    advanced to completed lands here.
+    """
+    now = timezone.now()
+    booking = CustomerBookingInfo.objects.create(
+        hotel=hotel, guest_name='Left Last Week', room_type='deluxe',
+        booking_date=now,
+        check_in=date.today() - timedelta(days=9),
+        check_out=date.today() - timedelta(days=7),
+        booked_rate=Decimal('500000'), total_price=Decimal('1000000'),
+        status='checked_out', created_at=now, updated_at=now,
+    )
+    RoomAssignment.objects.create(
+        booking=booking, room=room, status='active',
+        check_in=booking.check_in, check_out=booking.check_out,
+    )
+    room.reservation_status = 'occupied'
+    room.housekeeping_status = 'out_of_order'
+    room.save()
+    return booking
+
+
+@pytest.mark.django_db
+def test_empty_clean_on_a_stale_assignment_takes_effect_on_the_first_click(
+    staff_client, room, broken_with_stale_assignment
+):
+    """clearing_maintenance counted any assignment at all, stale ones
+    included, so the click took the maintenance branch, skipped the
+    reservation_status write, and the card came back still reading occupied.
+    The write succeeded and looked like it had done nothing.
+    """
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'vacant'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 200, response.content
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'clean'
+    assert room.reservation_status == 'vacant', (
+        'a finished assignment does not hold the room, so the click frees it'
+    )
+    assert _disp_status(staff_client, room) == 'vacant', (
+        'the card still shows the stale status after a successful write'
+    )
+
+
+@pytest.mark.django_db
+def test_empty_dirty_on_a_stale_assignment_takes_effect_on_the_first_click(
+    staff_client, room, broken_with_stale_assignment
+):
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'empty_dirty'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 200, response.content
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'dirty'
+    assert room.reservation_status == 'vacant'
+    assert _disp_status(staff_client, room) == 'dirty'
+
+
+@pytest.mark.django_db
+def test_clearing_a_broken_room_with_a_future_booking_keeps_the_booking(
+    staff_client, room, hotel
+):
+    """The case narrowing to 'covers today' would have broken.
+
+    A future assignment still speaks for the room: _display_status renders it
+    Reserved. So clearing the fault is a maintenance write here too. It must
+    not be refused, and it must not tear the room off next week's booking.
+    """
+    now = timezone.now()
+    booking = CustomerBookingInfo.objects.create(
+        hotel=hotel, guest_name='Next Week', room_type='deluxe', booking_date=now,
+        check_in=date.today() + timedelta(days=5),
+        check_out=date.today() + timedelta(days=7),
+        booked_rate=Decimal('500000'), total_price=Decimal('1000000'),
+        status='confirmed', created_at=now, updated_at=now,
+    )
+    RoomAssignment.objects.create(
+        booking=booking, room=room, status='active',
+        check_in=booking.check_in, check_out=booking.check_out,
+    )
+    room.reservation_status = 'reserved'
+    room.housekeeping_status = 'out_of_order'
+    room.save()
+
+    response = staff_client.post(
+        reverse('room_dashboard'),
+        {'room_id': room.room_id, 'new_status': 'vacant'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    assert response.status_code == 200, response.content
+    room.refresh_from_db()
+    assert room.housekeeping_status == 'clean'
+    assert room.reservation_status == 'reserved', (
+        'the clearing click tore the room off a live future booking'
+    )
+    assert _disp_status(staff_client, room) == 'reserved'
