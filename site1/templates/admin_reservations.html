@@ -1117,7 +1117,16 @@
       const cost = cells[6].textContent.trim();
       const status = cells[7].querySelector('.badge') ? cells[7].querySelector('.badge').textContent.trim() : '';
       const line = [id, name, email, roomType, checkin, checkout, guests, cost, status]
-        .map(v => '"' + String(v).replace(/"/g, '""') + '"')
+        .map(v => {
+          // Excel and Sheets execute a cell that opens with = + - @, or with a
+          // leading tab/CR, so a guest name of =cmd|' /C calc'!A0 runs when
+          // staff open the export. A leading apostrophe forces the cell to
+          // literal text. The quote-doubling below is CSV quoting and does not
+          // help with this: the payload never needs a quote in it.
+          const s = String(v);
+          const defused = /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+          return '"' + defused.replace(/"/g, '""') + '"';
+        })
         .join(',');
       csvLines.push(line);
     });

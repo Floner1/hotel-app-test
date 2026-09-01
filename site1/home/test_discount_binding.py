@@ -78,7 +78,7 @@ def _reservation(email):
 def test_create_reservation_rejects_a_code_issued_to_another_email(
     bookable, issued_code
 ):
-    with pytest.raises(ValidationError, match='different email'):
+    with pytest.raises(ValidationError, match="isn't valid for this email"):
         ReservationService.create_reservation(_reservation('thief@example.com'))
 
     issued_code.refresh_from_db()
@@ -107,7 +107,7 @@ def test_validate_endpoint_rejects_a_code_issued_to_another_email(client, issued
 
     payload = response.json()
     assert payload['valid'] is False, f'a stranger got a green light: {payload!r}'
-    assert 'different email' in payload['message']
+    assert "isn't valid for this email" in payload['message']
 
 
 @pytest.mark.django_db
@@ -135,3 +135,34 @@ def test_validate_endpoint_will_not_confirm_a_code_without_an_email(client, issu
     )
 
     assert response.json()['valid'] is False
+
+
+# ── The validator must not confirm a guessed code exists ──
+
+
+@pytest.mark.django_db
+def test_validate_endpoint_gives_one_message_for_every_failure(client, issued_code):
+    """Three distinguishable messages ("not found" / "already used" / "issued
+    to a different email") let a caller confirm a guessed code exists and read
+    its state without knowing the address it is bound to. Rate limiting and a
+    32^6 code space make brute force impractical, but they do not stop someone
+    checking a code they already hold.
+    """
+    def message(code, email):
+        return client.post(
+            reverse('validate_discount_code'),
+            {'code': code, 'email': email},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        ).json()['message']
+
+    not_found = message('TT10-NOSUCH', 'anyone@example.com')
+    wrong_email = message('TT10-OWNER1', 'thief@example.com')
+
+    issued_code.status = 'redeemed'
+    issued_code.save()
+    already_used = message('TT10-OWNER1', 'owner@example.com')
+
+    assert not_found == wrong_email == already_used, (
+        'the three failure modes are still distinguishable: '
+        f'{not_found!r} / {wrong_email!r} / {already_used!r}'
+    )

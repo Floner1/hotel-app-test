@@ -548,17 +548,31 @@ def register_view(request):
         # Validation
         errors = {}
         
+        # Distinct "Username already exists." / "Email already registered."
+        # messages confirmed which of the two exists to anyone who could POST
+        # this form. Login answers a bad username and a bad password
+        # identically, so this was the only endpoint handing that out. Which
+        # field carries the error is itself the disclosure, so one collision
+        # marks both fields and the two cases render the same.
+        # Both lookups always run. `or` would short-circuit past the second on
+        # a username hit, so the two cases would differ by a query -- a smaller
+        # tell than the old messages, but this fix exists to remove the tell.
+        username_taken = bool(username) and User.objects.filter(username=username).exists()
+        email_taken = bool(email) and User.objects.filter(email=email).exists()
+        taken = username_taken or email_taken
+        collision = 'That username or email address is already in use.'
+
         if not username:
             errors['username'] = 'Username is required.'
-        elif User.objects.filter(username=username).exists():
-            errors['username'] = 'Username already exists.'
+        elif taken:
+            errors['username'] = collision
         elif len(username) < 3:
             errors['username'] = 'Username must be at least 3 characters.'
-        
+
         if not email:
             errors['email'] = 'Email is required.'
-        elif User.objects.filter(email=email).exists():
-            errors['email'] = 'Email already registered.'
+        elif taken:
+            errors['email'] = collision
         elif '@' not in email:
             errors['email'] = 'Enter a valid email address.'
         
