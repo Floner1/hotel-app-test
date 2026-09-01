@@ -1171,8 +1171,6 @@ textarea.form-control {
   position: fixed;
   inset: 0;
   z-index: 1050;
-  background: var(--color-scrim);
-  overflow-y: auto;
   animation: dp-reveal 0.35s var(--ease) both;
 }
 
@@ -1182,18 +1180,13 @@ body.dp-open {
 
 .dp-card {
   display: grid;
-  grid-template-columns: minmax(260px, 38%) 1fr;
-  width: calc(100% - 2 * var(--space-md));
-  max-width: 880px;
-  margin: var(--space-md) auto;
-  border-radius: var(--radius-md);
+  grid-template-columns: minmax(300px, 36%) 1fr;
+  width: 100%;
+  height: 100vh;
+  border-radius: 0;
   border: none;
   padding: 0;
-  /* Clips the panel backgrounds to the rounded corners. Deliberately paired with
-     no max-height: capping the card here would strand tall content behind this
-     hidden overflow, because the single auto grid row sizes to its content and
-     will not shrink to a capped container. The backdrop scrolls instead. */
-  overflow: hidden;
+  max-width: none;
   position: relative;
 }
 
@@ -1226,7 +1219,7 @@ body.dp-open {
 }
 
 .dp-close {
-  position: absolute;
+  position: fixed;
   top: 1.25rem;
   right: 1.25rem;
   width: 2.5rem;
@@ -1400,11 +1393,8 @@ body.dp-open {
 @media (max-width: 767px) {
   .dp-card {
     grid-template-columns: 1fr;
-    grid-template-rows: 22vh auto;
-    /* Narrow gutter sideways so the form keeps its width, generous gutter top and
-       bottom so the page still reads as a page behind the card. */
-    width: calc(100% - 2 * var(--space-sm));
-    margin: var(--space-md) auto;
+    grid-template-rows: 32vh 1fr;
+    height: 100vh;
   }
 
   .dp-right {

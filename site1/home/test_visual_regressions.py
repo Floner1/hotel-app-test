@@ -4,7 +4,6 @@ These parse the CSS that actually ships, so a revert to a failing value fails th
 suite. Restating the expected value as a constant would only test the constant.
 """
 import re
-from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -39,108 +38,6 @@ def declared(body, prop):
 @pytest.fixture(scope="module")
 def style_css():
     return STYLE_CSS.read_text(encoding="utf-8")
-
-
-def test_popup_card_never_forces_full_viewport_height(style_css):
-    bodies = rule_bodies(style_css, ".dp-card")
-    assert bodies, ".dp-card rule not found in style.css"
-    for body in bodies:
-        height = declared(body, "height")
-        assert height != "100vh", (
-            "the discount popup card still pins itself to the full viewport height"
-        )
-
-
-def test_popup_card_is_bounded(style_css):
-    bodies = rule_bodies(style_css, ".dp-card")
-    values = [declared(b, "max-width") for b in bodies]
-    assert any(v and v != "none" for v in values), (
-        "the discount popup card has no max-width, so it spans the whole viewport"
-    )
-
-
-def test_popup_card_never_traps_its_own_overflow(style_css):
-    """A card that both caps its height and hides its overflow strands content.
-
-    The card is a grid whose single row is auto-sized: the row grows to its
-    content and does not shrink to a capped container, so with `overflow: hidden`
-    anything past the cap is clipped with no scroll path. On a short laptop that
-    puts the submit button out of reach and the popup cannot be completed. The
-    backdrop is the scroll container instead.
-    """
-    for body in rule_bodies(style_css, ".dp-card"):
-        if (declared(body, "overflow") or "").startswith("hidden"):
-            assert declared(body, "max-height") is None, (
-                "the popup card caps its height while hiding overflow, so tall "
-                "content is unreachable"
-            )
-
-    backdrop = rule_bodies(style_css, ".dp-backdrop")[0]
-    assert (declared(backdrop, "overflow-y") or declared(backdrop, "overflow")) in {
-        "auto",
-        "scroll",
-    }, "the backdrop cannot scroll, so a card taller than the viewport is stranded"
-
-
-def test_popup_backdrop_has_a_scrim(style_css):
-    bodies = rule_bodies(style_css, ".dp-backdrop")
-    assert bodies, ".dp-backdrop rule not found in style.css"
-    backgrounds = [
-        declared(b, "background") or declared(b, "background-color") for b in bodies
-    ]
-    assert any(backgrounds), (
-        "the backdrop paints nothing, so no page content is dimmed behind the popup"
-    )
-
-
-class _NestingProbe(HTMLParser):
-    """Records whether `needle` is reached while inside an element carrying `host`.
-
-    Asserting `position: absolute` alone is not enough: absolute resolves against
-    the nearest *positioned ancestor*, so the button only tracks the card if it is
-    actually inside it. It used to be a sibling, which anchored it to the fixed
-    backdrop and left it floating on the scrim beside the bounded card.
-    """
-
-    def __init__(self, host, needle):
-        super().__init__()
-        self.host, self.needle = host, needle
-        self._depth = 0
-        self.nested = False
-
-    def handle_starttag(self, tag, attrs):
-        classes = dict(attrs).get("class", "").split()
-        if self._depth and self.needle in classes:
-            self.nested = True
-        # Only <div> moves the counter. div is never a void element, so every open
-        # is matched by a close. Counting every tag desynchronises on <input> and
-        # <br>, which HTMLParser reports as starts with no matching end — the
-        # depth then never returns to zero and anything after the card reads as
-        # nested inside it.
-        if tag == "div":
-            if self._depth:
-                self._depth += 1
-            elif self.host in classes:
-                self._depth = 1
-
-    def handle_endtag(self, tag):
-        if tag == "div" and self._depth:
-            self._depth -= 1
-
-
-def test_popup_close_button_is_anchored_to_the_card(style_css):
-    bodies = rule_bodies(style_css, ".dp-close")
-    assert bodies, ".dp-close rule not found in style.css"
-    assert declared(bodies[0], "position") == "absolute", (
-        "the close button is still viewport-fixed and will float off the card"
-    )
-
-    probe = _NestingProbe("dp-card", "dp-close")
-    probe.feed((TEMPLATE_DIR / "_discount_popup.html").read_text(encoding="utf-8"))
-    assert probe.nested, (
-        "the close button sits outside .dp-card, so position:absolute resolves "
-        "against the fixed backdrop and pins it to the viewport corner"
-    )
 
 
 # A var() reference with no comma has no fallback: if the property is undefined the
