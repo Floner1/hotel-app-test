@@ -394,15 +394,17 @@
     border-radius: var(--radius-md);
     overflow: hidden;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
     transform: translateY(-8px);
-    transition: opacity var(--duration-base) var(--ease), transform var(--duration-base) var(--ease);
+    transition: opacity var(--duration-base) var(--ease), transform var(--duration-base) var(--ease), visibility var(--duration-base) var(--ease);
     z-index: 100;
     box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   }
 
   .bw-dropdown.open .bw-dropdown-panel {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
   }
@@ -449,7 +451,7 @@
 
   .bw-guests-note {
     display: block;
-    color: #9ca3af;
+    color: #6b7280;
     font-family: "Roboto", sans-serif;
     font-size: 0.73rem;
     margin-top: 3px;
@@ -550,24 +552,24 @@
       <div class="bw-container">
         <form class="bw-card" method="get" action="{% url 'reservation' %}" id="bw-form">
           <div class="bw-field bw-dropdown" id="bw-room-dropdown">
-            <span class="bw-label">Room Type</span>
-            <div class="bw-dropdown-trigger" id="bw-room-trigger">
+            <span class="bw-label" id="bw-room-label">Room Type</span>
+            <div class="bw-dropdown-trigger" id="bw-room-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-controls="bw-room-panel" aria-expanded="false" aria-labelledby="bw-room-label bw-room-display">
               <span class="bw-dropdown-val" id="bw-room-display">Any room</span>
               <svg class="bw-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <input type="hidden" name="room_type" id="bw-room-input" value="">
             <div class="bw-dropdown-panel" id="bw-room-panel">
-              <div class="bw-dropdown-scroll">
-                <div class="bw-dropdown-item selected" data-value="">Any room</div>
+              <div class="bw-dropdown-scroll" role="listbox" aria-labelledby="bw-room-label">
+                <div class="bw-dropdown-item selected" data-value="" role="option" tabindex="0" aria-selected="true">Any room</div>
                 {% for rt in room_types %}
-                <div class="bw-dropdown-item" data-value="{{ rt.canonical }}">{{ rt.display }}</div>
+                <div class="bw-dropdown-item" data-value="{{ rt.canonical }}" role="option" tabindex="0" aria-selected="false">{{ rt.display }}</div>
                 {% endfor %}
               </div>
             </div>
           </div>
           <div class="bw-field bw-dropdown" id="bw-guests-dropdown">
-            <span class="bw-label">Guests</span>
-            <div class="bw-dropdown-trigger" id="bw-guests-trigger">
+            <span class="bw-label" id="bw-guests-label">Guests</span>
+            <div class="bw-dropdown-trigger" id="bw-guests-trigger" role="button" tabindex="0" aria-controls="bw-guests-panel" aria-expanded="false" aria-labelledby="bw-guests-label bw-guests-display">
               <span class="bw-dropdown-val" id="bw-guests-display">2 Adults</span>
               <svg class="bw-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
@@ -832,18 +834,24 @@
       // ─── Room type custom dropdown ──────────────────────────
       $('#bw-room-trigger').on('click', function (e) {
         e.stopPropagation();
-        var isOpen = $('#bw-room-dropdown').hasClass('open');
-        closeAllBwDropdowns();
-        if (!isOpen) $('#bw-room-dropdown').addClass('open');
+        bwToggleDropdown($('#bw-room-dropdown'));
       });
 
       $('#bw-room-panel').on('click', '.bw-dropdown-item', function () {
         var $item = $(this);
         $('#bw-room-display').text($item.text());
         $('#bw-room-input').val($item.data('value'));
-        $('#bw-room-panel .bw-dropdown-item').removeClass('selected');
-        $item.addClass('selected');
-        $('#bw-room-dropdown').removeClass('open');
+        $('#bw-room-panel .bw-dropdown-item').removeClass('selected').attr('aria-selected', 'false');
+        $item.addClass('selected').attr('aria-selected', 'true');
+        closeAllBwDropdowns();
+        $('#bw-room-trigger').focus();
+      });
+
+      $('#bw-room-panel').on('keydown', '.bw-dropdown-item', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          $(this).trigger('click');
+        }
       });
 
       // ─── Guests counter dropdown ────────────────────────────
@@ -866,9 +874,7 @@
 
       $('#bw-guests-trigger').on('click', function (e) {
         e.stopPropagation();
-        var isOpen = $('#bw-guests-dropdown').hasClass('open');
-        closeAllBwDropdowns();
-        if (!isOpen) $('#bw-guests-dropdown').addClass('open');
+        bwToggleDropdown($('#bw-guests-dropdown'));
       });
 
       $('#bw-adults-minus').on('click', function (e) { e.stopPropagation(); if (bwAdults > 1) { bwAdults--; updateGuestsDisplay(); } });
@@ -876,7 +882,34 @@
       $('#bw-children-minus').on('click', function (e) { e.stopPropagation(); if (bwChildren > 0) { bwChildren--; updateGuestsDisplay(); } });
       $('#bw-children-plus').on('click', function (e) { e.stopPropagation(); if (bwAdults + bwChildren < BW_MAX) { bwChildren++; updateGuestsDisplay(); } });
 
-      function closeAllBwDropdowns() { $('.bw-dropdown').removeClass('open'); }
+      function closeAllBwDropdowns() {
+        $('.bw-dropdown').removeClass('open');
+        $('.bw-dropdown-trigger').attr('aria-expanded', 'false');
+      }
+
+      function bwToggleDropdown($dropdown) {
+        var isOpen = $dropdown.hasClass('open');
+        closeAllBwDropdowns();
+        if (!isOpen) $dropdown.addClass('open').find('.bw-dropdown-trigger').attr('aria-expanded', 'true');
+      }
+
+      // Enter/Space activate a trigger the way a click does.
+      $('.bw-dropdown-trigger').on('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          e.stopPropagation();
+          bwToggleDropdown($(this).closest('.bw-dropdown'));
+        }
+      });
+
+      // Escape anywhere in an open dropdown closes it and returns focus to the trigger.
+      $('.bw-dropdown').on('keydown', function (e) {
+        if ((e.key === 'Escape' || e.key === 'Esc') && $(this).hasClass('open')) {
+          closeAllBwDropdowns();
+          $(this).find('.bw-dropdown-trigger').focus();
+        }
+      });
+
       $(document).on('click', function () { closeAllBwDropdowns(); });
 
       updateGuestsDisplay();
