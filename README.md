@@ -1,6 +1,6 @@
 # Thien Tai Hotel Booking System
 
-A Django web application for managing hotel reservations at Thien Tai Hotel. SQL Server backend, Bootstrap 4 frontend, role-based access control.
+A Django web application for managing hotel reservations at Thien Tai Hotel. SQL Server backend, Bootstrap 4 frontend, role-based access control. A guest chat widget answers questions about rooms, rates and services from a local language model.
 
 ---
 
@@ -13,6 +13,7 @@ Before you begin, make sure you have the following installed on your machine. Th
 - **Microsoft SQL Server** (any edition, Express is free): [microsoft.com/en-us/sql-server/sql-server-downloads](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
 - **ODBC Driver 17 for SQL Server**: [learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
 - **SQL Server Management Studio (SSMS)** (optional but strongly recommended): [learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms)
+- **Ollama** (only needed for the chat widget): [ollama.com](https://ollama.com). After installing, pull the model the widget defaults to with `ollama pull qwen3:4b`. The rest of the site runs fine without Ollama; the chat widget just returns a 503 and points guests at the front desk phone number instead.
 
 ---
 
@@ -166,6 +167,9 @@ All of these go in `site1/.env`. Only `DJANGO_SECRET_KEY` is required; the rest 
 | `HOTEL_DEFAULT_PHONE`     | `+63 900 000 0000`               | Phone number shown on the site when the database value is missing.          |
 | `HOTEL_DEFAULT_EMAIL`     | `info@hotelbooking.local`        | Contact email shown on the site when the database value is missing.         |
 | `SITE_BASE_URL`           | `http://localhost:8000`          | Base URL used when building links inside emails (e.g. unsubscribe links).  |
+| `AI_PROVIDER`             | `ollama`                         | Which chat backend to use. `ollama` is the only one implemented.                |
+| `AI_MODEL`                | `qwen3:4b`                       | Model name passed to the provider. Must already be pulled in Ollama.            |
+| `OLLAMA_HOST`             | `http://localhost:11434`         | Where the Ollama daemon is listening.                                           |
 
 ---
 
