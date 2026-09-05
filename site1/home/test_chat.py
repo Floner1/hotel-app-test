@@ -97,6 +97,46 @@ def test_system_prompt_forbids_inventing_details(priced_rooms):
     assert "don't know" in prompt or "do not know" in prompt
 
 
+def test_system_prompt_scopes_the_assistant_to_hotel_questions(priced_rooms):
+    """Rule 2 turns away hotel questions this prompt has no data for. Nothing
+    turned away messages that were not hotel questions at all, so the model was
+    free to answer about the weather off its own training data, ungrounded and
+    unbounded."""
+    from backend.services.services import ChatService
+    prompt = ChatService.build_system_prompt()
+    assert 'Only hotel questions belong here' in prompt
+
+
+def test_the_off_topic_redirect_names_a_number_only_when_there_is_one(monkeypatch, db):
+    """The redirect points at the hotel's phone number, which reaches the model
+    only through the HOTEL block. Told to hand over a number it was never
+    given, a 4B model invents one, and an invented phone number is the worst
+    kind of invented detail: the guest dials it.
+
+    Not reachable while settings.HOTEL_DEFAULT_PHONE has its default, which is
+    exactly why it is pinned here rather than left to the environment.
+    """
+    from backend.services.services import ChatService
+    from data.repos.repositories import HotelRepository
+
+    monkeypatch.setattr(HotelRepository, 'get_hotel_info', staticmethod(
+        lambda: {'hotel_name': 'Thien Tai Hotel', 'hotel_address': '', 'phone': ''}))
+    prompt = ChatService.build_system_prompt()
+
+    assert 'Only hotel questions belong here' in prompt
+    assert 'phone number above' not in prompt, (
+        'the model is told to give out a number the prompt never gave it')
+
+
+def test_the_off_topic_redirect_still_answers_a_mixed_message(priced_rooms):
+    """A guest who opens with small talk and then asks about rooms must get the
+    answer, not the redirect. The condition on rule 3 is what buys that, and it
+    is the difference between scoping the assistant and making it curt."""
+    from backend.services.services import ChatService
+    prompt = ChatService.build_system_prompt()
+    assert 'and nothing about the hotel' in prompt
+
+
 def test_blank_message_is_rejected_before_reaching_the_model():
     from backend.services.services import ChatService
     with pytest.raises(ValidationError):
