@@ -22,6 +22,7 @@ booking.
 import json
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -601,3 +602,108 @@ def test_a_rejected_edit_reports_a_readable_message(hotel, staff_client):
     message = response.json()['message']
     assert not message.startswith('['), f'raw list repr reached the user: {message!r}'
     assert 'No available' in message
+
+
+# ── Extending a stay must not re-roll a guest who is already in the room ──
+
+
+@pytest.fixture
+def checked_in_with_spare(hotel):
+    """A guest physically in 501, plus a free room of the same type.
+
+    The spare is what a re-roll has to move them into, and its existence is the
+    whole point: with only one room of the type the pool search would fail on
+    its own and hide the defect.
+    """
+    RoomPrice.objects.create(
+        hotel=hotel, room_type='deluxe', price_per_night=Decimal('500000')
+    )
+    in_room = Room.objects.create(
+        hotel=hotel, room_code='501', floor_number=5, room_number=501,
+        room_type='deluxe', reservation_status='occupied',
+    )
+    spare = Room.objects.create(
+        hotel=hotel, room_code='502', floor_number=5, room_number=502,
+        room_type='deluxe',
+    )
+    booking = _booking(
+        hotel, date(2027, 9, 10), date(2027, 9, 12),
+        status='checked_in', name='In House',
+    )
+    assignment = RoomAssignment.objects.create(
+        booking=booking, room=in_room, status='active',
+        check_in=booking.check_in, check_out=booking.check_out,
+    )
+    return booking, in_room, spare, assignment
+
+
+@pytest.mark.django_db
+def test_extending_a_checked_in_stay_keeps_the_guest_in_their_room(
+    checked_in_with_spare
+):
+    """The guest is asleep in 501. Extending the booking cannot teleport them.
+
+    random.choice is patched to hand back the room the guest is *not* in, so
+    this cannot pass by luck. On the old code the picker decides and the guest
+    lands in 502; on the fixed code the picker is never consulted, because the
+    room they already hold is free for the longer range.
+    """
+    from backend.services.services import RoomService
+
+    booking, in_room, spare, _ = checked_in_with_spare
+    booking.check_out = date(2027, 9, 15)
+    booking.save()
+
+    with patch(
+        'backend.services.services.random.choice',
+        side_effect=lambda rooms: next(
+            r for r in rooms if r.room_id == spare.room_id
+        ),
+    ):
+        assignment = RoomService.allocate_room(booking)
+
+    assert assignment.room_id == in_room.room_id, (
+        'the guest was moved out of the room they are checked in to'
+    )
+    assert assignment.check_out == date(2027, 9, 15), (
+        'the assignment did not take the extended dates'
+    )
+    in_room.refresh_from_db()
+    assert in_room.reservation_status == 'occupied', (
+        'the room still has a guest in it but was left marked reserved'
+    )
+
+
+@pytest.mark.django_db
+def test_extending_a_checked_in_stay_is_refused_when_the_room_is_taken(
+    hotel, checked_in_with_spare
+):
+    """Someone else holds 501 for the new range, but 502 is free, so the old
+    code quietly moved the guest into it. Staff cannot move a checked-in guest
+    as a side effect of a date click: refuse and say which room is the problem.
+    """
+    from backend.services.services import RoomService
+
+    booking, in_room, spare, held = checked_in_with_spare
+    blocker = _booking(hotel, date(2027, 9, 13), date(2027, 9, 16), name='Blocker')
+    RoomAssignment.objects.create(
+        booking=blocker, room=in_room, status='active',
+        check_in=blocker.check_in, check_out=blocker.check_out,
+    )
+
+    booking.check_out = date(2027, 9, 15)
+    booking.save()
+
+    with pytest.raises(ValidationError) as err:
+        RoomService.allocate_room(booking)
+
+    assert in_room.room_code in '; '.join(err.value.messages), (
+        f'the refusal must name the room the guest is in: {err.value.messages!r}'
+    )
+    assert not RoomAssignment.objects.filter(
+        booking=booking, room=spare
+    ).exists(), 'the guest was silently moved into the spare room'
+    held.refresh_from_db()
+    assert held.status == 'active', (
+        'the refused edit still released the room the guest is sleeping in'
+    )

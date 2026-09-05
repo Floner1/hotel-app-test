@@ -297,13 +297,28 @@ class ReservationService:
             # booking with no room and still report success to the guest.
             RoomService.allocate_room(booking, assigned_by=user)
 
-        # Fire booking confirmation email AFTER the transaction commits so
-        # the row is guaranteed visible to the email service. Failure is
-        # logged into email_queue and never bubbles up to the caller.
-        try:
-            EmailService.queue_booking_confirmation(booking.booking_id)
-        except Exception:
-            logger.exception("queue_booking_confirmation failed for #%s", booking.booking_id)
+        # Fire booking confirmation email AFTER the transaction commits, so the
+        # row is guaranteed visible to the email service and no lock the caller
+        # holds is waiting on SMTP.
+        #
+        # Sitting below the atomic() above is not enough on its own.
+        # get_reservation wraps this whole call in a second atomic() to keep the
+        # milestone count and the booking under one row lock, which demotes ours
+        # to a savepoint and leaves this line inside the outer transaction. The
+        # send is synchronous, twice over, at EMAIL_TIMEOUT seconds each.
+        # on_commit is measured against the outermost block, so it waits for the
+        # real commit when there is an outer transaction and runs inline when
+        # there is not. Failure is logged into email_queue, never raised: after
+        # commit there is no caller left to hand it to, and the booking stands.
+        def _send_confirmation():
+            try:
+                EmailService.queue_booking_confirmation(booking.booking_id)
+            except Exception:
+                logger.exception(
+                    "queue_booking_confirmation failed for #%s", booking.booking_id
+                )
+
+        transaction.on_commit(_send_confirmation)
 
         return booking
 
@@ -513,15 +528,42 @@ class RoomService:
             )
             candidate_list = list(candidates)  # evaluate under lock
 
-            if not candidate_list:
-                raise ValidationError(
-                    f'No available {booking.room_type.replace("_", " ")} rooms '
-                    f'for {booking.check_in} – {booking.check_out}.'
-                )
+            # Prefer the room the booking already holds. Only its dates or type
+            # moved, which is no reason to shuffle the guest, and the release
+            # above deliberately put that room back into the pool, so it is a
+            # candidate like any other. Left to random.choice a guest kept the
+            # room they were already in with probability 1/N.
+            room = next(
+                (r for r in candidate_list if r.room_id == existing.room_id),
+                None,
+            ) if existing else None
 
-            room = random.choice(candidate_list)
+            if room is None:
+                if existing and booking.status == 'checked_in':
+                    # There is a guest asleep in that room. Extending a booking
+                    # is not authority to move them, so refuse and let the
+                    # caller's transaction take the new dates back out.
+                    raise ValidationError(
+                        f'{booking.guest_name} is checked in to room '
+                        f'{existing.room.room_code}, which is not free for '
+                        f'{booking.check_in} – {booking.check_out}. '
+                        f'Move the guest before changing these dates.'
+                    )
+                if not candidate_list:
+                    raise ValidationError(
+                        f'No available {booking.room_type.replace("_", " ")} rooms '
+                        f'for {booking.check_in} – {booking.check_out}.'
+                    )
+                room = random.choice(candidate_list)
+
             assignment = RoomRepository.create_assignment(booking, room, assigned_by)
-            RoomRepository.update_room_status(room.room_id, 'reserved')
+            # deallocate_room marked the room vacant on its way past. A guest who
+            # is checked in is still physically in it, so 'reserved' would hand
+            # the dashboard a room that reads bookable with someone asleep in it.
+            RoomRepository.update_room_status(
+                room.room_id,
+                'occupied' if booking.status == 'checked_in' else 'reserved',
+            )
             return assignment
 
     @classmethod
