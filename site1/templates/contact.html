@@ -161,7 +161,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   $(document).ready(function() {
     $('#contact-address').on('click', function() {
       $('#maps-modal').css('display', 'flex');

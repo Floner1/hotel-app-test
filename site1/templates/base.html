@@ -63,7 +63,7 @@
 
     {% block extra_js %}{% endblock %}
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       // Toast notification function (only used when a page hasn't defined its own)
       if (typeof window.showToast !== 'function') {
         window.showToast = function(message, isError = false) {
@@ -100,7 +100,7 @@
       {% endif %}
     </script>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       $(document).ready(function() {
         var $popup      = $('#discount-popup');
         var $step1      = $('#dp-step-1');
@@ -209,7 +209,7 @@
       });
     </script>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       $(document).ready(function() {
         $('#footer-contact-address').on('click', function() {
           $('#footer-maps-modal').css('display', 'flex');
@@ -253,7 +253,7 @@
     </script>
 
     <!-- Button Feedback State Script -->
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       $(function(){
         $('form').on('submit', function() {
           var btn = $(this).find('button[type="submit"]');
@@ -280,7 +280,7 @@
       home/test_perf_admin_assets.py.
     {% endcomment %}
     <script src="{% static 'js/admin-edit.js' %}"></script>
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       AdminEdit.init({
         saveUrl:   "{% url 'save_content' %}",
         csrf:      "{{ csrf_token }}",

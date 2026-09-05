@@ -773,7 +773,7 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
     $(document).ready(function () {
       // ─── Booking widget datepicker ──────────────────────────
       var today = new Date();
@@ -953,7 +953,7 @@
       </div>
     </div>
 
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
       let currentImageId = '';
 
       function openImageUpload(imageId, currentImageUrl) {

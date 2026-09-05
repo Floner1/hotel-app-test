@@ -821,7 +821,7 @@
 <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
 <script src="{% static 'js/bootstrap.min.js' %}"></script>
 
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // XSS-safe HTML escaping
   function escapeHtml(str) {
     if (str == null) return '';
