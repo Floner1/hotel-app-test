@@ -205,18 +205,24 @@ def test_provider_raises_when_only_reasoning_comes_back(monkeypatch):
         provider.complete("sys", "hi")
 
 
-def test_no_think_rides_on_both_messages(monkeypatch):
-    """The marker goes on both messages. The ~840-character figure this test
-    originally cited came from a single sample and does not hold up, but neither
-    does the alternative: a paired run on 2026-08-23 (3 questions, 8 reps,
-    configurations alternated, 48 live calls) put both-messages at 11,604 ms
-    median / 13,570 ms mean against 9,010 ms median / 14,347 ms mean for the
-    user message alone. Median and mean disagree, so there is no effect.
+def test_the_no_think_marker_is_not_sent(monkeypatch):
+    """The marker is gone, and its removal is the fix for the empty-reply 503.
 
-    What decided it was the tail: on "How much is a room for one night?" the
-    user-only placement returned an empty answer on 4 runs of 8, and each empty
-    costs a full retry (35-39s against a 13s median). Both-messages stays
-    because moving it is unjustified, not because it is proven faster.
+    It was there to suppress reasoning. Measured against the live system
+    prompt on 2026-09-05 it did the opposite. With think=True and the marker
+    on both messages, reasoning consumed the whole budget and returned no
+    answer at all: done_reason="length" at num_predict 1200 (3560 characters
+    of reasoning, empty content) and again at 2400 (8044 characters, empty).
+    Both attempts failing is exactly the RuntimeError("Model returned no
+    answer") path, which the view turns into a 503.
+
+    The same prompt with no marker finished on its first attempt in 670
+    tokens, 13.8 seconds, with a 425-character answer and reasoning safely in
+    the separate `thinking` field.
+
+    Earlier work A/B-tested where to put the marker and never tested dropping
+    it, which is how it survived. Placement was never the variable that
+    mattered.
     """
     provider = OllamaProvider(model="qwen3:4b")
     captured = {}
@@ -229,8 +235,10 @@ def test_no_think_rides_on_both_messages(monkeypatch):
     provider.complete("You are a concierge.", "hi")
 
     system_msg, user_msg = captured["messages"]
-    assert "/no_think" in system_msg["content"]
-    assert "/no_think" in user_msg["content"]
+    assert "/no_think" not in system_msg["content"]
+    assert "/no_think" not in user_msg["content"]
+    # The real content still has to arrive intact.
+    assert "You are a concierge." in system_msg["content"]
     assert "hi" in user_msg["content"]
 
 
