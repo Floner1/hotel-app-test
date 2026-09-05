@@ -5,14 +5,16 @@ from django.contrib.auth import logout, login
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST
+from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
-from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService
+from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService, ChatService
 from data.models import User, CustomerBookingInfo
 from data.models.hotel import BookingStatus
-from data.repos.repositories import DiscountRepository
+from data.repos.repositories import DiscountRepository, HotelRepository, RoomMaintenanceRepository
+from backend.services.ai_providers import ProviderBusy, model_slot
 from django.db import IntegrityError
 from django.db.models import Sum
 from datetime import date, datetime
@@ -25,6 +27,10 @@ logger = logging.getLogger(__name__)
 # this check and the model field cannot drift apart. The DB's chk_booking_status
 # constraint is still a separate artefact and must be ALTERed by hand to match.
 BOOKING_STATUSES = set(BookingStatus.values)
+
+# Free text from a staff form into an NVARCHAR(MAX) column. The column will take
+# anything; the form should not.
+MAX_ISSUE_DESCRIPTION = 1000
 
 def is_admin(user):
     """Check if user has admin role."""
@@ -48,15 +54,6 @@ def _can_manage_target(request_user, target_user=None, target_role=None):
         return False, 'You do not have permission to manage staff or admin accounts.'
     return True, None
 
-def _db_image_exists(name):
-    """Return True if an image with this name exists in the DB."""
-    try:
-        from data.models.images import ImagesRef
-        return ImagesRef.objects.filter(ImageName=name).exists()
-    except Exception:
-        return False
-
-
 def _db_images_exist(names):
     """Batch-check which image names exist in the DB. Returns a dict {name: bool}."""
     try:
@@ -79,32 +76,30 @@ def _db_images_exist(names):
 
 
 
-def _room_image_url(db_key, static_path):
-    """Return serve_image URL if uploaded to DB, otherwise the static file URL."""
+def _get_room_images():
+    """Return resolved URLs for all 5 room images, in one query.
+
+    This runs on /, /about/ and /rooms/, so it goes through the batched
+    _db_images_exist() rather than one EXISTS per room type.
+    """
     from django.urls import reverse
     from django.templatetags.static import static
-    if _db_image_exists(db_key):
-        return reverse('serve_image', args=[db_key])
-    return static(static_path)
-
-
-def _get_room_images():
-    """Return resolved URLs for all 5 room images."""
+    sources = {
+        'single_bed': ('room-single-bed', 'images/single bed.png'),
+        'double':     ('room-double',      'images/double room.png'),
+        'window':     ('room-window',      'images/window room.png'),
+        'balcony':    ('room-balcony',     'images/balcony.png'),
+        'condotel':   ('room-condotel',    'images/condotel.png'),
+    }
+    in_db = _db_images_exist([db_key for db_key, _ in sources.values()])
     return {
-        'single_bed': _room_image_url('room-single-bed', 'images/single bed.png'),
-        'double':     _room_image_url('room-double',      'images/double room.png'),
-        'window':     _room_image_url('room-window',      'images/window room.png'),
-        'balcony':    _room_image_url('room-balcony',     'images/balcony.png'),
-        'condotel':   _room_image_url('room-condotel',    'images/condotel.png'),
+        key: reverse('serve_image', args=[db_key]) if in_db[db_key] else static(static_path)
+        for key, (db_key, static_path) in sources.items()
     }
 
 
 # Create your views here.
 def get_home(request):
-    
-
-    
-
     # Get available room types with pricing from database
     room_types = HotelService.get_available_room_types()
 
@@ -119,19 +114,12 @@ def get_home(request):
 
     return render(request, 'home.html', {
         'active_page': 'home',
-        
-        
-        
         'room_types': room_types,
         'db_images': db_images,
         'room_images': _get_room_images(),
         })
 
 def get_about(request):
-    
-    
-    
-    
     # Resolve image sources: DB if uploaded, otherwise static
     db_images = _db_images_exist(['food-1', 'img-1'])
     db_images = {
@@ -147,8 +135,6 @@ def get_about(request):
 
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def get_contact(request):
-    
-
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         email = request.POST.get('email', '').strip()
@@ -167,15 +153,10 @@ def get_contact(request):
 
     return render(request, 'contact.html', {
         'active_page': 'contact',
-        
-        
-        
         })
 
 @ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def get_reservation(request):
-    
-    
     # Handle POST request (form submission) - requires login
     if request.method == 'POST':
         # Check if user is logged in before processing reservation
@@ -208,21 +189,41 @@ def get_reservation(request):
             
             # Milestone check: intercept before booking if this is a loyalty milestone
             # and the guest hasn't yet decided whether to redeem it.
+            #
+            # This first count is deliberately unlocked. It only decides whether
+            # to interrupt and ask the guest, and nothing is written on that
+            # path, so a stale answer costs nothing.
             milestone_decision = request.POST.get('milestone_decision', '')
-            existing_count = CustomerBookingInfo.objects.filter(user=request.user).count()
-            milestone_booking_number = existing_count + 1
-            milestone_eligible = milestone_booking_number % 3 == 0
-            if not milestone_decision and milestone_eligible:
-                return JsonResponse({
-                    'status': 'milestone_check',
-                    'booking_number': milestone_booking_number,
-                })
+            if not milestone_decision:
+                provisional_number = CustomerBookingInfo.objects.filter(
+                    user=request.user
+                ).count() + 1
+                if provisional_number % 3 == 0:
+                    return JsonResponse({
+                        'status': 'milestone_check',
+                        'booking_number': provisional_number,
+                    })
 
-            if milestone_decision == 'redeem' and milestone_eligible:
-                reservation_data['milestone_discount_percent'] = 10
+            # Past here a booking gets written, so the count that decides the
+            # discount is taken under a lock on the guest's own row and stays in
+            # the same transaction as the booking it gates. Unlocked, two
+            # bookings from one guest around their third both read the same
+            # count, both compute booking number three, and both take 10% off.
+            # The lock goes on the user row because there is no row to lock for
+            # a booking that does not exist yet.
+            from django.db import transaction
+            with transaction.atomic():
+                User.objects.select_for_update().filter(pk=request.user.pk).first()
+                milestone_booking_number = CustomerBookingInfo.objects.filter(
+                    user=request.user
+                ).count() + 1
 
-            # Create reservation using the service
-            booking = ReservationService.create_reservation(reservation_data)
+                if milestone_decision == 'redeem' and milestone_booking_number % 3 == 0:
+                    reservation_data['milestone_discount_percent'] = 10
+
+                # Create reservation using the service, inside the same block so
+                # the lock is still held when the row lands.
+                booking = ReservationService.create_reservation(reservation_data)
 
             # Audit log
             log_booking_create(request.user, booking, request)
@@ -264,34 +265,22 @@ def get_reservation(request):
                 'status': 'error',
                 'message': 'An unexpected error occurred. Please try again later.'
             }, status=500)
-    
-    
-    
+
     # Get available room types from database
     room_types = HotelService.get_available_room_types()
-    
+
     # Handle GET request (display form)
     return render(request, 'reservation.html', {
         'active_page': 'reservation',
-        
-        
-        
         'room_types': room_types
     })
 
 def get_rooms(request):
-    
-    
-    
-    
     # Get available room types with pricing from database
     room_types = HotelService.get_available_room_types()
-    
+
     return render(request, 'rooms.html', {
         'active_page': 'rooms',
-        
-        
-        
         'room_types': room_types,
         'room_images': _get_room_images(),
         })
@@ -340,14 +329,17 @@ def newsletter_signup(request):
                 logger.exception('queue_welcome_discount failed for %s', email)
 
         if discount:
+            # The code goes out by email only. newsletter-discount-plan.md's
+            # implementation note C1 rejected re-displaying it, and neither the
+            # popup nor the footer handler reads a 'code' key, so returning one
+            # only put it on the wire.
             if code_created:
                 msg = 'Subscribed! Your 10% discount code is on its way to your inbox.'
             else:
-                msg = 'You are already subscribed. Here is your existing discount code.'
+                msg = 'You are already subscribed. Check your inbox for the original email.'
             return JsonResponse({
                 'status': 'ok',
                 'message': msg,
-                'code': discount.code,
                 'already': not code_created,
             })
 
@@ -364,9 +356,18 @@ def validate_discount_code(request):
         code = request.POST.get('code', '').strip()
         if not code:
             return JsonResponse({'valid': False, 'message': 'Code is required.'}, status=400)
+        # No email means the binding cannot be checked. Answering 'valid' here
+        # would promise a discount that create_reservation then refuses, so
+        # this fails closed rather than optimistically.
+        email = request.POST.get('email', '').strip()
+        if not email:
+            return JsonResponse({
+                'valid': False,
+                'message': 'Enter the email address you are booking with to check this code.',
+            })
         disc = DiscountRepository.get_by_code(code)
         try:
-            DiscountService.validate(disc)
+            DiscountService.validate(disc, email)
         except ValidationError as exc:
             return JsonResponse({'valid': False, 'message': exc.message})
         return JsonResponse({
@@ -542,17 +543,31 @@ def register_view(request):
         # Validation
         errors = {}
         
+        # Distinct "Username already exists." / "Email already registered."
+        # messages confirmed which of the two exists to anyone who could POST
+        # this form. Login answers a bad username and a bad password
+        # identically, so this was the only endpoint handing that out. Which
+        # field carries the error is itself the disclosure, so one collision
+        # marks both fields and the two cases render the same.
+        # Both lookups always run. `or` would short-circuit past the second on
+        # a username hit, so the two cases would differ by a query -- a smaller
+        # tell than the old messages, but this fix exists to remove the tell.
+        username_taken = bool(username) and User.objects.filter(username=username).exists()
+        email_taken = bool(email) and User.objects.filter(email=email).exists()
+        taken = username_taken or email_taken
+        collision = 'That username or email address is already in use.'
+
         if not username:
             errors['username'] = 'Username is required.'
-        elif User.objects.filter(username=username).exists():
-            errors['username'] = 'Username already exists.'
+        elif taken:
+            errors['username'] = collision
         elif len(username) < 3:
             errors['username'] = 'Username must be at least 3 characters.'
-        
+
         if not email:
             errors['email'] = 'Email is required.'
-        elif User.objects.filter(email=email).exists():
-            errors['email'] = 'Email already registered.'
+        elif taken:
+            errors['email'] = collision
         elif '@' not in email:
             errors['email'] = 'Enter a valid email address.'
         
@@ -589,8 +604,6 @@ def register_view(request):
                     'password1': {'errors': [errors['password1']] if 'password1' in errors else []},
                     'password2': {'errors': [errors['password2']] if 'password2' in errors else []},
                 },
-                'hotel_name': HotelService.get_hotel_name(),
-                'hotel': HotelService.get_hotel_info(),
             }
             return render(request, 'register.html', context)
         
@@ -622,16 +635,12 @@ def register_view(request):
                     'username': {'value': username},
                     'email': {'value': email},
                 },
-                'hotel_name': HotelService.get_hotel_name(),
-                'hotel': HotelService.get_hotel_info(),
             }
             return render(request, 'register.html', context)
     
     # GET request
     context = {
         'form': {},
-        'hotel_name': HotelService.get_hotel_name(),
-        'hotel': HotelService.get_hotel_info(),
     }
     return render(request, 'register.html', context)
 
@@ -675,21 +684,10 @@ def admin_reservations(request):
         total=Sum('total_price')
     )['total'] or 0
     
-    page = request.GET.get('page', 1)
-    paginator = Paginator(all_reservations, 200)
-    
-    try:
-        reservations = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page
-        reservations = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range, deliver last page
-        reservations = paginator.page(paginator.num_pages)
+    reservations = Paginator(all_reservations, 200).get_page(request.GET.get('page'))
     
     # Prepare context data
     context = {
-        
         'reservations': reservations,
         'total_reservations': total_reservations,
         'today_checkins': today_checkins,
@@ -704,6 +702,55 @@ def admin_reservations(request):
     return render(request, 'admin_reservations.html', context)
 
 
+def _pick_assignment(assignments, today):
+    """Which active assignment speaks for a room when it has more than one.
+
+    A room can hold a stay in progress and a booking for next week at the same
+    time. The render used to keep whichever row came last out of an unordered
+    queryset while the POST guard took an unordered .first(), which are
+    opposite rules over a set with no defined order. Left alone they can judge
+    the same room against different bookings, which is the silent override this
+    was meant to close.
+
+    Current stay first, then the soonest upcoming one, then anything still
+    marked active whose dates have passed.
+    """
+    def rank(assignment):
+        if assignment.check_in <= today <= assignment.check_out:
+            stage = 0
+        elif assignment.check_in > today:
+            stage = 1
+        else:
+            stage = 2
+        return stage, assignment.check_in, assignment.pk
+
+    return min(assignments, key=rank) if assignments else None
+
+
+def _display_status(room, assignment, today):
+    """The one derivation of what a room's card shows.
+
+    Both the dashboard render and the manual-status POST call this. They used
+    to hold separate copies and disagree: the POST wrote reservation_status
+    while the render preferred an active RoomAssignment covering today, so
+    'Empty Clean' on a booked room saved and then reloaded as 'Occupied' with
+    nothing to say why. An active assignment is what availability checks read,
+    so it outranks the room's own fields; out_of_order outranks everything,
+    because a room can be broken while a guest is booked into it.
+    """
+    if room.housekeeping_status == 'out_of_order':
+        return 'out_of_order'
+    if assignment and assignment.check_in <= today <= assignment.check_out:
+        return 'occupied'
+    if assignment and assignment.check_in > today:
+        return 'reserved'
+    if room.reservation_status == 'vacant' and room.housekeeping_status == 'dirty':
+        return 'dirty'
+    if room.reservation_status == 'vacant':
+        return 'vacant'
+    return room.reservation_status
+
+
 @login_required
 @user_passes_test(is_staff_or_admin, login_url='/accounts/login/')
 def room_dashboard(request):
@@ -714,15 +761,94 @@ def room_dashboard(request):
     if request.method == 'POST':
         room_id = request.POST.get('room_id')
         new_status = request.POST.get('new_status') # backwards-compatibility
-        
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+        # Resolving a maintenance issue is its own action, not a room status
+        # write, so it answers and returns before the status machinery below.
+        # Resolving deliberately leaves the room out of order: staff bring it
+        # back with Empty Clean or Empty Dirty, which keeps _display_status
+        # driven from one place instead of quietly gaining a second source.
+        if request.POST.get('action') == 'resolve_issue':
+            log_id = request.POST.get('log_id', '')
+            # A non-numeric log_id would raise ValueError out of the queryset,
+            # so it is screened here rather than caught downstream. isdecimal,
+            # not isdigit: isdigit is True for superscripts like '²', which
+            # int() then refuses, turning a bad request into a 500.
+            log = (
+                RoomMaintenanceRepository.resolve(int(log_id))
+                if log_id.isdecimal() else None
+            )
+            if log is None:
+                msg = 'That issue is not open, or no longer exists.'
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': msg}, status=404)
+                messages.error(request, msg)
+                return redirect('room_dashboard')
+            if is_ajax:
+                return JsonResponse({'status': 'ok'})
+            messages.success(request, f'Issue #{log.log_id} resolved.')
+            return redirect('room_dashboard')
+
         if room_id and new_status:
+            # Screened before any write, so an over-long description refuses the
+            # whole click rather than leaving the room changed and the issue
+            # unrecorded.
+            issue = request.POST.get('issue_description', '').strip()
+            if len(issue) > MAX_ISSUE_DESCRIPTION:
+                msg = (
+                    f'Issue description is too long ({len(issue)} characters, '
+                    f'limit {MAX_ISSUE_DESCRIPTION}).'
+                )
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': msg}, status=400)
+                messages.error(request, msg)
+                return redirect('room_dashboard')
             try:
                 room = Room.objects.get(room_id=room_id)
+
+                # Resolved before the writes below, because whether this click
+                # is a maintenance clear depends on the room as it stands now,
+                # not as it is about to be.
+                assignment = _pick_assignment(
+                    list(
+                        RoomAssignment.objects
+                        .filter(room_id=room.room_id, status='active')
+                        .select_related('booking')
+                    ),
+                    date.today(),
+                )
+
+                # Clearing out_of_order on a room an assignment still holds is a
+                # maintenance write, not an occupancy one. The click means the
+                # fault is fixed, not that the guest has gone. So it writes
+                # housekeeping and leaves reservation_status to the assignment,
+                # which is what the derivation already reads for every other
+                # occupied room.
+                #
+                # Without this a broken occupied room could never be returned to
+                # service: both clearing buttons refused, because the derivation
+                # correctly came back 'occupied' and the guard compared that
+                # against the 'vacant' the button asked for. The maintenance log
+                # flow walks straight into it, since Out of Order is allowed on
+                # an occupied room in the first place.
+                # An assignment whose dates have passed does not hold the room,
+                # and _pick_assignment returns those. today <= check_out is the
+                # test, not "covers today": it keeps the exemption for a room
+                # booked for next week, which the derivation renders Reserved.
+                clearing_maintenance = (
+                    room.housekeeping_status == 'out_of_order'
+                    and assignment is not None
+                    and date.today() <= assignment.check_out
+                    and new_status in ('vacant', 'empty_dirty')
+                )
+
                 if new_status == 'vacant':
-                    room.reservation_status = 'vacant'
+                    if not clearing_maintenance:
+                        room.reservation_status = 'vacant'
                     room.housekeeping_status = 'clean'
                 elif new_status == 'empty_dirty': # keeping old mappings
-                    room.reservation_status = 'vacant'
+                    if not clearing_maintenance:
+                        room.reservation_status = 'vacant'
                     room.housekeeping_status = 'dirty'
                 elif new_status == 'occupied':
                     room.reservation_status = 'occupied'
@@ -730,12 +856,62 @@ def room_dashboard(request):
                     room.reservation_status = 'reserved'
                 elif new_status == 'out_of_order':
                     room.housekeeping_status = 'out_of_order'
+
+                # Run the pending write through the same derivation the page
+                # renders. If the card would not come back showing what was
+                # asked for, refuse and say which booking holds the room,
+                # rather than saving a value the next render discards. A
+                # maintenance clear is exempt: it never claimed the card would
+                # read 'vacant', only that the fault is gone.
+                requested = 'dirty' if new_status == 'empty_dirty' else new_status
+                if not clearing_maintenance and _display_status(room, assignment, date.today()) != requested:
+                    # Name whatever actually outranked the write. out_of_order
+                    # comes first in the derivation, so when a room is both
+                    # broken and booked it is the housekeeping status blocking
+                    # this, and pointing staff at the booking sends them
+                    # somewhere that will not help. A room being cleared with
+                    # Empty Clean or Empty Dirty never lands here: with an
+                    # assignment it took the exemption above, and without one
+                    # housekeeping has already been reset.
+                    if room.housekeeping_status == 'out_of_order':
+                        msg = (
+                            f'Room {room.room_code} is out of order. Clear that '
+                            f'first, with Empty Clean or Empty Dirty.'
+                        )
+                    elif assignment is not None:
+                        msg = (
+                            f'Room {room.room_code} is assigned to booking '
+                            f'#{assignment.booking_id} ({assignment.check_in} to '
+                            f'{assignment.check_out}). Change that booking to free '
+                            f'the room.'
+                        )
+                    else:
+                        # Not reachable today: with no assignment and nothing
+                        # out of order, every button's write matches what the
+                        # derivation returns. Kept honest rather than repeating
+                        # one of the reasons above and misleading whoever finds
+                        # a way here.
+                        msg = (
+                            f'Room {room.room_code} cannot be set to '
+                            f'{requested}. Reload the dashboard to see its '
+                            f'current status.'
+                        )
+                    if is_ajax:
+                        return JsonResponse({'status': 'error', 'message': msg}, status=409)
+                    messages.error(request, msg)
+                    return redirect('room_dashboard')
+
                 room.save()
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                # After the save, not before: the guard above can still refuse
+                # this click with a 409, and an open issue against a room that
+                # never went offline is worse than no record at all.
+                if issue and new_status == 'out_of_order':
+                    RoomMaintenanceRepository.report(room, issue, request.user)
+                if is_ajax:
                     return JsonResponse({'status': 'ok'})
                 messages.success(request, f'Room {room.room_code} updated status.')
             except Room.DoesNotExist:
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                if is_ajax:
                     return JsonResponse({'status': 'error', 'message': 'Room not found.'}, status=404)
                 messages.error(request, 'Room not found.')
         return redirect('room_dashboard')
@@ -748,36 +924,30 @@ def room_dashboard(request):
         status='active'
     ).select_related('booking', 'room')
 
-    assignment_map = {}
+    # Grouped, then resolved through the same picker the POST guard uses, so a
+    # room holding both a current stay and a future booking is judged and
+    # rendered against the same one.
+    by_room = {}
     for a in active_assignments:
-        assignment_map[a.room_id] = a
+        by_room.setdefault(a.room_id, []).append(a)
+
+    # One query for both the card badges and the modal lists.
+    open_issues = RoomMaintenanceRepository.open_by_room()
 
     # Group rooms by floor
     floors = {}
     status_counts = {
         'vacant': 0, 'dirty': 0, 'occupied': 0, 'out_of_order': 0, 'reserved': 0,
     }
+    today = date.today()
     for room in rooms:
-        assignment = assignment_map.get(room.room_id)
+        assignment = _pick_assignment(by_room.get(room.room_id), today)
         duration = None
         if assignment:
             duration = (assignment.check_out - assignment.check_in).days
 
-        # Mapping to old format for UI rendering
-        from datetime import date
-        today = date.today()
-        disp_status = room.reservation_status # defaults to vacant/occupied/reserved
-        if room.housekeeping_status == 'out_of_order':
-            disp_status = 'out_of_order'
-        elif assignment and assignment.check_in <= today <= assignment.check_out:
-            disp_status = 'occupied'
-        elif assignment and assignment.check_in > today:
-            disp_status = 'reserved'
-        elif room.reservation_status == 'vacant' and room.housekeeping_status == 'dirty':
-            disp_status = 'dirty'
-        elif room.reservation_status == 'vacant':
-            disp_status = 'vacant'
-        
+        disp_status = _display_status(room, assignment, today)
+
         status_counts[disp_status] = status_counts.get(disp_status, 0) + 1
 
         room_data = {
@@ -785,17 +955,34 @@ def room_dashboard(request):
             'assignment': assignment,
             'duration': duration,
             'disp_status': disp_status, # Include disp_status
+            'open_issue_count': len(open_issues.get(room.room_id, [])),
         }
         floors.setdefault(room.floor_number, []).append(room_data)
-            
+
     status_filter = request.GET.get('status', 'all')
+
+    # Keyed by string because JSON object keys are strings once this reaches JS.
+    # Rendered through the json_script filter in the template, which escapes the
+    # free-text description so it cannot break out of the script tag.
+    issues_json = {
+        str(room_id): [
+            {
+                'log_id': log.log_id,
+                'description': log.issue_description,
+                'reported_by': log.reported_by.username if log.reported_by else 'Unknown',
+                'created_at': log.created_at.strftime('%d %b') if log.created_at else '',
+            }
+            for log in logs
+        ]
+        for room_id, logs in open_issues.items()
+    }
 
     context = {
         'floors': dict(sorted(floors.items())),
         'status_counts': status_counts,
         'total_rooms': len(rooms),
         'status_filter': status_filter,
-        'hotel': HotelService.get_hotel_info(),
+        'open_issues_json': issues_json,
     }
     return render(request, 'room_dashboard.html', context)
 
@@ -925,6 +1112,16 @@ def manage_accounts(request):
                 messages.error(request, err_msg)
                 return redirect('manage_accounts')
 
+            # The same validators register_view runs. The unsaved User is what
+            # gives UserAttributeSimilarityValidator anything to work with: it
+            # returns immediately on a None user, so passing the password alone
+            # would leave one of the four configured validators inert.
+            try:
+                validate_password(password or '', User(username=username, email=email))
+            except ValidationError as e:
+                messages.error(request, ' '.join(e.messages))
+                return redirect('manage_accounts')
+
             try:
                 from django.utils import timezone
                 # Create new user
@@ -969,8 +1166,15 @@ def manage_accounts(request):
                 user.email = email
                 user.role = new_role
 
-                # Only update password if provided
+                # Only update password if provided, and hold it to the same bar
+                # as creation. Validating one branch and not the other just
+                # moves the hole to the next button on the same screen.
                 if password:
+                    try:
+                        validate_password(password, user)
+                    except ValidationError as e:
+                        messages.error(request, ' '.join(e.messages))
+                        return redirect('manage_accounts')
                     user.set_password(password)
 
                 user.save()
@@ -1021,8 +1225,15 @@ def manage_accounts(request):
         qs = User.objects.exclude(is_active=False).filter(role='customer').order_by('-created_at')
         tab = 'customers'
 
+    # 200, matching admin_reservations rather than the email views: this page
+    # has a client-side search box, which can only ever search the rows the
+    # server rendered.
+    # get_page() is Django's own version of the PageNotAnInteger/EmptyPage
+    # ladder the three sibling views hand-roll, with identical semantics.
+    rows = Paginator(qs, 200).get_page(request.GET.get('page'))
+
     return render(request, 'manage_accounts.html', {
-        'accounts': qs,
+        'accounts': rows,
         'active_tab': tab,
     })
 
@@ -1041,14 +1252,7 @@ def email_log(request):
     if email_type:
         qs = qs.filter(email_type=email_type)
 
-    page = request.GET.get('page', 1)
-    paginator = Paginator(qs, 25)
-    try:
-        rows = paginator.page(page)
-    except PageNotAnInteger:
-        rows = paginator.page(1)
-    except EmptyPage:
-        rows = paginator.page(paginator.num_pages)
+    rows = Paginator(qs, 25).get_page(request.GET.get('page'))
 
     stats = {
         'total': EmailQueue.objects.count(),
@@ -1061,7 +1265,6 @@ def email_log(request):
         'stats': stats,
         'filter_status': status or '',
         'filter_type': email_type or '',
-        'hotel': HotelService.get_hotel_info(),
     })
 
 
@@ -1089,14 +1292,7 @@ def email_subscribers(request):
     if status in ('subscribed', 'unsubscribed', 'bounced'):
         qs = qs.filter(status=status)
 
-    page = request.GET.get('page', 1)
-    paginator = Paginator(qs, 25)
-    try:
-        rows = paginator.page(page)
-    except PageNotAnInteger:
-        rows = paginator.page(1)
-    except EmptyPage:
-        rows = paginator.page(paginator.num_pages)
+    rows = Paginator(qs, 25).get_page(request.GET.get('page'))
 
     stats = {
         'total': EmailSubscriber.objects.count(),
@@ -1109,7 +1305,6 @@ def email_subscribers(request):
         'rows': rows,
         'stats': stats,
         'filter_status': status or '',
-        'hotel': HotelService.get_hotel_info(),
     })
 
 
@@ -1121,7 +1316,6 @@ def email_campaigns(request):
     campaigns = EmailRepository.list_campaigns()
     return render(request, 'admin_email_campaigns.html', {
         'campaigns': campaigns,
-        'hotel': HotelService.get_hotel_info(),
     })
 
 
@@ -1151,7 +1345,6 @@ def email_campaign_edit(request, campaign_id=None):
                     'name': name, 'subject': subject,
                     'body_html': body_html, 'body_text': body_text,
                 },
-                'hotel': HotelService.get_hotel_info(),
             })
 
         if campaign:
@@ -1175,7 +1368,6 @@ def email_campaign_edit(request, campaign_id=None):
     return render(request, 'admin_email_campaign_edit.html', {
         'campaign': campaign,
         'form_values': None,
-        'hotel': HotelService.get_hotel_info(),
     })
 
 
@@ -1332,6 +1524,7 @@ def edit_reservation(request, booking_id):
 
         # Capture old data for audit
         old_status = booking.status
+        old_allocation = (booking.check_in, booking.check_out, booking.room_type)
         old_data = {
             'guest_name': booking.guest_name,
             'room_type': booking.room_type,
@@ -1427,8 +1620,32 @@ def edit_reservation(request, booking_id):
         # artefacts) arrives as IntegrityError. Catch it here so it returns a real
         # 400 naming the value, instead of falling through to the generic
         # `except Exception` below and reporting an opaque 500.
+        #
+        # The assignment re-sync shares this transaction with the save.
+        # allocate_room cancels the stale assignment before it looks for a free
+        # room, so a booking moved onto dates with nothing available has to
+        # roll the save back too. Without that, the booking keeps its new dates
+        # and loses its room. Status transitions are handled further down; this
+        # covers the case the old code missed entirely, where dates or room
+        # type move while status stays put.
+        from django.db import transaction
+        needs_resync = (
+            (booking.check_in, booking.check_out, booking.room_type) != old_allocation
+            and booking.status not in ('cancelled', 'rejected', 'checked_out')
+        )
         try:
-            booking.save()
+            with transaction.atomic():
+                booking.save()
+                if needs_resync:
+                    RoomService.allocate_room(booking, assigned_by=request.user)
+        except ValidationError as room_err:
+            # str() on a ValidationError renders its message list, brackets and
+            # quotes included, so the guest-facing text arrived as
+            # ["No available ... rooms"]. get_reservation already joins.
+            return JsonResponse({
+                'status': 'error',
+                'message': '; '.join(room_err.messages),
+            }, status=400)
         except IntegrityError:
             logger.exception(
                 'Booking #%s rejected by a DB constraint (status=%r)',
@@ -1508,3 +1725,162 @@ def edit_reservation(request, booking_id):
             'status': 'error',
             'message': 'An unexpected error occurred while updating the reservation.'
         }, status=500)
+
+
+# Two counters, not one. Per-session is the tighter limit and does the real
+# work: it stops a single browser tab hammering the model. Per-IP is the wider
+# net for many sessions driven from one host, and it has to stay loose enough
+# not to lock out a hotel or cafe behind NAT where guests share an address.
+#
+# Sized against how a real guest behaves rather than against the other AJAX
+# endpoints. Median reply time measured 2026-08-23 was 11.6s, and the widget
+# disables its send button while a request is in flight, so a person waiting
+# for each answer tops out near 5 messages a minute. 8/m sits just above that:
+# a guest reading the answers never reaches it, and a script has to be visibly
+# scripted to. 20/m per IP is about two and a half such sessions, so a shared
+# address does not collide.
+#
+# These were 15/m and 35/m, sized to leave headroom that nothing needed. They
+# came down when MAX_CONCURRENT_MODEL_CALLS landed: the counters were carrying
+# an argument about GPU capacity they were never able to win, because a minute
+# is not the unit that matters when Ollama serves one request at a time. The
+# cap in ai_providers.py bounds capacity now, so these are free to be what they
+# should always have been, which is a bound on how fast one guest can talk.
+CHAT_RATE_PER_SESSION = '8/m'
+CHAT_RATE_PER_IP = '20/m'
+
+
+def _chat_session_key(group, request):
+    return request.session.session_key
+
+
+def _chat_phone_handoff(lead):
+    """429 that gives the guest a phone number instead of a countdown.
+
+    Used where a countdown is no use: the session has spent its minute, or the
+    model has no free slot and nobody can say when one frees up.
+
+    No Retry-After, and that is load-bearing rather than an omission.
+    chat-widget.js replaces the response body with its own "wait N seconds"
+    copy whenever that header is present, so a phone number sent alongside one
+    never reaches the guest. Sending no header is what lets the widget fall
+    through to this message.
+
+    The number comes from the hotel row, same source as the contact page, with
+    settings.HOTEL_DEFAULT_PHONE behind it. Not a literal here, which would go
+    stale the first time the hotel changed its number.
+    """
+    phone = (HotelRepository.get_hotel_info() or {}).get('phone')
+    where = f'call us on {phone}' if phone else 'call the hotel'
+    return JsonResponse({
+        'status': 'error',
+        'message': f'{lead} Please {where} and the front desk will help you straight away.',
+    }, status=429)
+
+
+def _chat_rate_limit(request):
+    """(session limit tripped?, seconds to wait). (False, 0) if within both.
+
+    get_usage() rather than the @ratelimit decorator because the decorator
+    raises Ratelimited, which the site-wide handler403 turns into a 429 with no
+    Retry-After header. Doing the check here keeps the header, and keeps the
+    change inside the chat endpoint instead of altering how the other seven
+    rate-limited views report themselves.
+    """
+    # get_usage keys a session limit off session_key, which is None until the
+    # session is written. An anonymous guest opening the widget has no session
+    # yet, and without this every one of them would share a single None bucket.
+    #
+    # create(), not save(). save() writes the row but leaves session.modified
+    # False, so SessionMiddleware never sets the cookie, so the next request
+    # arrives with no session and gets another new key — the per-session limit
+    # silently counts to one forever. create() sets modified, which is what
+    # actually gets the cookie onto the response.
+    #
+    # ponytail: a client that refuses cookies gets a fresh key every request and
+    # is therefore governed by the per-IP limit alone. That is the intended
+    # fallback; tighten only if cookie-less abuse shows up in the logs.
+    if not request.session.session_key:
+        request.session.create()
+
+    # Both counters are read every call, whichever trips first. Short-circuiting
+    # on the session limit would stop incrementing the IP counter, and a caller
+    # cycling sessions would then never fill the wider bucket at all.
+    session_hit = False
+    wait = 0
+    for group, key, rate in (
+        ('chat-session', _chat_session_key, CHAT_RATE_PER_SESSION),
+        ('chat-ip', 'ip', CHAT_RATE_PER_IP),
+    ):
+        usage = get_usage(request, group=group, key=key, rate=rate,
+                          method='POST', increment=True)
+        if usage and usage['should_limit']:
+            wait = max(wait, usage['time_left'])
+            session_hit = session_hit or group == 'chat-session'
+    return session_hit, wait
+
+
+@require_POST
+def chat_message(request):
+    """Guest chat endpoint. POST only, CSRF-protected by the site-wide middleware."""
+    if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+    # The capacity check comes first, ahead of the counters, and the order is
+    # the whole point. get_usage(increment=True) spends a request from the
+    # guest's budget the moment it is called, so asking it before knowing
+    # whether the machine can serve anyone charged guests for refusals they had
+    # no part in. A busy box now answers without touching a counter, which
+    # means a guest turned away during a busy spell still has their full 8/m
+    # once it clears.
+    #
+    # The slot is held across the rate-limit check too. That is a few
+    # milliseconds of session write and cache reads inside the cap, which is
+    # nothing against an 11.6s model call, and it is what lets the check run
+    # knowing a slot is already reserved for the answer.
+    try:
+        with model_slot():
+            session_hit, wait = _chat_rate_limit(request)
+            if session_hit:
+                # This guest has spent their minute. Telling them to wait 40
+                # seconds invites them to sit and watch the widget; the front
+                # desk answers now. Returning here releases the slot on the way
+                # out, so a throttled guest never holds capacity.
+                return _chat_phone_handoff('I cannot take any more messages just now.')
+            if wait:
+                # The IP counter, which means a shared address: NAT, hotel
+                # wifi, a cafe. The guest on the other side of it has not done
+                # anything wrong, so they keep the countdown rather than being
+                # pushed to the phone.
+                response = JsonResponse({
+                    'status': 'error',
+                    'message': 'Too many messages. Please wait a moment and try again.',
+                }, status=429)
+                response['Retry-After'] = str(max(1, wait))
+                return response
+
+            reply = ChatService.reply(request.POST.get('message', ''))
+    except ProviderBusy:
+        # No slot. Caught above the generic handler on purpose: this is not a
+        # fault, and 503 "the assistant is unavailable" would tell the guest
+        # the wrong thing about a machine that is working fine and merely full.
+        # model_slot() is the only thing that raises this, so nothing else can
+        # land here.
+        return _chat_phone_handoff('The assistant is busy with another guest right now.')
+    except ValidationError as exc:
+        return JsonResponse({'status': 'error', 'message': exc.message}, status=400)
+    except Exception:
+        # Ollama down, model pulled, socket refused. The guest gets a plain
+        # sentence; the stack trace goes to the log, not onto the page.
+        #
+        # This now covers the rate-limit check as well as the model call, since
+        # both sit inside the block. A cache backend failing mid-check answers
+        # 503 instead of raising a 500 at the guest, which is the better of the
+        # two and logs the same either way.
+        logger.exception('Chat reply failed')
+        return JsonResponse({
+            'status': 'error',
+            'message': "The assistant is unavailable right now. Please try again shortly.",
+        }, status=503)
+
+    return JsonResponse({'status': 'ok', 'reply': reply})

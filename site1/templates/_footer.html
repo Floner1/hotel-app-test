@@ -12,7 +12,7 @@
 
     <div class="site-footer__cols">
       <div class="site-footer__col">
-        <h4 class="site-footer__heading">Hotel</h4>
+        <h3 class="site-footer__heading">Hotel</h3>
         <ul>
           <li><a href="{% url 'about' %}">About Us</a></li>
           <li><a href="{% url 'contact' %}">Contact</a></li>
@@ -20,7 +20,7 @@
       </div>
 
       <div class="site-footer__col">
-        <h4 class="site-footer__heading">Stay</h4>
+        <h3 class="site-footer__heading">Stay</h3>
         <ul>
           <li><a href="{% url 'rooms' %}">Rooms</a></li>
           <li><a href="{% url 'reservation' %}">Reservation</a></li>
@@ -28,7 +28,7 @@
       </div>
 
       <div class="site-footer__col site-footer__reach-col">
-        <h4 class="site-footer__heading">Reach Us</h4>
+        <h3 class="site-footer__heading">Reach Us</h3>
         <ul>
           {% if hotel.phone %}<li><span style="position:relative; display:inline-block;"><span class="footer-clickable" id="footer-contact-phone" title="Copy to clipboard">{{ hotel.phone }}</span><span id="footer-phone-copied">Copied!</span></span></li>{% endif %}
           {% if hotel.email %}<li><span class="footer-clickable" id="footer-contact-email" title="Send email via Gmail">{{ hotel.email }}</span></li>{% endif %}
@@ -57,9 +57,10 @@
 </footer>
 
 <!-- Footer Google Maps modal -->
-<div id="footer-maps-modal" class="tt-confirm">
+<div id="footer-maps-modal" class="tt-confirm" role="dialog" aria-modal="true"
+     aria-labelledby="footer-maps-modal-title">
   <div class="tt-confirm__panel">
-    <h3 class="tt-confirm__title">Open Google Maps?</h3>
+    <h3 class="tt-confirm__title" id="footer-maps-modal-title">Open Google Maps?</h3>
     <p class="tt-confirm__body">You will be taken to Google Maps to view the hotel location.</p>
     <div class="tt-confirm__actions">
       <a id="footer-maps-yes" href="https://www.google.com/maps/search/?api=1&query={{ hotel.hotel_address|urlencode }}" target="_blank" rel="noopener" class="btn btn-primary text-white">Yes, open Maps</a>
@@ -69,9 +70,10 @@
 </div>
 
 <!-- Footer Gmail modal -->
-<div id="footer-gmail-modal" class="tt-confirm">
+<div id="footer-gmail-modal" class="tt-confirm" role="dialog" aria-modal="true"
+     aria-labelledby="footer-gmail-modal-title">
   <div class="tt-confirm__panel">
-    <h3 class="tt-confirm__title">Send us an email?</h3>
+    <h3 class="tt-confirm__title" id="footer-gmail-modal-title">Send us an email?</h3>
     <p class="tt-confirm__body">Gmail will open with our email address pre-filled as the recipient.</p>
     <div class="tt-confirm__actions">
       <a id="footer-gmail-yes" href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to={{ hotel.email }}" target="_blank" rel="noopener" class="btn btn-primary text-white">Yes, open Gmail</a>

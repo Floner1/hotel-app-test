@@ -534,7 +534,7 @@ h3, .h3 { font-size: var(--text-h3); }
 }
 
 .site-footer__newsletter-copy {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.46);
   font-size: 14px;
   letter-spacing: 0.02em;
   margin: 0 0 1.25rem;
@@ -557,7 +557,7 @@ h3, .h3 { font-size: var(--text-h3); }
 }
 
 .site-footer__newsletter-form .form-control::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.46);
 }
 
 .site-footer__newsletter-form .form-control:focus {
@@ -595,7 +595,7 @@ h3, .h3 { font-size: var(--text-h3); }
 
 .site-footer__bottom p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.46);
   font-size: 14px;
   letter-spacing: 0.05em;
 }
@@ -673,6 +673,11 @@ h3, .h3 { font-size: var(--text-h3); }
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the entrance, drop the travel. */
+  .toast-notification { animation-duration: 0.01ms; }
+}
+
 /* ── Contact / reservation pages ─────────────────────────────────────────── */
 .contact-section .contact-info p {
   font-family: var(--font-family-serif, "Playfair Display", times, serif) !important;
@@ -732,6 +737,15 @@ h3, .h3 { font-size: var(--text-h3); }
 @media (max-width: 768px) {
   .logo-loop-item img { height: 200px; }
   .logo-loop-track { gap: 30px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Stop the loop. The track is wider than the viewport, so hand the user a
+     scrollbar or the trailing images become unreachable. !important because
+     home.html, about.html and rooms.html each inline a copy of the rules
+     above in a <style> block that loads after this file. */
+  .logo-loop-track { animation: none !important; }
+  .logo-loop-container { overflow-x: auto !important; }
 }
 
 /* ── Page title bar (slim alternative to inner-page hero) ────────────────── */

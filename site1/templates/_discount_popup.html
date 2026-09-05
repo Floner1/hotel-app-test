@@ -15,10 +15,16 @@
           <label for="dp-email" class="sr-only">Email address</label>
           <input type="email" id="dp-email" name="email" class="dp-input" placeholder="Email address" autocomplete="email" required>
           <div id="dp-error" class="dp-error" style="display:none;" role="alert"></div>
-          {# no-load opts this button out of the blanket submit handler in base.html.
-             Its own AJAX handler there owns the button state end to end; without
-             this, the blanket one overwrites the text and force-reverts after 5s,
-             mid-request. Same opt-out the newsletter button uses. #}
+          {% comment %}
+            no-load opts this button out of the blanket submit handler in base.html.
+            Its own AJAX handler there owns the button state end to end; without
+            this, the blanket one overwrites the text and force-reverts after 5s,
+            mid-request. Same opt-out the newsletter button uses.
+
+            Written as a comment block rather than the hash-brace form, which is
+            single-line only. Spanning that one across lines printed this note
+            onto the popup, between the email field and the button.
+          {% endcomment %}
           <button type="submit" id="dp-submit" class="dp-btn no-load">CLAIM MY DISCOUNT</button>
         </form>
         <p class="dp-footnote">One code per email address. Unsubscribe any time.</p>

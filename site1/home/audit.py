@@ -10,12 +10,20 @@ logger = logging.getLogger(__name__)
 
 
 def _get_client_ip(request):
-    """Extract client IP from request."""
+    """The peer address, never a client-supplied header.
+
+    X-Forwarded-For is set by whoever sends the request. Trusting its first
+    value with no trusted-proxy allowlist let any caller choose the IP written
+    against their own logins and booking edits, in a table the schema makes
+    append-only. django-axes resolves lockout IPs from REMOTE_ADDR for the same
+    reason, so reading it here keeps the two agreeing about who did what.
+
+    ponytail: no proxy allowlist, because nothing fronts this app today. Put it
+    behind a reverse proxy and this has to honour XFF only when REMOTE_ADDR is
+    the proxy's own address.
+    """
     if request is None:
         return None
-    x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded:
-        return x_forwarded.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR')
 
 
@@ -86,19 +94,6 @@ def log_booking_delete(user, booking_id, booking_data, request=None):
     )
 
 
-def log_role_change(user, target_user, old_role, new_role, request=None):
-    """Log change of user role."""
-    return log_action(
-        user=user,
-        action_type='ROLE_CHANGE',
-        table_name='users',
-        record_id=target_user.user_id,
-        old_values={'role': old_role},
-        new_values={'role': new_role},
-        request=request,
-    )
-
-
 def log_user_login(user, request=None):
     """Log user login."""
     return log_action(
@@ -108,17 +103,3 @@ def log_user_login(user, request=None):
         record_id=user.user_id,
         request=request,
     )
-
-
-def get_recent_audit_logs(user=None, action_type=None, limit=100):
-    """Get recent audit logs with optional filters."""
-    try:
-        qs = AuditLog.objects.all()
-        if user is not None:
-            qs = qs.filter(user=user)
-        if action_type is not None:
-            qs = qs.filter(action_type=action_type)
-        return list(qs[:limit])
-    except Exception:
-        logger.exception('Failed to retrieve audit logs')
-        return []

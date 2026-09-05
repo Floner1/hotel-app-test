@@ -13,6 +13,11 @@ html { font-size: 17px; }
   --color-bg: #ffffff;
   --color-surface: #f9fafb;
   --color-border: #e5e7eb;
+  /* Aliases, not new colours. Both names are used across templates and overrides.css
+     but were never defined, so every one of those declarations was silently dropped.
+     Pointed at the existing tokens rather than renaming 21 call sites in 7 files. */
+  --color-bg-alt: var(--color-surface);
+  --color-muted: var(--color-text-muted);
   /* Modal/overlay scrim. Not a new colour — this is the rgba(0,0,0,0.55)
      already used inline by the footer dialogs, promoted to a token. */
   --color-scrim: rgba(0, 0, 0, 0.55);
@@ -1378,7 +1383,9 @@ body.dp-open {
 
 .dp-footnote {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.28);
+  /* 0.28 computed to 2.52:1 on the #1a1a1a panel, under the 4.5:1 AA floor.
+     0.46 is the lowest alpha that clears it. */
+  color: rgba(255, 255, 255, 0.46);
   line-height: 1.55;
   margin: 0;
 }

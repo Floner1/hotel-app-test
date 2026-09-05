@@ -1,6 +1,6 @@
 # Thien Tai Hotel Booking System
 
-A Django web application for managing hotel reservations at Thien Tai Hotel. SQL Server backend, Bootstrap 4 frontend, role-based access control.
+A Django web application for managing hotel reservations at Thien Tai Hotel. SQL Server backend, Bootstrap 4 frontend, role-based access control. A guest chat widget answers questions about rooms, rates and services from a local language model.
 
 ---
 
@@ -8,11 +8,12 @@ A Django web application for managing hotel reservations at Thien Tai Hotel. SQL
 
 Before you begin, make sure you have the following installed on your machine. This project runs on **Windows only** because it uses Windows Authentication to connect to SQL Server.
 
-- **Python 3.11 or newer** — [python.org/downloads](https://www.python.org/downloads/)
-- **Git** — [git-scm.com](https://git-scm.com/)
-- **Microsoft SQL Server** (any edition — Express is free) — [microsoft.com/en-us/sql-server/sql-server-downloads](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
-- **ODBC Driver 17 for SQL Server** — [learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
-- **SQL Server Management Studio (SSMS)** (optional but strongly recommended) — [learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms)
+- **Python 3.11 or newer**: [python.org/downloads](https://www.python.org/downloads/)
+- **Git**: [git-scm.com](https://git-scm.com/)
+- **Microsoft SQL Server** (any edition, Express is free): [microsoft.com/en-us/sql-server/sql-server-downloads](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
+- **ODBC Driver 17 for SQL Server**: [learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
+- **SQL Server Management Studio (SSMS)** (optional but strongly recommended): [learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms)
+- **Ollama** (only needed for the chat widget): [ollama.com](https://ollama.com). After installing, pull the model the widget defaults to with `ollama pull qwen3:4b`. The rest of the site runs fine without Ollama; the chat widget just returns a 503 and points guests at the front desk phone number instead.
 
 ---
 
@@ -99,7 +100,7 @@ DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
-`DJANGO_SECRET_KEY` is required. Django will refuse to start without it. Generate a random one — it just needs to be a long string of random characters.
+`DJANGO_SECRET_KEY` is required. Django will refuse to start without it. Generate a random one. It just needs to be a long string of random characters.
 
 ### 10. Configure the database connection (if needed)
 
@@ -156,7 +157,7 @@ All of these go in `site1/.env`. Only `DJANGO_SECRET_KEY` is required; the rest 
 
 | Variable                  | Default                          | Description                                                                 |
 |---------------------------|----------------------------------|-----------------------------------------------------------------------------|
-| `DJANGO_SECRET_KEY`       | *(none — required)*              | Long random string used for session signing. Keep this secret.              |
+| `DJANGO_SECRET_KEY`       | *(none, required)*               | Long random string used for session signing. Keep this secret.              |
 | `DJANGO_DEBUG`            | `False`                          | Set to `True` for local development to see detailed error pages.            |
 | `DJANGO_ALLOWED_HOSTS`    | `localhost,127.0.0.1`            | Comma-separated list of hostnames Django will serve.                        |
 | `DB_NAME`                 | `hotelbooking`                   | SQL Server database name.                                                   |
@@ -166,6 +167,9 @@ All of these go in `site1/.env`. Only `DJANGO_SECRET_KEY` is required; the rest 
 | `HOTEL_DEFAULT_PHONE`     | `+63 900 000 0000`               | Phone number shown on the site when the database value is missing.          |
 | `HOTEL_DEFAULT_EMAIL`     | `info@hotelbooking.local`        | Contact email shown on the site when the database value is missing.         |
 | `SITE_BASE_URL`           | `http://localhost:8000`          | Base URL used when building links inside emails (e.g. unsubscribe links).  |
+| `AI_PROVIDER`             | `ollama`                         | Which chat backend to use. `ollama` is the only one implemented.                |
+| `AI_MODEL`                | `qwen3:4b`                       | Model name passed to the provider. Must already be pulled in Ollama.            |
+| `OLLAMA_HOST`             | `http://localhost:11434`         | Where the Ollama daemon is listening.                                           |
 
 ---
 
@@ -250,7 +254,7 @@ There are no Django migration files. The schema is applied by running `tables v1
 
 The homepage has a booking widget fixed to the bottom of the hero image. Guests fill in check-in date, check-out date, guest count, and room type, then click through to the reservation form. The form pre-fills those values from the URL.
 
-There is an "Any room" option on the reservation form — pick it and the system randomly selects an available room type, then shows a confirmation modal before submitting. A discount code field lets guests apply a code they received by email. The running total updates live when a valid code is entered.
+There is an "Any room" option on the reservation form. Pick it and the system randomly selects an available room type, then shows a confirmation modal before submitting. A discount code field lets guests apply a code they received by email. The running total updates live when a valid code is entered.
 
 All reservations require login. Customers see only their own bookings.
 
@@ -281,7 +285,7 @@ Check that SQL Server is running. Open the Windows Services panel (search "Servi
 
 **ODBC driver not found error**
 
-Install ODBC Driver 17 for SQL Server from Microsoft's site (link in system requirements above). Do not install a different version number — the driver name in settings.py is pinned to version 17.
+Install ODBC Driver 17 for SQL Server from Microsoft's site (link in system requirements above). Do not install a different version number. The driver name in settings.py is pinned to version 17.
 
 **Static files are missing (CSS/images not loading)**
 
@@ -293,7 +297,7 @@ The `discount_codes` table must exist. If the schema was applied partially or fr
 
 **Emails are not sending**
 
-Without `GMAIL_APP_PASSWORD` set in `.env`, the email backend falls back to the Django console — emails are printed to the terminal instead of sent. To send real emails, create a Gmail App Password (Google Account → Security → 2-Step Verification → App passwords) and set both `GMAIL_FROM_EMAIL` and `GMAIL_APP_PASSWORD` in `.env`.
+Without `GMAIL_APP_PASSWORD` set in `.env`, the email backend falls back to the Django console: emails are printed to the terminal instead of sent. To send real emails, create a Gmail App Password (Google Account → Security → 2-Step Verification → App passwords) and set both `GMAIL_FROM_EMAIL` and `GMAIL_APP_PASSWORD` in `.env`.
 
 **`(venv)` is not showing in the terminal**
 

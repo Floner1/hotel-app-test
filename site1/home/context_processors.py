@@ -44,7 +44,15 @@ def text_overrides(request):
         # Global CT dictionary for top-level static site content keys
         base_keys = {c.content_key: c.content_value for c in all_content if c.content_key in _CONTENT_DEFAULTS.keys()}
         ct = {k: base_keys.get(k, v) for k, v in _CONTENT_DEFAULTS.items()}
-        
+
+        # One SELECT, not two: get_hotel_name()'s column is a subset of
+        # get_hotel_info()'s, and this runs on every page render site-wide.
+        # Both guards below are load-bearing and both are pinned by tests in
+        # home/test_perf_context.py -- `or {}` because a raise here collapses the
+        # whole context to defaults, not just the name.
+        hotel_info = HotelService.get_hotel_info()
+        hotel_name = (hotel_info or {}).get('hotel_name') or 'Hotel Name Not Found'
+
         return {
             'text_overrides_json': json.dumps(inline_overrides, ensure_ascii=False),   
             'ct': ct,
@@ -53,8 +61,8 @@ def text_overrides(request):
                 and hasattr(request.user, 'role')
                 and request.user.role == 'admin'
             ),
-            'hotel_name': HotelService.get_hotel_name(),
-            'hotel': HotelService.get_hotel_info(),
+            'hotel_name': hotel_name,
+            'hotel': hotel_info,
             'hotel_services': HotelServices.objects.all(),
         }
     except Exception:

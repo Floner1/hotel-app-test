@@ -1,0 +1,393 @@
+/* ─── Front desk chat widget ───────────────────────────────────────
+   A floating bubble that opens into a small chat panel. Present on every
+   page via base.html.
+
+   Stacking: z-index 1040, deliberately BELOW the newsletter popup
+   (.dp-backdrop, 1050) and both full-screen modals (#any-room-modal and
+   .tt-confirm, 9999). An open overlay is meant to cover this widget, not
+   have it punch through. The toast lives top-right; this lives
+   bottom-right, so those two never share space either.
+
+   Everything here is built from the tokens already in style.css — same
+   amber, same easing curve, same radii, Playfair for the heading. It
+   should read as part of the hotel, not as a bolted-on chat product.
+────────────────────────────────────────────────────────────────── */
+
+.tt-chat {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1040;
+  font-family: "Roboto", arial, sans-serif;
+}
+
+/* The newsletter popup takes the whole screen and locks scroll. Stand
+   down completely while it is up rather than sitting behind it. */
+body.dp-open .tt-chat {
+  display: none;
+}
+
+/* ─── Bubble ─────────────────────────────────────────────────────── */
+
+.tt-chat__bubble {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #1a1a1a;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(212, 144, 64, 0.38), 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform var(--duration-base) var(--ease),
+              box-shadow var(--duration-base) var(--ease),
+              background var(--duration-base) var(--ease);
+}
+
+.tt-chat__bubble:hover {
+  background: var(--color-accent);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(212, 144, 64, 0.45), 0 3px 8px rgba(0, 0, 0, 0.14);
+}
+
+/* Feedback on press, not on release — the button should already have
+   reacted by the time the finger lifts. */
+.tt-chat__bubble:active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: 0 3px 10px rgba(212, 144, 64, 0.3);
+}
+
+.tt-chat__bubble i {
+  position: absolute;
+  font-size: 24px;
+  line-height: 1;
+  transition: opacity var(--duration-base) var(--ease),
+              transform var(--duration-base) var(--ease);
+}
+
+/* Two icons cross-fade and rotate through each other, so the bubble
+   itself shows open/closed state instead of just sitting there. */
+.tt-chat__icon--close {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.tt-chat.is-open .tt-chat__icon--open {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+.tt-chat.is-open .tt-chat__icon--close {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+/* ─── Panel ──────────────────────────────────────────────────────── */
+
+.tt-chat__panel {
+  position: absolute;
+  right: 0;
+  bottom: 76px;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  height: 480px;
+  max-height: calc(100vh - 130px);
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* Collapsed by default. It grows out of the bubble and shrinks back
+     into it — same path both ways, anchored to the corner it came from. */
+  transform-origin: 100% 100%;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.88) translateY(14px);
+  transition: opacity 180ms var(--ease),
+              transform 180ms var(--ease),
+              visibility 0s linear 180ms;
+}
+
+.tt-chat.is-open .tt-chat__panel {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1) translateY(0);
+  /* Ease-out-expo: fast off the mark, settles without overshooting. An earlier
+     version bounced. Overshoot belongs to motion the user thrust into being —
+     a flick or a drag release — and this is a click, which carries no momentum.
+     Opening slower than closing (280 vs 180) is deliberate: arriving reads as
+     an object settling, leaving should just get out of the way. */
+  transition: opacity 200ms var(--ease),
+              transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s;
+}
+
+/* The site-wide focus ring is --color-primary, the same amber as this
+   widget's header, bubble and send button — an amber ring on amber is no ring
+   at all. Keyboard users get a dark ring on those three instead. */
+.tt-chat__bubble:focus-visible,
+.tt-chat__close:focus-visible,
+.tt-chat__send:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 2px;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────── */
+
+.tt-chat__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-primary);
+  color: #1a1a1a;
+  flex-shrink: 0;
+}
+
+.tt-chat__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 16px;
+}
+
+.tt-chat__titles {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.tt-chat__title {
+  margin: 0;
+  font-family: "Playfair Display", times, serif;
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-heading);
+  letter-spacing: -0.01em;
+}
+
+.tt-chat__subtitle {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: rgba(26, 26, 26, 0.7);
+}
+
+.tt-chat__close {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity var(--duration-fast) var(--ease),
+              background var(--duration-fast) var(--ease);
+}
+
+.tt-chat__close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── Message list ───────────────────────────────────────────────── */
+
+.tt-chat__log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--color-surface);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  overscroll-behavior: contain;
+}
+
+.tt-chat__msg {
+  max-width: 85%;
+  margin-bottom: 10px;
+  padding: 9px 13px;
+  border-radius: var(--radius-md);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  animation: tt-chat-in 220ms var(--ease) both;
+}
+
+@keyframes tt-chat-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tt-chat__msg--bot {
+  margin-right: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+.tt-chat__msg--user {
+  margin-left: auto;
+  background: var(--color-primary);
+  border-bottom-right-radius: var(--radius-sm);
+  color: #1a1a1a;
+}
+
+.tt-chat__msg--error {
+  margin-right: auto;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+/* Typing indicator — three dots on a staggered bounce. */
+.tt-chat__typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  width: 54px;
+  padding: 13px;
+}
+
+.tt-chat__typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: tt-chat-blink 1.3s var(--ease) infinite both;
+}
+
+.tt-chat__typing span:nth-child(2) { animation-delay: 0.18s; }
+.tt-chat__typing span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes tt-chat-blink {
+  0%, 70%, 100% { opacity: 0.25; transform: translateY(0); }
+  35%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+/* ─── Composer ───────────────────────────────────────────────────── */
+
+.tt-chat__form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 10px;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.tt-chat__input {
+  flex: 1;
+  max-height: 96px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--color-text);
+  resize: none;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+.tt-chat__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.tt-chat__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.tt-chat__send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #1a1a1a;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease),
+              transform var(--duration-fast) var(--ease);
+}
+
+.tt-chat__send:hover:not(:disabled) {
+  background: var(--color-accent);
+}
+
+.tt-chat__send:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.tt-chat__send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ─── Small screens ──────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .tt-chat {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .tt-chat__panel {
+    /* Anchor to the viewport instead of the bubble so it can use the full
+       width without spilling off-screen. */
+    position: fixed;
+    right: 16px;
+    left: 16px;
+    bottom: 88px;
+    width: auto;
+    height: min(66vh, 460px);
+    max-height: calc(100vh - 150px);
+  }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-chat__panel,
+  .tt-chat.is-open .tt-chat__panel {
+    transition: opacity 150ms linear, visibility 0s;
+    transform: none;
+  }
+
+  .tt-chat__bubble:hover,
+  .tt-chat__bubble:active {
+    transform: none;
+  }
+
+  .tt-chat__msg {
+    animation: none;
+  }
+
+  .tt-chat__typing span {
+    animation-duration: 2.4s;
+  }
+}

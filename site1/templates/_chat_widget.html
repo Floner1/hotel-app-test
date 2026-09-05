@@ -1,0 +1,51 @@
+{% comment %}
+Front desk chat widget. Included from base.html, so it is on every page.
+Collapsed to a bubble on load; the panel is in the DOM but hidden, which is
+what lets it animate open instead of popping in.
+
+The CSRF token rides in the POST body as csrfmiddlewaretoken, exactly like the
+newsletter form in base.html. It comes through a data attribute rather than an
+inline literal only because this widget's JS is an external static file, which
+cannot render template tags. Same token, same mechanism.
+
+Note these are {% comment %} blocks, not {# #}. Django's {# #} is single-line
+only — spanning it across lines prints the comment onto the page.
+{% endcomment %}
+<div class="tt-chat" id="tt-chat" data-chat-url="{% url 'chat' %}" data-csrf="{{ csrf_token }}">
+
+  <div class="tt-chat__panel" id="tt-chat-panel" role="dialog"
+       aria-labelledby="tt-chat-title" aria-hidden="true">
+
+    <div class="tt-chat__header">
+      {# fa-bell, not fa-concierge-bell: this is Font Awesome 4.7, pre-FA5. #}
+      <span class="tt-chat__avatar" aria-hidden="true"><i class="fa fa-bell"></i></span>
+      <div class="tt-chat__titles">
+        <p class="tt-chat__title" id="tt-chat-title">Front Desk</p>
+        <p class="tt-chat__subtitle">Rooms, rates and services</p>
+      </div>
+      <button type="button" class="tt-chat__close" id="tt-chat-close" aria-label="Close chat">&times;</button>
+    </div>
+
+    {# aria-live so a screen reader announces replies as they arrive. #}
+    <div class="tt-chat__log" id="tt-chat-log" role="log" aria-live="polite" aria-atomic="false">
+      <div class="tt-chat__msg tt-chat__msg--bot">Welcome to {{ hotel_name|default:"Thiên Tài Hotel" }}. Ask me about our rooms, nightly rates or services.</div>
+    </div>
+
+    <form class="tt-chat__form" id="tt-chat-form" novalidate>
+      <label for="tt-chat-input" class="sr-only">Type your message</label>
+      <textarea id="tt-chat-input" class="tt-chat__input" rows="1"
+                placeholder="Ask about a room or rate…" autocomplete="off"
+                maxlength="2000"></textarea>
+      {# no-load keeps base.html's blanket submit handler off this button. #}
+      <button type="submit" class="tt-chat__send no-load" id="tt-chat-send" aria-label="Send message">
+        <i class="fa fa-paper-plane" aria-hidden="true"></i>
+      </button>
+    </form>
+  </div>
+
+  <button type="button" class="tt-chat__bubble" id="tt-chat-bubble"
+          aria-expanded="false" aria-controls="tt-chat-panel" aria-label="Open chat with the front desk">
+    <i class="fa fa-comment tt-chat__icon--open" aria-hidden="true"></i>
+    <i class="fa fa-chevron-down tt-chat__icon--close" aria-hidden="true"></i>
+  </button>
+</div>

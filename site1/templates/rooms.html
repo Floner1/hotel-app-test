@@ -129,6 +129,12 @@
     to   { transform: translateX(-50%); }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    /* Stop the loop. The first copy already fills the row; the ones the
+       scroll brings round are repeats of it, so nothing is lost. */
+    .fm-marquee__inner { animation: none; }
+  }
+
   /* ── Click-to-expand dropdown ── */
   .fm-dropdown {
     max-height: 0;

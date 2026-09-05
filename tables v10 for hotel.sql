@@ -91,14 +91,6 @@ CREATE TABLE hotel_services (
 );
 GO
 
-CREATE TABLE hotel_keys_main (
-    key_id   INT IDENTITY(1,1) PRIMARY KEY,
-    hotel_id INT NOT NULL,
-    room_key NVARCHAR(225),
-    FOREIGN KEY (hotel_id) REFERENCES hotel_info(hotel_id)
-);
-GO
-
 
 /* =====================================================
    4. PHYSICAL ROOMS — inventory + housekeeping

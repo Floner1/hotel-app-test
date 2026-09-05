@@ -39,6 +39,7 @@ urlpatterns = [
     path('reservation/', views.get_reservation, name='reservation'),
     path('rooms/', views.get_rooms, name='rooms'),
     path('newsletter/signup/', views.newsletter_signup, name='newsletter_signup'),
+    path('chat/', views.chat_message, name='chat'),
     path('discount/validate/', views.validate_discount_code, name='validate_discount_code'),
     path('unsubscribe/<str:token>/', views.unsubscribe_view, name='unsubscribe'),
     path('accounts/login/', views.login_view, name='login'),

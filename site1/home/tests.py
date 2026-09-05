@@ -284,6 +284,108 @@ def test_register_view_rejects_a_password_matching_the_username(client):
     )
 
 
+@pytest.fixture
+def account_admin(db, client):
+    """manage_accounts is staff/admin only, and creating a staff account needs
+    admin specifically."""
+    admin = User.objects.create_user(
+        username='acctadmin', email='acctadmin@example.com',
+        password='irrelevant-for-force-login', role='admin',
+    )
+    client.force_login(admin, backend='home.auth_backend.CustomUserBackend')
+    return client
+
+
+@pytest.mark.django_db
+def test_manage_accounts_rejects_a_weak_password(account_admin):
+    """Staff provisioning an account must clear the same bar as public signup.
+
+    register_view has called validate_password since the length-check bug;
+    manage_accounts went straight to set_password, so '12345678' sailed in.
+    Eight characters passes a length check, and NumericPasswordValidator and
+    CommonPasswordValidator both reject it, so it only lands if the view never
+    runs the validators.
+    """
+    account_admin.post(reverse('manage_accounts'), {
+        'action': 'create',
+        'username': 'weakuser',
+        'email': 'weak@example.com',
+        'password': '12345678',
+    })
+
+    assert not User.objects.filter(username='weakuser').exists(), (
+        'an all-numeric password created a staff-provisioned account'
+    )
+
+
+@pytest.mark.django_db
+def test_manage_accounts_still_creates_an_account_with_a_good_password(account_admin):
+    """So the test above cannot pass by rejecting everything."""
+    account_admin.post(reverse('manage_accounts'), {
+        'action': 'create',
+        'username': 'sturdyuser',
+        'email': 'sturdy@example.com',
+        'password': 'chim-vac-sau-1954',
+    })
+
+    assert User.objects.filter(username='sturdyuser').exists(), (
+        'a perfectly good password was refused'
+    )
+
+
+@pytest.mark.django_db
+def test_manage_accounts_rejects_a_weak_password_on_edit(account_admin):
+    """The edit branch sets passwords too. Validating only on create would move
+    the same hole one button across the same screen."""
+    target = User.objects.create_user(
+        username='edittarget', email='edittarget@example.com',
+        password='chim-vac-sau-1954', role='customer',
+    )
+    old_hash = target.password_hash
+
+    account_admin.post(reverse('manage_accounts'), {
+        'action': 'edit',
+        'account_id': target.user_id,
+        'username': 'edittarget',
+        'email': 'edittarget@example.com',
+        'password': '12345678',
+    })
+
+    target.refresh_from_db()
+    assert target.password_hash == old_hash, 'an all-numeric password was accepted'
+
+
+@pytest.mark.django_db
+def test_milestone_count_is_taken_under_a_row_lock(client):
+    """The count that grants the discount must not straddle a transaction.
+
+    Asserted at the query boundary because sqlite accepts select_for_update()
+    and never blocks on it; test_concurrency.py proves the blocking half
+    against real SQL Server, the same split pytest.ini already documents for
+    allocate_room. Without the lock, two bookings from one guest around their
+    third both read the same count and both collect 10%.
+
+    This guest has no bookings, so the provisional count is 1 and the request
+    falls through the ask-the-guest branch into the locked one.
+    """
+    guest = User.objects.create_user(
+        username='milestoneguest', email='milestone@example.com',
+        password='irrelevant-for-force-login', role='customer',
+    )
+    client.force_login(guest, backend='home.auth_backend.CustomUserBackend')
+
+    with patch('home.views.User.objects.select_for_update') as locked:
+        client.post(reverse('reservation'), {
+            'name': 'Milestone Guest', 'email': 'milestone@example.com',
+            'phone': '123',
+            'checkin_date': _CHECK_IN.strftime('%m/%d/%Y'),
+            'checkout_date': (_CHECK_IN + timedelta(days=2)).strftime('%m/%d/%Y'),
+            'adults': '1', 'children': '0', 'room_type': 'deluxe',
+        })
+
+    assert locked.called, 'the milestone count ran without locking the guest row'
+
+
 def test_milestone_check_counts_bookings_by_authenticated_user_not_email():
     """Loyalty milestones must be counted against request.user.
 

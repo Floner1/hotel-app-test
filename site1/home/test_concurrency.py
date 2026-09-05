@@ -33,7 +33,7 @@ import os
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -290,6 +290,145 @@ def test_booking_writes_are_denied_without_a_session_context(race_setup):
         with connection.cursor() as cursor:
             cursor.execute('DROP TRIGGER IF EXISTS trg_booking_ownership;')
             cursor.execute("EXEC sp_set_session_context @key=N'user_role', @value=%s", [None])
+
+
+@pytest.fixture
+def milestone_setup(mssql_default):
+    """A guest two bookings deep, so the next one is their third: the milestone.
+
+    Two physical rooms, because both concurrent bookings have to be able to
+    allocate. If one failed on availability instead of on eligibility, the test
+    would pass for the wrong reason.
+    """
+    from data.models import CustomerBookingInfo, Hotel, Room, RoomAssignment, RoomPrice, User
+
+    from django.db import connection
+
+    now = timezone.now()
+    # Clear anything a hard-killed previous run left behind, so setup fails
+    # with nothing rather than a confusing unique-constraint violation. Raw SQL
+    # for the user, for the cascade-collector reason spelled out in teardown
+    # below.
+    RoomAssignment.objects.filter(room__room_code__in=['MILE-1', 'MILE-2']).delete()
+    Room.objects.filter(room_code__in=['MILE-1', 'MILE-2']).delete()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            'DELETE FROM booking_info WHERE user_id IN '
+            "(SELECT user_id FROM users WHERE username = 'milestone-probe')"
+        )
+        cursor.execute(
+            'DELETE FROM audit_log WHERE user_id IN '
+            "(SELECT user_id FROM users WHERE username = 'milestone-probe')"
+        )
+        cursor.execute("DELETE FROM users WHERE username = 'milestone-probe'")
+
+    hotel = Hotel.objects.create(hotel_name='Milestone Test Hotel')
+    RoomPrice.objects.create(hotel=hotel, room_type='deluxe', price_per_night=500000)
+    rooms = [
+        Room.objects.create(
+            hotel=hotel, room_code=code, floor_number=9, room_number=number,
+            room_type='deluxe',
+        )
+        for code, number in (('MILE-1', 91), ('MILE-2', 92))
+    ]
+    guest = User.objects.create(
+        username='milestone-probe', email='milestone-probe@example.com',
+        password_hash='unusable', role='customer', is_active=True,
+        is_verified=True, created_at=now,
+    )
+    prior = dict(
+        hotel=hotel, user=guest, guest_name='Milestone Probe', room_type='deluxe',
+        booking_date=now, check_in=date(2027, 9, 1), check_out=date(2027, 9, 3),
+        booked_rate=500000, total_price=1000000, status='pending',
+        payment_status='unpaid', amount_paid=0, created_at=now, updated_at=now,
+    )
+    CustomerBookingInfo.objects.create(**prior)
+    CustomerBookingInfo.objects.create(**prior)
+
+    try:
+        yield guest
+    finally:
+        from django.db import connection
+
+        RoomAssignment.objects.filter(room__in=rooms).delete()
+        CustomerBookingInfo.objects.filter(user=guest).delete()
+        Room.objects.filter(pk__in=[r.pk for r in rooms]).delete()
+        RoomPrice.objects.filter(hotel=hotel).delete()
+        # Raw SQL for the audit rows and the user, for the reason audit_actor
+        # spells out: deleting a User through the ORM sends the cascade
+        # collector through every FK pointing at the user model, including
+        # django.contrib.admin's django_admin_log, which this database does not
+        # have. The view writes audit rows, and audit_log's FK is NOT NULL, so
+        # they have to go first either way.
+        with connection.cursor() as cursor:
+            cursor.execute('DELETE FROM audit_log WHERE user_id = %s', [guest.pk])
+            cursor.execute('DELETE FROM users WHERE user_id = %s', [guest.pk])
+        Hotel.objects.filter(pk=hotel.pk).delete()
+
+
+def test_concurrent_bookings_cannot_both_claim_one_milestone(milestone_setup):
+    """Two bookings racing across the same milestone must not both take 10%.
+
+    The count that grants the discount was an ordinary read. Both requests saw
+    two prior bookings, both computed booking number three, and both qualified.
+    The fix locks the guest's own user row and keeps the count in the same
+    transaction as the booking it gates, so the second request counts three and
+    pays full price.
+
+    Drives the real view through RequestFactory rather than the test client:
+    this scratch database is built from data/ models only, so it has no
+    django_session table for force_login to write to. request.user is set
+    directly, which is all the view reads.
+
+    The confirmation email is patched out because email_queue is not one of the
+    tables this database has.
+    """
+    import json
+    from unittest.mock import patch
+
+    from django.test import RequestFactory
+
+    from data.models import CustomerBookingInfo
+    from home.views import get_reservation
+
+    guest = milestone_setup
+    check_in = date.today() + timedelta(days=30)
+    barrier = threading.Barrier(2)
+
+    def book():
+        request = RequestFactory().post('/reservation/', {
+            'name': 'Milestone Probe',
+            'email': 'milestone-probe@example.com',
+            'phone': '123',
+            'checkin_date': check_in.strftime('%m/%d/%Y'),
+            'checkout_date': (check_in + timedelta(days=2)).strftime('%m/%d/%Y'),
+            'adults': '1', 'children': '0', 'room_type': 'deluxe',
+            'milestone_decision': 'redeem',
+        })
+        request.user = guest
+        try:
+            barrier.wait(timeout=10)  # both threads enter the locked block together
+            return get_reservation(request)
+        finally:
+            connections['default'].close()
+
+    with patch('backend.services.services.EmailService.queue_booking_confirmation'):
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(book), pool.submit(book)]
+            responses = [f.result(timeout=30) for f in futures]
+
+    payloads = [json.loads(r.content) for r in responses]
+    assert all(r.status_code == 200 for r in responses), (
+        f'a booking failed for some other reason: {payloads!r}'
+    )
+
+    # 500000 a night for two nights. The milestone booking pays 900000.
+    discounted = CustomerBookingInfo.objects.filter(
+        user=guest, check_in=check_in, total_price=900000
+    ).count()
+    assert discounted == 1, (
+        f'expected exactly one milestone discount, got {discounted}: {payloads!r}'
+    )
 
 
 def test_concurrent_allocation_prevents_double_booking(race_setup):
