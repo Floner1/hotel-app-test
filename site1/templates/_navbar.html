@@ -2,17 +2,24 @@
 <header class="site-header js-site-header">
   <div class="container-fluid">
     <div class="row align-items-center">
-      <div class="col-auto site-logo"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="{{ hotel_name|default:'Thiên Tài Hotel' }} Logo" class="logo-img"><span class="hotel-name-text">{{ hotel_name }}</span></a></div>
-      <div class="col nav-col">
-
-        <!-- Inline navigation — desktop -->
-        <div class="d-none d-lg-block inline-nav">
+      <div class="col nav-col nav-col-left">
+        <!-- Inline navigation — desktop, left of logo -->
+        <div class="d-none d-lg-block inline-nav inline-nav-left">
           <ul>
-            <li{% if active_page == 'home' %} class="active"{% endif %}><a href="{% url 'home' %}">Home</a></li>
             <li{% if active_page == 'rooms' %} class="active"{% endif %}><a href="{% url 'rooms' %}">Rooms</a></li>
             <li{% if active_page == 'about' %} class="active"{% endif %}><a href="{% url 'about' %}">About</a></li>
             <li{% if active_page == 'contact' %} class="active"{% endif %}><a href="{% url 'contact' %}">Contact</a></li>
-            <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-auto site-logo"><a href="{% url 'home' %}"><img src="{% static 'images/LOGO-THIEN-TAI.png' %}" alt="{{ hotel_name|default:'Thiên Tài Hotel' }} Logo" class="logo-img"></a></div>
+      <div class="col nav-col nav-col-right">
+
+        <!-- Inline navigation — desktop, right of logo -->
+        <div class="d-none d-lg-block inline-nav inline-nav-right">
+          <ul>
+            <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reserve</a></li>
+            <li><a href="#">Reviews</a></li>
             {% if user.is_authenticated %}
               {% if user.role == 'admin' or user.role == 'staff' %}
                 <li class="staff-tools-dropdown" id="staffToolsDropdown">
@@ -28,8 +35,7 @@
               {% endif %}
               <li><a href="{% url 'logout' %}">Logout</a></li>
             {% else %}
-              <li><a href="{% url 'login' %}">Login</a></li>
-              <li{% if active_page == 'register' %} class="active"{% endif %}><a href="{% url 'register' %}">Register</a></li>
+              <li><a href="{% url 'login' %}">Sign In/Up</a></li>
             {% endif %}
           </ul>
         </div>
@@ -48,11 +54,11 @@
               <div class="row full-height align-items-center">
                 <div class="col-md-6 mx-auto">
                   <ul class="list-unstyled menu">
-                    <li{% if active_page == 'home' %} class="active"{% endif %}><a href="{% url 'home' %}">Home</a></li>
                     <li{% if active_page == 'rooms' %} class="active"{% endif %}><a href="{% url 'rooms' %}">Rooms</a></li>
                     <li{% if active_page == 'about' %} class="active"{% endif %}><a href="{% url 'about' %}">About</a></li>
                     <li{% if active_page == 'contact' %} class="active"{% endif %}><a href="{% url 'contact' %}">Contact</a></li>
-                    <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reservation</a></li>
+                    <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reserve</a></li>
+                    <li><a href="#">Reviews</a></li>
                     {% if user.is_authenticated %}
                       {% if user.role == 'admin' or user.role == 'staff' %}
                         <li><span class="nav-section-label">Staff &amp; Admin</span></li>
@@ -64,8 +70,7 @@
                       {% endif %}
                       <li><a href="{% url 'logout' %}">Logout ({{ user.username }})</a></li>
                     {% else %}
-                      <li><a href="{% url 'login' %}">Login</a></li>
-                      <li{% if active_page == 'register' %} class="active"{% endif %}><a href="{% url 'register' %}">Create Account</a></li>
+                      <li><a href="{% url 'login' %}">Sign In/Up</a></li>
                     {% endif %}
                   </ul>
                 </div>

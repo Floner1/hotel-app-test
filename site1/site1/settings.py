@@ -348,6 +348,8 @@ CSRF_TRUSTED_ORIGINS = [
     o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()
 ]
 
+from csp.constants import NONCE
+
 # ---------- Content Security Policy (django-csp 4.x) ----------
 # REPORT-ONLY for now. This policy is the intended enforce target: `default-src
 # 'self'` and a strict `script-src 'self'` (no 'unsafe-inline') so that injected
@@ -371,7 +373,11 @@ CSRF_TRUSTED_ORIGINS = [
 CONTENT_SECURITY_POLICY_REPORT_ONLY = {
     "DIRECTIVES": {
         "default-src": ["'self'"],
-        "script-src": ["'self'"],
+        # NONCE is the django-csp 4.x sentinel: it puts a fresh per-response
+        # nonce into script-src, which is what makes nonce="{{ request.csp_nonce }}"
+        # in a template mean anything. Without it the attribute still renders
+        # but the policy never allows the block.
+        "script-src": ["'self'", NONCE],
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
         "img-src": ["'self'", "data:"],

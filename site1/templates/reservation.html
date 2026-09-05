@@ -334,7 +334,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   $(document).ready(function() {
     function formatDateForSubmit(dateString) {
       if (!dateString) return '';
@@ -662,7 +662,7 @@
     });
   });
 </script>
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // Pre-fill from booking widget GET params
   $(document).ready(function () {
     var params = new URLSearchParams(window.location.search);

@@ -373,7 +373,7 @@ body {
 
 {% block extra_js %}
 {{ open_issues_json|json_script:"openIssuesData" }}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   var csrfToken = '{{ csrf_token }}';
   var statusFilter = '{{ status_filter }}';
   var activeRoomId = null;

@@ -385,7 +385,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function () {
   var EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
   var DUR  = '0.6s';

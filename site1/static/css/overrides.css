@@ -9,6 +9,7 @@
   padding: 30px 0 !important;
   border-bottom: none !important;
   box-shadow: none !important;
+  z-index: 1000 !important;
 }
 
 .site-header.scrolled {
@@ -112,7 +113,7 @@
   padding: 0 !important;
   width: 100% !important;
   justify-content: flex-end !important;
-  gap: 32px !important;
+  gap: 48px !important;
 }
 
 .inline-nav ul li {
@@ -381,6 +382,15 @@ h3, .h3 { font-size: var(--text-h3); }
   align-items: center;
   justify-content: flex-end;
   width: 100%;
+}
+
+.inline-nav-right ul {
+  justify-content: flex-start !important;
+}
+
+.site-logo {
+  padding-left: 56px !important;
+  padding-right: 56px !important;
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */

@@ -97,8 +97,12 @@ KEEP_ALIVE = '30m'
 # costs nothing — but a cap the model can actually reach costs a whole
 # generation before it fails, so the expensive setting belongs on the path that
 # only runs after something already went wrong.
-NUM_PREDICT = 1200
-NUM_PREDICT_RETRY = 2400
+# Raised from 1200/2400 on 2026-09-05, once the /no_think marker was gone.
+# Marker-free reasoning on the live prompt measured 670 tokens on a run that
+# fit and over 1200 on one that did not, so 1200 sat right on the boundary
+# and failed often. A cap that is never reached costs nothing.
+NUM_PREDICT = 2400
+NUM_PREDICT_RETRY = 4000
 
 # Measured generation rate on this machine sat near 50 tokens/second. This
 # floor is deliberately pessimistic: it is what a busy or thermally throttled
@@ -331,17 +335,22 @@ class OllamaProvider(ChatProvider):
         response = self._client.chat(
             model=self.model,
             messages=[
-                # /no_think on both messages, unchanged from before the audit —
-                # see the module docstring for why moving it was not justified.
+                # No /no_think marker. It was meant to suppress reasoning and
+                # measurably did the opposite: on the live prompt, think=True
+                # with the marker spent the entire 1200-token budget on
+                # reasoning and returned an empty answer twice over, which is
+                # the "Model returned no answer" 503 guests were seeing. The
+                # same call without it finished inside 670 tokens. The model
+                # treats the marker as one more thing to reason about.
                 {
                     "role": "system",
-                    "content": f"{sanitize_prompt_text(system_prompt)}\n\n/no_think",
+                    "content": sanitize_prompt_text(system_prompt),
                 },
-                # Sanitised before the marker is appended, so no guest text can
-                # split the marker away or reach the template as a control token.
+                # Sanitised so no guest text reaches the template as a control
+                # token.
                 {
                     "role": "user",
-                    "content": f"{sanitize_prompt_text(user_message)}\n\n/no_think",
+                    "content": sanitize_prompt_text(user_message),
                 },
             ],
             # Explicit rather than inherited: Ollama defaults think to true for
