@@ -13,8 +13,10 @@ import pytest
 from django.contrib.messages import get_messages
 from django.core.cache import cache
 from django.urls import reverse
+from django.utils import timezone
 
 from data.models import AuditLog, CustomerBookingInfo, User
+from data.models.hotel import BookingStatus
 
 
 # ── Bug 1: deleting an account with history ────────────────────────────
@@ -198,3 +200,95 @@ def test_same_day_booking_still_reports_one_day(guest_client, bookable):
 
     assert response.status_code == 200, response.content
     assert json.loads(response.content)['total_days'] == 1
+
+
+# ── Bug 3: milestones counted bookings that never happened ─────────────
+#
+# Both loyalty counts were a flat count of every row the guest owns, and
+# BookingStatus has CANCELLED and REJECTED in it. So booking and cancelling
+# three times still tripped the every-third-booking discount, and it did so at
+# two separate call sites: the unlocked provisional count that decides whether
+# to interrupt and ask, and the locked one inside the transaction that decides
+# whether the 10% actually comes off.
+
+
+def _dead_booking(hotel, guest, status, check_in):
+    """A booking that should not count towards anything: cancelled or rejected.
+
+    Dates sit well away from the booking under test so room availability can
+    never be the reason a later assertion fails.
+    """
+    now = timezone.now()
+    return CustomerBookingInfo.objects.create(
+        hotel=hotel, user=guest, guest_name='Booking Guest', room_type='deluxe',
+        booking_date=now, check_in=check_in, check_out=check_in + timedelta(days=2),
+        booked_rate=Decimal('500000'), total_price=Decimal('1000000'),
+        status=status, payment_status='unpaid', amount_paid=Decimal('0.00'),
+        created_at=now, updated_at=now,
+    )
+
+
+def test_cancelled_bookings_do_not_trip_the_milestone_prompt(
+    guest_client, bookable, hotel
+):
+    """Two cancellations and a fresh booking is booking number one, so the view
+    must not stop and offer a milestone discount."""
+    _dead_booking(hotel, guest_client.guest, BookingStatus.CANCELLED, date(2027, 9, 1))
+    _dead_booking(hotel, guest_client.guest, BookingStatus.CANCELLED, date(2027, 10, 1))
+
+    response = _post_booking(
+        guest_client,
+        _CHECK_IN.strftime('%m/%d/%Y'),
+        (_CHECK_IN + timedelta(days=2)).strftime('%m/%d/%Y'),
+    )
+
+    payload = json.loads(response.content)
+    assert payload['status'] != 'milestone_check', (
+        'cancelled bookings were counted towards the loyalty milestone'
+    )
+    assert payload['status'] == 'success', payload
+
+
+def test_rejected_bookings_do_not_earn_the_milestone_discount(
+    guest_client, bookable, hotel
+):
+    """The second count is the one that spends money. Two rejected bookings
+    plus this one must not take 10% off."""
+    _dead_booking(hotel, guest_client.guest, BookingStatus.REJECTED, date(2027, 9, 1))
+    _dead_booking(hotel, guest_client.guest, BookingStatus.REJECTED, date(2027, 10, 1))
+
+    response = _post_booking(
+        guest_client,
+        _CHECK_IN.strftime('%m/%d/%Y'),
+        (_CHECK_IN + timedelta(days=2)).strftime('%m/%d/%Y'),
+        milestone_decision='redeem',
+    )
+
+    assert response.status_code == 200, response.content
+    booked = CustomerBookingInfo.objects.get(user=guest_client.guest, check_in=_CHECK_IN)
+    assert booked.total_price == Decimal('1000000.00'), (
+        f'rejected bookings bought a milestone discount: paid {booked.total_price} '
+        f'for two nights at 500000'
+    )
+
+
+def test_a_real_third_booking_still_earns_the_milestone(
+    guest_client, bookable, hotel
+):
+    """The other half of the pair, so the two tests above cannot pass by
+    breaking milestones outright."""
+    _dead_booking(hotel, guest_client.guest, BookingStatus.COMPLETED, date(2027, 9, 1))
+    _dead_booking(hotel, guest_client.guest, BookingStatus.CONFIRMED, date(2027, 10, 1))
+
+    response = _post_booking(
+        guest_client,
+        _CHECK_IN.strftime('%m/%d/%Y'),
+        (_CHECK_IN + timedelta(days=2)).strftime('%m/%d/%Y'),
+        milestone_decision='redeem',
+    )
+
+    assert response.status_code == 200, response.content
+    booked = CustomerBookingInfo.objects.get(user=guest_client.guest, check_in=_CHECK_IN)
+    assert booked.total_price == Decimal('900000.00'), (
+        f'the third real booking lost its 10%: paid {booked.total_price}'
+    )

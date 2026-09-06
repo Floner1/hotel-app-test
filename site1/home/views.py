@@ -54,6 +54,22 @@ def _can_manage_target(request_user, target_user=None, target_role=None):
         return False, 'You do not have permission to manage staff or admin accounts.'
     return True, None
 
+def _milestone_booking_number(user):
+    """Which booking number the guest's next stay would be, for loyalty.
+
+    Cancelled and rejected bookings are excluded because neither is a stay the
+    guest ever took. Counting them let anyone book and cancel twice, then take
+    10% off the third, which is the discount the milestone exists to reward.
+
+    Both milestone counts in get_reservation go through here. They have to
+    agree: the first decides whether to interrupt and offer the discount, the
+    second decides whether it comes off the price, and a guest offered one and
+    then charged full rate is a worse bug than either count alone.
+    """
+    return CustomerBookingInfo.objects.filter(user=user).exclude(
+        status__in=(BookingStatus.CANCELLED, BookingStatus.REJECTED)
+    ).count() + 1
+
 def _db_images_exist(names):
     """Batch-check which image names exist in the DB. Returns a dict {name: bool}."""
     try:
@@ -195,9 +211,7 @@ def get_reservation(request):
             # path, so a stale answer costs nothing.
             milestone_decision = request.POST.get('milestone_decision', '')
             if not milestone_decision:
-                provisional_number = CustomerBookingInfo.objects.filter(
-                    user=request.user
-                ).count() + 1
+                provisional_number = _milestone_booking_number(request.user)
                 if provisional_number % 3 == 0:
                     return JsonResponse({
                         'status': 'milestone_check',
@@ -214,9 +228,7 @@ def get_reservation(request):
             from django.db import transaction
             with transaction.atomic():
                 User.objects.select_for_update().filter(pk=request.user.pk).first()
-                milestone_booking_number = CustomerBookingInfo.objects.filter(
-                    user=request.user
-                ).count() + 1
+                milestone_booking_number = _milestone_booking_number(request.user)
 
                 if milestone_decision == 'redeem' and milestone_booking_number % 3 == 0:
                     reservation_data['milestone_discount_percent'] = 10
