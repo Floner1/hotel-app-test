@@ -1203,8 +1203,19 @@ def manage_accounts(request):
                     return redirect('manage_accounts')
 
                 username = user.username
-                user.delete()
-                messages.success(request, f'Account "{username}" deleted successfully!')
+                # Soft delete. audit_log.user_id is an FK to users with no ON
+                # DELETE action and every login writes a row, so a hard delete
+                # raises IntegrityError for anyone who has ever signed in and
+                # the handler below turns that into a message nobody can act
+                # on. is_active is the soft-delete flag the model already
+                # documents, and the account list above filters is_active=False
+                # out, so the account still disappears from every page staff see.
+                user.is_active = False
+                user.save(update_fields=['is_active'])
+                messages.success(
+                    request,
+                    f'Account "{username}" deactivated. Its records are kept for the audit trail.',
+                )
             except User.DoesNotExist:
                 messages.error(request, 'Account not found.')
             except Exception as e:
