@@ -19,7 +19,6 @@
         <div class="d-none d-lg-block inline-nav inline-nav-right">
           <ul>
             <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reserve</a></li>
-            <li><a href="#">Reviews</a></li>
             {% if user.is_authenticated %}
               {% if user.role == 'admin' or user.role == 'staff' %}
                 <li class="staff-tools-dropdown" id="staffToolsDropdown">
@@ -27,6 +26,9 @@
                   <div id="staffToolsMenu" class="staff-tools-menu" role="menu">
                     <a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a>
                     <a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a>
+                    <a href="{% url 'email_campaigns' %}"><i class="fa fa-paper-plane"></i> Email Campaigns</a>
+                    <a href="{% url 'email_subscribers' %}"><i class="fa fa-users"></i> Subscribers</a>
+                    <a href="{% url 'email_log' %}"><i class="fa fa-envelope"></i> Email Log</a>
                     {% if user.role == 'admin' %}
                       <a href="#" id="navEditModeToggle" class="js-edit-mode-toggle"><i class="fa fa-pencil"></i> Edit Mode</a>
                     {% endif %}
@@ -58,12 +60,14 @@
                     <li{% if active_page == 'about' %} class="active"{% endif %}><a href="{% url 'about' %}">About</a></li>
                     <li{% if active_page == 'contact' %} class="active"{% endif %}><a href="{% url 'contact' %}">Contact</a></li>
                     <li{% if active_page == 'reservation' %} class="active"{% endif %}><a href="{% url 'reservation' %}">Reserve</a></li>
-                    <li><a href="#">Reviews</a></li>
                     {% if user.is_authenticated %}
                       {% if user.role == 'admin' or user.role == 'staff' %}
                         <li><span class="nav-section-label">Staff &amp; Admin</span></li>
                         <li><a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a></li>
                         <li><a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a></li>
+                        <li><a href="{% url 'email_campaigns' %}"><i class="fa fa-paper-plane"></i> Email Campaigns</a></li>
+                        <li><a href="{% url 'email_subscribers' %}"><i class="fa fa-users"></i> Subscribers</a></li>
+                        <li><a href="{% url 'email_log' %}"><i class="fa fa-envelope"></i> Email Log</a></li>
                         {% if user.role == 'admin' %}
                           <li><a href="#" class="js-edit-mode-toggle"><i class="fa fa-pencil"></i> Edit Mode</a></li>
                         {% endif %}
