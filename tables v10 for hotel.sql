@@ -49,6 +49,7 @@ CREATE TABLE users (
     password_hash NVARCHAR(255) NOT NULL,
     role          NVARCHAR(50)  NOT NULL CHECK (role IN ('customer','staff','admin')),
     is_active     BIT           NOT NULL DEFAULT 1,
+    is_verified   BIT           NOT NULL CONSTRAINT DF_users_is_verified DEFAULT 1,
     created_at    DATETIME      DEFAULT GETDATE(),
     last_login    DATETIME      NULL,
     created_by    INT           NULL,
@@ -116,6 +117,10 @@ CREATE TABLE rooms (
 );
 GO
 
+CREATE INDEX ix_rooms_type_status    ON rooms (room_type, reservation_status);
+CREATE INDEX ix_rooms_floor          ON rooms (floor_number, room_number);
+GO
+
 CREATE TABLE room_maintenance_logs (
     log_id            INT IDENTITY(1,1) PRIMARY KEY,
     room_id           INT NOT NULL,
@@ -167,6 +172,14 @@ CREATE TABLE booking_info (
 );
 GO
 
+CREATE INDEX ix_booking_check_in     ON booking_info (check_in) INCLUDE (check_out, status);
+CREATE INDEX ix_booking_check_out    ON booking_info (check_out);
+CREATE INDEX ix_booking_status       ON booking_info (status) INCLUDE (check_in, check_out);
+CREATE INDEX ix_booking_user         ON booking_info (user_id) INCLUDE (status, check_in);
+CREATE INDEX ix_booking_email        ON booking_info (email);
+CREATE INDEX ix_booking_date         ON booking_info (booking_date DESC);
+GO
+
 CREATE TABLE room_assignments (
     assignment_id INT IDENTITY(1,1) PRIMARY KEY,
     booking_id    INT NOT NULL,
@@ -182,6 +195,10 @@ CREATE TABLE room_assignments (
     CONSTRAINT fk_ra_room        FOREIGN KEY (room_id)     REFERENCES rooms(room_id),
     CONSTRAINT fk_ra_assigned_by FOREIGN KEY (assigned_by) REFERENCES users(user_id)
 );
+GO
+
+CREATE INDEX ix_ra_room_status_dates ON room_assignments (room_id, status, check_in, check_out);
+CREATE INDEX ix_ra_booking_status    ON room_assignments (booking_id, status);
 GO
 
 
@@ -226,6 +243,10 @@ CREATE TABLE audit_log (
     timestamp   DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+GO
+
+CREATE INDEX ix_audit_timestamp      ON audit_log (timestamp DESC);
+CREATE INDEX ix_audit_user_action    ON audit_log (user_id, action_type);
 GO
 
 CREATE TABLE ImagesRef (
