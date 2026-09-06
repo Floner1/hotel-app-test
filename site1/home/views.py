@@ -506,7 +506,15 @@ def verify_email(request, uidb64, token):
         user = None
 
     # Token is single-use: it embeds is_verified, so it stops validating once set.
-    if user is not None and email_verification_token.check_token(user, token):
+    # is_active matters here even though the backend guards it too: login()
+    # writes the session directly and never calls authenticate(), so nothing
+    # else on this path would stop a deactivated account holding a token that
+    # still checks out. The token hashes is_verified, not is_active.
+    if (
+        user is not None
+        and user.is_active
+        and email_verification_token.check_token(user, token)
+    ):
         if not user.is_verified:
             user.is_verified = True
             user.save(update_fields=['is_verified'])
@@ -524,7 +532,9 @@ def resend_verification(request):
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
         if email:
-            user = User.objects.filter(email__iexact=email, is_verified=False).first()
+            user = User.objects.filter(
+                email__iexact=email, is_verified=False, is_active=True
+            ).first()
             if user:
                 _send_verification_email(request, user)
         return render(request, 'registration/verify_email_sent.html', {

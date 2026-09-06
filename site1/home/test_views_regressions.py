@@ -292,3 +292,82 @@ def test_a_real_third_booking_still_earns_the_milestone(
     assert booked.total_price == Decimal('900000.00'), (
         f'the third real booking lost its 10%: paid {booked.total_price}'
     )
+
+
+# -- Bug 4: deactivation has to actually revoke access ------------------
+#
+# Soft delete only means something if the rest of the stack honours the flag.
+# is_active was read in exactly one place, inside authenticate(), which covers
+# the login form and nothing else. An existing session never calls
+# authenticate() again, and verify_email calls login() directly, so a
+# deactivated account kept working on both paths.
+
+
+@pytest.fixture
+def deactivated_guest(db):
+    guest = User.objects.create_user(
+        username='goneguest',
+        email='goneguest@example.com',
+        password='irrelevant',
+        role='customer',
+    )
+    guest.is_active = False
+    guest.save(update_fields=['is_active'])
+    return guest
+
+
+def test_get_user_refuses_a_deactivated_account(db, deactivated_guest):
+    """AuthenticationMiddleware calls get_user on every request, so this is
+    what ends a deactivated account's session on its very next click."""
+    from home.auth_backend import CustomUserBackend
+
+    assert CustomUserBackend().get_user(deactivated_guest.pk) is None
+
+
+def test_get_user_still_returns_an_active_account(db):
+    """Control. The guard must not lock out everyone else."""
+    from home.auth_backend import CustomUserBackend
+
+    active = User.objects.create_user(
+        username='stillhere',
+        email='stillhere@example.com',
+        password='irrelevant',
+        role='customer',
+    )
+
+    assert CustomUserBackend().get_user(active.pk) == active
+
+
+def test_resend_verification_ignores_a_deactivated_account(client, db, deactivated_guest):
+    """The lookup matched on is_verified alone, so a deactivated account could
+    ask for a fresh link whenever it liked."""
+    cache.clear()
+    deactivated_guest.is_verified = False
+    deactivated_guest.save(update_fields=['is_verified'])
+
+    with patch('home.views._send_verification_email') as send:
+        client.post(reverse('resend_verification'), {'email': deactivated_guest.email})
+
+    assert not send.called, 'mailed a fresh verification link to a deactivated account'
+
+
+def test_verify_email_will_not_log_in_a_deactivated_account(client, db, deactivated_guest):
+    """The token hashes is_verified, not is_active, so deactivating after a
+    link went out leaves a valid token pointing at a dead account. login()
+    writes the session directly and never consults authenticate()."""
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    from home.tokens import email_verification_token
+
+    deactivated_guest.is_verified = False
+    deactivated_guest.save(update_fields=['is_verified'])
+
+    token = email_verification_token.make_token(deactivated_guest)
+    uidb64 = urlsafe_base64_encode(force_bytes(deactivated_guest.pk))
+
+    client.get(reverse('verify_email', args=[uidb64, token]))
+
+    assert '_auth_user_id' not in client.session, 'verified a deactivated account into a session'
+    deactivated_guest.refresh_from_db()
+    assert deactivated_guest.is_verified is False
