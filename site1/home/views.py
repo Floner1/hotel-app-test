@@ -228,10 +228,13 @@ def get_reservation(request):
             # Audit log
             log_booking_create(request.user, booking, request)
 
-            # Calculate total days
-            checkin = datetime.strptime(request.POST.get('checkin_date'), '%m/%d/%Y').date()
-            checkout = datetime.strptime(request.POST.get('checkout_date'), '%m/%d/%Y').date()
-            total_days = (checkout - checkin).days
+            # Total days off the dates the service parsed and stored, not off
+            # the raw POST. This used to re-parse the request strings with a
+            # single hard-coded '%m/%d/%Y', while ReservationService._parse_date
+            # accepts six formats. Any of the other five raised ValueError here,
+            # which is not a ValidationError, so the catch-all below answered
+            # 500 for a booking that had already committed and been emailed.
+            total_days = (booking.check_out - booking.check_in).days
             # For same-day bookings, display as 1 day
             if total_days == 0:
                 total_days = 1
