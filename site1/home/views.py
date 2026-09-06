@@ -17,7 +17,7 @@ from data.repos.repositories import DiscountRepository, HotelRepository, RoomMai
 from backend.services.ai_providers import ProviderBusy, model_slot
 from django.db import IntegrityError
 from django.db.models import Sum
-from datetime import date, datetime
+from datetime import date
 import logging
 from home.audit import log_booking_create, log_booking_update, log_booking_delete, log_user_login
 
@@ -53,6 +53,18 @@ def _can_manage_target(request_user, target_user=None, target_role=None):
     if effective_role in ('staff', 'admin'):
         return False, 'You do not have permission to manage staff or admin accounts.'
     return True, None
+
+def _milestone_booking_number(user):
+    """Which booking number the guest's next stay would be.
+
+    Cancelled and rejected bookings are excluded: neither is a stay the guest
+    took, and counting them let anyone book and cancel twice and then take 10%
+    off the third. Both counts in get_reservation come through here, so the one
+    that offers the discount cannot disagree with the one that applies it.
+    """
+    return CustomerBookingInfo.objects.filter(user=user).exclude(
+        status__in=(BookingStatus.CANCELLED, BookingStatus.REJECTED)
+    ).count() + 1
 
 def _db_images_exist(names):
     """Batch-check which image names exist in the DB. Returns a dict {name: bool}."""
@@ -195,9 +207,7 @@ def get_reservation(request):
             # path, so a stale answer costs nothing.
             milestone_decision = request.POST.get('milestone_decision', '')
             if not milestone_decision:
-                provisional_number = CustomerBookingInfo.objects.filter(
-                    user=request.user
-                ).count() + 1
+                provisional_number = _milestone_booking_number(request.user)
                 if provisional_number % 3 == 0:
                     return JsonResponse({
                         'status': 'milestone_check',
@@ -214,9 +224,7 @@ def get_reservation(request):
             from django.db import transaction
             with transaction.atomic():
                 User.objects.select_for_update().filter(pk=request.user.pk).first()
-                milestone_booking_number = CustomerBookingInfo.objects.filter(
-                    user=request.user
-                ).count() + 1
+                milestone_booking_number = _milestone_booking_number(request.user)
 
                 if milestone_decision == 'redeem' and milestone_booking_number % 3 == 0:
                     reservation_data['milestone_discount_percent'] = 10
@@ -228,10 +236,10 @@ def get_reservation(request):
             # Audit log
             log_booking_create(request.user, booking, request)
 
-            # Calculate total days
-            checkin = datetime.strptime(request.POST.get('checkin_date'), '%m/%d/%Y').date()
-            checkout = datetime.strptime(request.POST.get('checkout_date'), '%m/%d/%Y').date()
-            total_days = (checkout - checkin).days
+            # Nights from the dates the service stored. Never re-parse the raw
+            # POST here: _parse_date accepts six formats, this view knew one,
+            # and the mismatch 500'd bookings that had already committed.
+            total_days = (booking.check_out - booking.check_in).days
             # For same-day bookings, display as 1 day
             if total_days == 0:
                 total_days = 1
@@ -498,7 +506,15 @@ def verify_email(request, uidb64, token):
         user = None
 
     # Token is single-use: it embeds is_verified, so it stops validating once set.
-    if user is not None and email_verification_token.check_token(user, token):
+    # is_active matters here even though the backend guards it too: login()
+    # writes the session directly and never calls authenticate(), so nothing
+    # else on this path would stop a deactivated account holding a token that
+    # still checks out. The token hashes is_verified, not is_active.
+    if (
+        user is not None
+        and user.is_active
+        and email_verification_token.check_token(user, token)
+    ):
         if not user.is_verified:
             user.is_verified = True
             user.save(update_fields=['is_verified'])
@@ -516,7 +532,9 @@ def resend_verification(request):
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
         if email:
-            user = User.objects.filter(email__iexact=email, is_verified=False).first()
+            user = User.objects.filter(
+                email__iexact=email, is_verified=False, is_active=True
+            ).first()
             if user:
                 _send_verification_email(request, user)
         return render(request, 'registration/verify_email_sent.html', {
@@ -1203,8 +1221,17 @@ def manage_accounts(request):
                     return redirect('manage_accounts')
 
                 username = user.username
-                user.delete()
-                messages.success(request, f'Account "{username}" deleted successfully!')
+                # Soft delete. audit_log.user_id is an FK to users with no ON
+                # DELETE action and every login writes a row, so a hard delete
+                # raises IntegrityError for anyone who has ever signed in. The
+                # account list further down filters is_active=False out, so the
+                # account still leaves every page staff can see.
+                user.is_active = False
+                user.save(update_fields=['is_active'])
+                messages.success(
+                    request,
+                    f'Account "{username}" deactivated. Its records are kept for the audit trail.',
+                )
             except User.DoesNotExist:
                 messages.error(request, 'Account not found.')
             except Exception as e:

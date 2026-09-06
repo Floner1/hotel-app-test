@@ -405,7 +405,9 @@ def test_milestone_check_counts_bookings_by_authenticated_user_not_email():
     request.user = user
 
     mock_qs = MagicMock()
-    mock_qs.count.return_value = 2  # (2 + 1) % 3 == 0, so this trips the milestone
+    # The count runs through .exclude() to drop cancelled and rejected
+    # bookings, so prime the end of that chain rather than the filter itself.
+    mock_qs.exclude.return_value.count.return_value = 2  # (2+1) % 3 == 0
     with patch(
         'home.views.CustomerBookingInfo.objects.filter', return_value=mock_qs
     ) as mock_filter:

@@ -48,8 +48,17 @@ class CustomUserBackend(BaseBackend):
     def get_user(self, user_id):
         """
         Get user by ID.
+
+        AuthenticationMiddleware calls this on every authenticated request, so
+        the is_active check has to live here and not only in authenticate().
+        Deactivating an account otherwise leaves whatever session it already
+        had working indefinitely, because a live session never authenticates
+        again. This is what makes the soft delete in manage_accounts actually
+        revoke access, on the account's very next request.
         """
         try:
-            return User.objects.get(pk=user_id)
+            user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return None
+
+        return user if user.is_active else None
