@@ -26,6 +26,9 @@
                   <div id="staffToolsMenu" class="staff-tools-menu" role="menu">
                     <a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a>
                     <a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a>
+                    <a href="{% url 'email_campaigns' %}"><i class="fa fa-paper-plane"></i> Email Campaigns</a>
+                    <a href="{% url 'email_subscribers' %}"><i class="fa fa-users"></i> Subscribers</a>
+                    <a href="{% url 'email_log' %}"><i class="fa fa-envelope"></i> Email Log</a>
                     {% if user.role == 'admin' %}
                       <a href="#" id="navEditModeToggle" class="js-edit-mode-toggle"><i class="fa fa-pencil"></i> Edit Mode</a>
                     {% endif %}
@@ -62,6 +65,9 @@
                         <li><span class="nav-section-label">Staff &amp; Admin</span></li>
                         <li><a href="{% url 'admin_reservations' %}"><i class="fa fa-list-alt"></i> Dashboard</a></li>
                         <li><a href="{% url 'room_dashboard' %}"><i class="fa fa-building"></i> Room Dashboard</a></li>
+                        <li><a href="{% url 'email_campaigns' %}"><i class="fa fa-paper-plane"></i> Email Campaigns</a></li>
+                        <li><a href="{% url 'email_subscribers' %}"><i class="fa fa-users"></i> Subscribers</a></li>
+                        <li><a href="{% url 'email_log' %}"><i class="fa fa-envelope"></i> Email Log</a></li>
                         {% if user.role == 'admin' %}
                           <li><a href="#" class="js-edit-mode-toggle"><i class="fa fa-pencil"></i> Edit Mode</a></li>
                         {% endif %}
