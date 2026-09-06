@@ -46,7 +46,15 @@
 
   {% include "_discount_popup.html" %}
 
-  {% include "_chat_widget.html" %}
+  {% comment %}
+    Front desk chat is for guests. Every staff page sits under /dashboard/
+    and every auth page under /accounts/, and no guest URL contains either
+    string, so these two substring tests cover the lot. The 4xx/5xx
+    templates are standalone and never reach this file.
+  {% endcomment %}
+  {% if "/dashboard/" not in request.path and "/accounts/" not in request.path %}
+    {% include "_chat_widget.html" %}
+  {% endif %}
 
     {% block content %}{% endblock %}
 
