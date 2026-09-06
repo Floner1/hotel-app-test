@@ -27,8 +27,12 @@
     <!-- Shared Override Styles -->
     <link rel="stylesheet" href="{% static 'css/overrides.css' %}">
 
-    <!-- Front desk chat widget -->
-    <link rel="stylesheet" href="{% static 'css/chat-widget.css' %}">
+    <!-- Front desk chat widget. Same guard as the include near the end of
+         this file: no point shipping the widget's stylesheet to a page that
+         does not render the widget. -->
+    {% if "/dashboard/" not in request.path and "/accounts/" not in request.path %}
+      <link rel="stylesheet" href="{% static 'css/chat-widget.css' %}">
+    {% endif %}
 
     {% block extra_css %}{% endblock %}
   </head>
@@ -67,7 +71,9 @@
     <script src="{% static 'js/bootstrap-datepicker.js' %}"></script>
 
     <script src="{% static 'js/main.js' %}"></script>
-    <script src="{% static 'js/chat-widget.js' %}"></script>
+    {% if "/dashboard/" not in request.path and "/accounts/" not in request.path %}
+      <script src="{% static 'js/chat-widget.js' %}"></script>
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 
