@@ -49,6 +49,7 @@ CREATE TABLE users (
     password_hash NVARCHAR(255) NOT NULL,
     role          NVARCHAR(50)  NOT NULL CHECK (role IN ('customer','staff','admin')),
     is_active     BIT           NOT NULL DEFAULT 1,
+    is_verified   BIT           NOT NULL CONSTRAINT DF_users_is_verified DEFAULT 1,
     created_at    DATETIME      DEFAULT GETDATE(),
     last_login    DATETIME      NULL,
     created_by    INT           NULL,
