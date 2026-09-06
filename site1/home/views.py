@@ -17,7 +17,7 @@ from data.repos.repositories import DiscountRepository, HotelRepository, RoomMai
 from backend.services.ai_providers import ProviderBusy, model_slot
 from django.db import IntegrityError
 from django.db.models import Sum
-from datetime import date, datetime
+from datetime import date
 import logging
 from home.audit import log_booking_create, log_booking_update, log_booking_delete, log_user_login
 
@@ -55,16 +55,12 @@ def _can_manage_target(request_user, target_user=None, target_role=None):
     return True, None
 
 def _milestone_booking_number(user):
-    """Which booking number the guest's next stay would be, for loyalty.
+    """Which booking number the guest's next stay would be.
 
-    Cancelled and rejected bookings are excluded because neither is a stay the
-    guest ever took. Counting them let anyone book and cancel twice, then take
-    10% off the third, which is the discount the milestone exists to reward.
-
-    Both milestone counts in get_reservation go through here. They have to
-    agree: the first decides whether to interrupt and offer the discount, the
-    second decides whether it comes off the price, and a guest offered one and
-    then charged full rate is a worse bug than either count alone.
+    Cancelled and rejected bookings are excluded: neither is a stay the guest
+    took, and counting them let anyone book and cancel twice and then take 10%
+    off the third. Both counts in get_reservation come through here, so the one
+    that offers the discount cannot disagree with the one that applies it.
     """
     return CustomerBookingInfo.objects.filter(user=user).exclude(
         status__in=(BookingStatus.CANCELLED, BookingStatus.REJECTED)
@@ -240,12 +236,9 @@ def get_reservation(request):
             # Audit log
             log_booking_create(request.user, booking, request)
 
-            # Total days off the dates the service parsed and stored, not off
-            # the raw POST. This used to re-parse the request strings with a
-            # single hard-coded '%m/%d/%Y', while ReservationService._parse_date
-            # accepts six formats. Any of the other five raised ValueError here,
-            # which is not a ValidationError, so the catch-all below answered
-            # 500 for a booking that had already committed and been emailed.
+            # Nights from the dates the service stored. Never re-parse the raw
+            # POST here: _parse_date accepts six formats, this view knew one,
+            # and the mismatch 500'd bookings that had already committed.
             total_days = (booking.check_out - booking.check_in).days
             # For same-day bookings, display as 1 day
             if total_days == 0:
@@ -1220,11 +1213,9 @@ def manage_accounts(request):
                 username = user.username
                 # Soft delete. audit_log.user_id is an FK to users with no ON
                 # DELETE action and every login writes a row, so a hard delete
-                # raises IntegrityError for anyone who has ever signed in and
-                # the handler below turns that into a message nobody can act
-                # on. is_active is the soft-delete flag the model already
-                # documents, and the account list above filters is_active=False
-                # out, so the account still disappears from every page staff see.
+                # raises IntegrityError for anyone who has ever signed in. The
+                # account list further down filters is_active=False out, so the
+                # account still leaves every page staff can see.
                 user.is_active = False
                 user.save(update_fields=['is_active'])
                 messages.success(
