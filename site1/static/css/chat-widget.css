@@ -259,13 +259,28 @@ body.dp-open .tt-chat {
 /* Typing indicator — three dots on a staggered bounce. */
 .tt-chat__typing {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   align-items: center;
-  width: 54px;
-  padding: 13px;
+  /* was a fixed 54px, which fitted three dots and would have clipped words.
+     No max-width here: .tt-chat__msg already caps every bubble at 85%, and
+     restating it later in the file only overrode that cap for this one. */
+  width: auto;
+  padding: 10px 13px;
 }
 
-.tt-chat__typing span {
+.tt-chat__typing-label {
+  font-size: 0.85em;
+  color: var(--color-text-muted);
+}
+
+.tt-chat__typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tt-chat__typing-dots span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -273,8 +288,8 @@ body.dp-open .tt-chat {
   animation: tt-chat-blink 1.3s var(--ease) infinite both;
 }
 
-.tt-chat__typing span:nth-child(2) { animation-delay: 0.18s; }
-.tt-chat__typing span:nth-child(3) { animation-delay: 0.36s; }
+.tt-chat__typing-dots span:nth-child(2) { animation-delay: 0.18s; }
+.tt-chat__typing-dots span:nth-child(3) { animation-delay: 0.36s; }
 
 @keyframes tt-chat-blink {
   0%, 70%, 100% { opacity: 0.25; transform: translateY(0); }
@@ -387,7 +402,7 @@ body.dp-open .tt-chat {
     animation: none;
   }
 
-  .tt-chat__typing span {
+  .tt-chat__typing-dots span {
     animation-duration: 2.4s;
   }
 }

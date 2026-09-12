@@ -74,13 +74,61 @@
       scrollToEnd();
     }
 
+    // Staged words, not a ticking clock. A counter climbing past 60 turns the
+    // wait into a stopwatch on something broken, which is the impression this
+    // exists to remove. Measured median is about 12s and the tail runs past
+    // 60s, so the stages are placed to change once during a normal wait and
+    // again well into a long one: a guest who sees the words move knows the
+    // thing is alive.
+    var WAIT_STAGES = [
+      [0,  'Looking that up'],
+      [12, 'Still working on that'],
+      [35, 'Thanks for waiting, nearly there']
+    ];
+
+    var waitTimer = null;
+    var waitStartedAt = 0;
+    var lastWaitLabel = null;
+
+    // Writes only when the wording actually changes. The label sits inside
+    // #tt-chat-log, which is role="log" aria-live="polite", so replacing its
+    // text node is an announcement. Rewriting the same sentence every second
+    // would read it out every second for the length of the wait.
+    function tickWait() {
+      var elapsed = (Date.now() - waitStartedAt) / 1000;
+      var label = WAIT_STAGES[0][1];
+      for (var i = 0; i < WAIT_STAGES.length; i++) {
+        if (elapsed >= WAIT_STAGES[i][0]) label = WAIT_STAGES[i][1];
+      }
+      if (label !== lastWaitLabel) {
+        lastWaitLabel = label;
+        $('#tt-chat-typing .tt-chat__typing-label').text(label);
+        // Later stages are longer strings. If one wraps, the bubble grows and
+        // the newest line drops below the fold on a short panel.
+        scrollToEnd();
+      }
+    }
+
     function showTyping() {
+      // The dots move into their own wrapper so the label is not caught by the
+      // nth-child rules that stagger them.
       $('<div class="tt-chat__msg tt-chat__msg--bot tt-chat__typing" id="tt-chat-typing">' +
-        '<span></span><span></span><span></span></div>').appendTo($log);
+        '<span class="tt-chat__typing-label"></span>' +
+        '<span class="tt-chat__typing-dots" aria-hidden="true">' +
+        '<span></span><span></span><span></span></span></div>').appendTo($log);
+      waitStartedAt = Date.now();
+      lastWaitLabel = null;
+      tickWait();
+      waitTimer = setInterval(tickWait, 1000);
       scrollToEnd();
     }
 
     function clearTyping() {
+      // Both the success and the error route come through here, so this is the
+      // only teardown the timer needs. Missing it would leave one interval per
+      // message running for the life of the page.
+      clearInterval(waitTimer);
+      waitTimer = null;
       $('#tt-chat-typing').remove();
     }
 

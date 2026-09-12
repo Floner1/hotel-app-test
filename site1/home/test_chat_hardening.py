@@ -480,6 +480,71 @@ def test_a_hostile_phone_number_cannot_break_out_of_the_widget_markup(client, db
         'the payload should survive as escaped text inside the attribute')
 
 
+def test_the_wait_state_says_something_rather_than_blinking_silently():
+    """Three animated dots and no words, for a wait that runs 12s to 90s.
+
+    The 2026-09-12 audit put a number on the silent half of this: the typing
+    indicator was three empty spans, and a live DOM check returned
+    typingIndicatorHasText false. The log is role="log" aria-live="polite", so
+    it announces the reply when it lands and nothing at all before that.
+
+    The measured distribution is what the stages have to cover: median about
+    12s, tail past 60s. One stage that never changes is the same silence with
+    extra markup, so there have to be at least two, and the copy has to still
+    be moving well into the tail rather than settling in the first few seconds.
+    """
+    import re
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
+          / 'chat-widget.js').read_text(encoding='utf-8')
+
+    block = re.search(r'WAIT_STAGES\s*=\s*\[(.*?)\];', js, re.S)
+    assert block, 'chat-widget.js defines no staged wait copy'
+
+    pair = r"\[\s*(\d+)\s*,\s*'([^']+)'\s*\]"
+    stages = re.findall(pair, block.group(1))
+    assert len(stages) >= 2, f'only {len(stages)} wait stage(s), so the copy never changes'
+
+    seconds = [int(sec) for sec, _ in stages]
+    assert seconds == sorted(seconds), f'wait stages are out of order: {seconds}'
+    assert seconds[0] == 0, 'the guest gets no text until the first stage fires'
+    assert max(seconds) >= 30, (
+        f'last stage fires at {max(seconds)}s, so a 90s wait looks identical to '
+        f'a 30s one')
+    assert all(text.strip() for _, text in stages), 'a stage with no words is not a stage'
+
+
+def test_the_wait_state_does_not_re_announce_itself_every_tick():
+    """The label sits inside role="log" aria-live="polite". Rewriting it on
+    every tick replaces the text node, which is a fresh announcement, so a
+    screen reader user would hear the same sentence once a second for a minute.
+    The timer has to compare before it writes.
+    """
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
+          / 'chat-widget.js').read_text(encoding='utf-8')
+    assert 'lastWaitLabel' in js, 'nothing remembers the label last written'
+    tick = js.split('function tickWait', 1)
+    assert len(tick) == 2, 'no tickWait function to inspect'
+    body = tick[1].split(chr(10) + '    }', 1)[0]
+    assert 'lastWaitLabel' in body and '!==' in body, (
+        'tickWait writes the label without checking whether it changed')
+
+
+def test_the_wait_timer_is_cleared_when_the_reply_lands():
+    """A setInterval that outlives its bubble keeps running for the life of the
+    page, once per message sent. clearTyping() is the only teardown path and
+    both success and error routes go through it.
+    """
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
+          / 'chat-widget.js').read_text(encoding='utf-8')
+    clear = js.split('function clearTyping', 1)
+    assert len(clear) == 2, 'no clearTyping function'
+    body = clear[1].split(chr(10) + '    }', 1)[0]
+    assert 'clearInterval' in body, 'clearTyping leaves the wait timer running'
+
+
 def test_retry_gives_the_model_a_bigger_budget_than_the_first_attempt(monkeypatch):
     """The live failure on 2026-08-23: 'hello, tell me about all room types'
     returned RuntimeError('Model returned no answer').
