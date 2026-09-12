@@ -342,8 +342,9 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 # real HTTPS domain (POSTs are checked against the Origin/Referer scheme+host).
 # Set the real deploy domain(s) via env as full origins, e.g.
 #   CSRF_TRUSTED_ORIGINS="https://book.thientai.example,https://www.thientai.example"
-# Not needed for same-origin localhost dev. [MISSING: production domain(s) —
-# Railway deploy was removed; fill in once the prod host is known.]
+# Not needed for same-origin localhost dev. Empty by design right now: nothing
+# is deployed, the app runs on localhost only, and no production domain has
+# been set. The value is supplied by the env var at deploy time.
 CSRF_TRUSTED_ORIGINS = [
     o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()
 ]
