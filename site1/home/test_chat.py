@@ -137,6 +137,53 @@ def test_the_off_topic_redirect_still_answers_a_mixed_message(priced_rooms):
     assert 'and nothing about the hotel' in prompt
 
 
+def test_system_prompt_reads_rooms_and_services_through_the_repository(monkeypatch, db):
+    """The three-layer rule, broken inside a single function.
+
+    build_system_prompt() called HotelRepository.get_hotel_info() and then
+    reached straight past the repository for the next two tables, so half the
+    prompt honoured the architecture and half of it was raw ORM in the service
+    layer. Patching the repository is what makes that visible: if the service
+    still queries the models itself, these rows never reach the prompt.
+    """
+    from backend.services.services import ChatService
+    from data.repos.repositories import HotelRepository
+
+    monkeypatch.setattr(HotelRepository, 'get_room_prices', staticmethod(
+        lambda: [('Repo Only Suite', 1234000, 'Only the repository knows this one.')]))
+    monkeypatch.setattr(HotelRepository, 'get_hotel_services', staticmethod(
+        lambda: [('Repo Only Spa', 99000, 'Also repository-only.')]))
+
+    prompt = ChatService.build_system_prompt()
+
+    assert 'Repo Only Suite' in prompt
+    assert '1,234,000' in prompt
+    assert 'Repo Only Spa' in prompt
+
+
+def test_system_prompt_stops_requerying_the_price_tables_on_every_message(
+        priced_rooms, django_assert_num_queries):
+    """Three queries per guest message against tables that change a few times a
+    year. The prompt is rebuilt from scratch on every single message, so every
+    guest sentence paid for a room_price scan, a hotel_services scan and a
+    hotel row read.
+
+    Zero, not one. The hotel row was left live in the first pass on the
+    argument that its phone number was a separate decision, which had it
+    backwards: the hotel's own name and number change less often than its
+    prices do, so it was the most static table of the three and the only one
+    still being read on every message.
+    """
+    from django.core.cache import cache
+    from backend.services.services import ChatService
+
+    cache.clear()
+    ChatService.build_system_prompt()
+
+    with django_assert_num_queries(0):
+        ChatService.build_system_prompt()
+
+
 def test_blank_message_is_rejected_before_reaching_the_model():
     from backend.services.services import ChatService
     with pytest.raises(ValidationError):

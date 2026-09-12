@@ -3,8 +3,11 @@ from datetime import timedelta
 
 import nh3
 from django.conf import settings
+from django.core.cache import cache
 
-from data.models.hotel import Hotel, Room, RoomAssignment, RoomMaintenanceLog
+from data.models.hotel import (
+    Hotel, HotelServices, Room, RoomAssignment, RoomMaintenanceLog, RoomPrice,
+)
 from data.models import CustomerBookingInfo, EmailQueue, EmailSubscriber, EmailCampaign, DiscountCode
 from django.db.models import Exists, OuterRef
 from django.utils import timezone
@@ -12,10 +15,43 @@ from django.utils import timezone
 _DEFAULT_PHONE = getattr(settings, 'HOTEL_DEFAULT_PHONE', '')
 _DEFAULT_EMAIL = getattr(settings, 'HOTEL_DEFAULT_EMAIL', '')
 
+# The chat prompt is rebuilt from the hotel row, the price list and the services
+# list on every single guest message, and all three change a few times a year.
+# 300s is the TTL ReservationService._RATE_CACHE already uses against
+# room_price, so the two cannot disagree about how stale a rate may be.
+#
+# django.core.cache rather than another hand-rolled class-attribute cache like
+# that one: get_or_set is one line, and the default LocMemCache is already the
+# backend the rate-limit counters live in.
+#
+# ponytail: TTL only, no post_save invalidation. An edited price takes up to
+# five minutes to reach the chat, and an edited hotel row up to five minutes to
+# reach any page. Wire a signal if that stops being acceptable.
+_PROMPT_DATA_TTL_SECONDS = 300
+
 
 class HotelRepository:
     @staticmethod
     def get_hotel_info():
+        """The hotel row, mapped to the names templates expect.
+
+        Cached like the other two. This one is read far more widely than they
+        are -- the site-wide context processor calls it on every page render,
+        not just on chat messages -- so the TTL now also decides how long an
+        edited hotel name, address or phone number takes to appear anywhere on
+        the site, not only in the chat prompt.
+
+        ponytail: that is the trade being made on purpose. Five minutes for a
+        field that changes a few times a year, against a query on every render
+        of every page. Same upgrade path as the other two if it stops being
+        acceptable.
+        """
+        return cache.get_or_set(
+            'hotel:info', HotelRepository._load_hotel_info,
+            _PROMPT_DATA_TTL_SECONDS)
+
+    @staticmethod
+    def _load_hotel_info():
         # For contact page and other places where full info is needed
         result = Hotel.objects.values(
             'hotel_name',
@@ -45,6 +81,37 @@ class HotelRepository:
             'phone': result['phone'] or _DEFAULT_PHONE,
             'email': result['email'] or _DEFAULT_EMAIL,
         }
+
+    @staticmethod
+    def get_room_prices():
+        """Priced room types as (room_type, price_per_night, description) rows.
+
+        list(), not the queryset: the cache pickles whatever it is handed, and
+        a lazy queryset in there is a query that fires on unpickle instead of
+        here, which is the opposite of the point.
+        """
+        return cache.get_or_set(
+            'hotel:room_prices',
+            lambda: list(
+                RoomPrice.objects.filter(
+                    room_type__isnull=False, price_per_night__isnull=False
+                ).values_list('room_type', 'price_per_night', 'room_description')
+            ),
+            _PROMPT_DATA_TTL_SECONDS,
+        )
+
+    @staticmethod
+    def get_hotel_services():
+        """Services as (name, price, description) rows. Cached, see above."""
+        return cache.get_or_set(
+            'hotel:hotel_services',
+            lambda: list(
+                HotelServices.objects.values_list(
+                    'name_of_service', 'service_price', 'service_description'
+                )
+            ),
+            _PROMPT_DATA_TTL_SECONDS,
+        )
 
 
 class ReservationRepository:

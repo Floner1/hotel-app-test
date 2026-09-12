@@ -23,15 +23,20 @@ def pytest_configure():
 
 
 @pytest.fixture(autouse=True)
-def _reset_rate_cache():
-    """ReservationService._RATE_CACHE is a class attribute with a 300s TTL, so
-    it outlives individual tests. An empty dict counts as populated, so one
-    test priming it against an empty room_price table would make later tests
-    fail rate lookup for reasons unrelated to what they assert."""
+def _reset_caches():
+    """Two caches outlive individual tests and fail the same way: primed against
+    an empty table by one test, they make later tests fail for reasons unrelated
+    to what those tests assert. ReservationService._RATE_CACHE is a class
+    attribute (an empty dict counts as populated); the chat prompt's room and
+    service lists sit in the per-process default LocMemCache.
+    """
+    from django.core.cache import cache
     from backend.services.services import ReservationService
     ReservationService._RATE_CACHE = None
+    cache.clear()
     yield
     ReservationService._RATE_CACHE = None
+    cache.clear()
 
 
 @pytest.fixture

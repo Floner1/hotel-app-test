@@ -368,6 +368,183 @@ def test_widget_tells_the_guest_how_long_to_wait_when_throttled():
     assert 'Retry-After' in source
 
 
+def test_widget_gives_up_on_a_hung_request_instead_of_waiting_forever():
+    """$.ajax defaults to no timeout at all, so a slow model left the browser
+    waiting as long as the socket stayed open. Measured worst case before this:
+    88.5s of animated dots with no way out and nothing to act on.
+
+    The bound has to sit under the server's own ceiling or it would never fire.
+    The view holds one model slot across both attempts, so the server can
+    legitimately take 2 x REQUEST_TIMEOUT_SECONDS before it answers.
+    """
+    import re
+    from pathlib import Path
+    from backend.services import ai_providers as ap
+
+    js = Path(__file__).resolve().parents[1] / 'static' / 'js' / 'chat-widget.js'
+    source = js.read_text(encoding='utf-8')
+
+    match = re.search(r'timeout:\s*(\d+)', source)
+    assert match, "chat-widget.js sets no $.ajax timeout, so a hung request hangs forever"
+
+    seconds = int(match.group(1)) / 1000
+
+    # Lower bound, and it is the half that was missing. `0 < seconds` accepted
+    # timeout: 1, a one-millisecond bound that fails every request before the
+    # server can answer, which is a different broken widget rather than a fix.
+    #
+    # The floor is what the server can legitimately spend on ONE attempt:
+    # NUM_PREDICT tokens at the same pessimistic floor rate REQUEST_TIMEOUT_SECONDS
+    # is derived from, plus its same 15s of overhead. Give up sooner and the
+    # client is killing replies that were on their way.
+    first_attempt_ceiling = ap.NUM_PREDICT / ap.TOKENS_PER_SECOND_FLOOR + 15
+    assert seconds >= first_attempt_ceiling, (
+        f"client timeout {seconds}s is below the server's own first-attempt "
+        f"ceiling of {first_attempt_ceiling}s, so it cuts off real answers"
+    )
+
+    # And above the slowest round trip anyone has actually measured. 88.5s,
+    # 2026-09-12 audit, on an off-topic question. A bound under a number we
+    # have watched the server beat is a bound we know fires on good replies.
+    assert seconds >= 88.5, (
+        f"client timeout {seconds}s is under the 88.5s worst case measured "
+        f"on 2026-09-12"
+    )
+
+    # Upper bound. 2 x REQUEST_TIMEOUT_SECONDS is the point past which this can
+    # never fire at all, but it is not a sane ceiling: it accepted 349s, a six
+    # minute spinner. REQUEST_TIMEOUT_SECONDS itself is the real one. Waiting
+    # longer than a single server attempt means waiting out the retry too, and
+    # the retry is a second full generation the guest never asked for.
+    assert seconds < ap.REQUEST_TIMEOUT_SECONDS, (
+        f"client timeout {seconds}s is past the server's single-attempt "
+        f"ceiling of {ap.REQUEST_TIMEOUT_SECONDS}s, so the guest sits through "
+        f"the retry as well"
+    )
+
+    # A bound that fires silently is just a different broken widget. jQuery
+    # reports this case as textStatus 'timeout', so the handler has to read it.
+    assert "'timeout'" in source, "no branch on textStatus 'timeout'"
+
+
+def test_the_timeout_message_hands_the_guest_a_number_to_dial():
+    """The timeout copy told the guest to "call the hotel" and showed no number.
+
+    Every other handoff in this system gives one. _chat_phone_handoff() pulls
+    it from the hotel row so it cannot go stale, and deliberately sends no
+    Retry-After so the widget does not overwrite the body with a countdown.
+    A client-side timeout has no response at all to carry a number in, so it
+    has to come down with the page, the same way the CSRF token does.
+    """
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    js = (root / 'static' / 'js' / 'chat-widget.js').read_text(encoding='utf-8')
+    tpl = (root / 'templates' / '_chat_widget.html').read_text(encoding='utf-8')
+
+    assert 'data-phone' in tpl, (
+        'the widget element carries no phone number for the client to use')
+    assert 'hotel.phone' in tpl, (
+        'the number must come from the hotel row, not be hardcoded in a template')
+    assert "data('phone')" in js, 'chat-widget.js never reads the number'
+
+    # The number has to reach the timeout branch specifically. The 429 path
+    # already gets one from the server; this is the path that had none.
+    timeout_branch = js.split("textStatus === 'timeout'", 1)[1].split('else if', 1)[0]
+    assert 'phone' in timeout_branch, (
+        'the timeout message does not use the phone number it now has')
+
+
+def test_a_hostile_phone_number_cannot_break_out_of_the_widget_markup(client, db):
+    """data-phone is the first hotel-table value to land in an HTML attribute.
+
+    The hotel tables are not a trust boundary here -- the same reasoning as
+    test_database_content_cannot_smuggle_control_tokens_into_the_system_prompt
+    above. Whatever can edit the phone column can try to close the attribute
+    and open an event handler.
+
+    Two layers have to hold, and this pins the first: Django's autoescape in
+    the template, and .text() on the far side in addMessage(). Either alone
+    would do; neither is allowed to quietly stop being there.
+    """
+    from data.models import Hotel
+    Hotel.objects.create(
+        hotel_name='Thien Tai Hotel',
+        phone='" onmouseover="alert(1)" data-x="',
+    )
+    html = client.get('/').content.decode()
+
+    assert 'data-phone=' in html, 'the widget did not render its phone attribute'
+    assert 'onmouseover="alert(1)"' not in html, (
+        'the phone column closed its own attribute and opened an event handler')
+    assert '&quot; onmouseover=' in html, (
+        'the payload should survive as escaped text inside the attribute')
+
+
+def test_the_wait_state_says_something_rather_than_blinking_silently():
+    """Three animated dots and no words, for a wait that runs 12s to 90s.
+
+    The 2026-09-12 audit put a number on the silent half of this: the typing
+    indicator was three empty spans, and a live DOM check returned
+    typingIndicatorHasText false. The log is role="log" aria-live="polite", so
+    it announces the reply when it lands and nothing at all before that.
+
+    The measured distribution is what the stages have to cover: median about
+    12s, tail past 60s. One stage that never changes is the same silence with
+    extra markup, so there have to be at least two, and the copy has to still
+    be moving well into the tail rather than settling in the first few seconds.
+    """
+    import re
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
+          / 'chat-widget.js').read_text(encoding='utf-8')
+
+    block = re.search(r'WAIT_STAGES\s*=\s*\[(.*?)\];', js, re.S)
+    assert block, 'chat-widget.js defines no staged wait copy'
+
+    pair = r"\[\s*(\d+)\s*,\s*'([^']+)'\s*\]"
+    stages = re.findall(pair, block.group(1))
+    assert len(stages) >= 2, f'only {len(stages)} wait stage(s), so the copy never changes'
+
+    seconds = [int(sec) for sec, _ in stages]
+    assert seconds == sorted(seconds), f'wait stages are out of order: {seconds}'
+    assert seconds[0] == 0, 'the guest gets no text until the first stage fires'
+    assert max(seconds) >= 30, (
+        f'last stage fires at {max(seconds)}s, so a 90s wait looks identical to '
+        f'a 30s one')
+    assert all(text.strip() for _, text in stages), 'a stage with no words is not a stage'
+
+
+def test_the_wait_state_does_not_re_announce_itself_every_tick():
+    """The label sits inside role="log" aria-live="polite". Rewriting it on
+    every tick replaces the text node, which is a fresh announcement, so a
+    screen reader user would hear the same sentence once a second for a minute.
+    The timer has to compare before it writes.
+    """
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
+          / 'chat-widget.js').read_text(encoding='utf-8')
+    assert 'lastWaitLabel' in js, 'nothing remembers the label last written'
+    tick = js.split('function tickWait', 1)
+    assert len(tick) == 2, 'no tickWait function to inspect'
+    body = tick[1].split(chr(10) + '    }', 1)[0]
+    assert 'lastWaitLabel' in body and '!==' in body, (
+        'tickWait writes the label without checking whether it changed')
+
+
+def test_the_wait_timer_is_cleared_when_the_reply_lands():
+    """A setInterval that outlives its bubble keeps running for the life of the
+    page, once per message sent. clearTyping() is the only teardown path and
+    both success and error routes go through it.
+    """
+    from pathlib import Path
+    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
+          / 'chat-widget.js').read_text(encoding='utf-8')
+    clear = js.split('function clearTyping', 1)
+    assert len(clear) == 2, 'no clearTyping function'
+    body = clear[1].split(chr(10) + '    }', 1)[0]
+    assert 'clearInterval' in body, 'clearTyping leaves the wait timer running'
+
+
 def test_retry_gives_the_model_a_bigger_budget_than_the_first_attempt(monkeypatch):
     """The live failure on 2026-08-23: 'hello, tell me about all room types'
     returned RuntimeError('Model returned no answer').
