@@ -1,0 +1,221 @@
+diff --git a/site1/backend/services/services.py b/site1/backend/services/services.py
+index 944fcea..ebe46b2 100644
+--- a/site1/backend/services/services.py
++++ b/site1/backend/services/services.py
+@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
+ from django.utils import timezone
+ from django.db import transaction
+ 
+-from data.models.hotel import Hotel as BookingHotel, HotelServices, RoomPrice
++from data.models.hotel import Hotel as BookingHotel, RoomPrice
+ from backend.services.ai_providers import get_provider, sanitize_prompt_text
+ from data.repos.repositories import (
+     HotelRepository,
+@@ -949,18 +949,14 @@ class ChatService:
+             lines.append(f"  Star rating: {clean(info['star_rating'])}")
+ 
+         lines += ["", "ROOM TYPES AND NIGHTLY RATES (these are the only rooms that exist)"]
+-        rooms = RoomPrice.objects.filter(
+-            room_type__isnull=False, price_per_night__isnull=False
+-        ).values_list('room_type', 'price_per_night', 'room_description')
++        rooms = HotelRepository.get_room_prices()
+         for room_type, price, description in rooms:
+             line = f"  - {clean(room_type)}: {int(price):,} VND per night"
+             if description:
+                 line += f". {clean(description).strip()}"
+             lines.append(line)
+ 
+-        services = HotelServices.objects.values_list(
+-            'name_of_service', 'service_price', 'service_description'
+-        )
++        services = HotelRepository.get_hotel_services()
+         service_lines = []
+         for service_name, price, description in services:
+             line = f"  - {clean(service_name)}"
+diff --git a/site1/conftest.py b/site1/conftest.py
+index 0169a7b..48853ae 100644
+--- a/site1/conftest.py
++++ b/site1/conftest.py
+@@ -23,15 +23,20 @@ def pytest_configure():
+ 
+ 
+ @pytest.fixture(autouse=True)
+-def _reset_rate_cache():
+-    """ReservationService._RATE_CACHE is a class attribute with a 300s TTL, so
+-    it outlives individual tests. An empty dict counts as populated, so one
+-    test priming it against an empty room_price table would make later tests
+-    fail rate lookup for reasons unrelated to what they assert."""
++def _reset_caches():
++    """Two caches outlive individual tests and fail the same way: primed against
++    an empty table by one test, they make later tests fail for reasons unrelated
++    to what those tests assert. ReservationService._RATE_CACHE is a class
++    attribute (an empty dict counts as populated); the chat prompt's room and
++    service lists sit in the per-process default LocMemCache.
++    """
++    from django.core.cache import cache
+     from backend.services.services import ReservationService
+     ReservationService._RATE_CACHE = None
++    cache.clear()
+     yield
+     ReservationService._RATE_CACHE = None
++    cache.clear()
+ 
+ 
+ @pytest.fixture
+diff --git a/site1/data/repos/repositories.py b/site1/data/repos/repositories.py
+index f2dd7ad..0274f43 100644
+--- a/site1/data/repos/repositories.py
++++ b/site1/data/repos/repositories.py
+@@ -3,8 +3,11 @@ from datetime import timedelta
+ 
+ import nh3
+ from django.conf import settings
++from django.core.cache import cache
+ 
+-from data.models.hotel import Hotel, Room, RoomAssignment, RoomMaintenanceLog
++from data.models.hotel import (
++    Hotel, HotelServices, Room, RoomAssignment, RoomMaintenanceLog, RoomPrice,
++)
+ from data.models import CustomerBookingInfo, EmailQueue, EmailSubscriber, EmailCampaign, DiscountCode
+ from django.db.models import Exists, OuterRef
+ from django.utils import timezone
+@@ -12,10 +15,43 @@ from django.utils import timezone
+ _DEFAULT_PHONE = getattr(settings, 'HOTEL_DEFAULT_PHONE', '')
+ _DEFAULT_EMAIL = getattr(settings, 'HOTEL_DEFAULT_EMAIL', '')
+ 
++# The chat prompt is rebuilt from the hotel row, the price list and the services
++# list on every single guest message, and all three change a few times a year.
++# 300s is the TTL ReservationService._RATE_CACHE already uses against
++# room_price, so the two cannot disagree about how stale a rate may be.
++#
++# django.core.cache rather than another hand-rolled class-attribute cache like
++# that one: get_or_set is one line, and the default LocMemCache is already the
++# backend the rate-limit counters live in.
++#
++# ponytail: TTL only, no post_save invalidation. An edited price takes up to
++# five minutes to reach the chat, and an edited hotel row up to five minutes to
++# reach any page. Wire a signal if that stops being acceptable.
++_PROMPT_DATA_TTL_SECONDS = 300
++
+ 
+ class HotelRepository:
+     @staticmethod
+     def get_hotel_info():
++        """The hotel row, mapped to the names templates expect.
++
++        Cached like the other two. This one is read far more widely than they
++        are -- the site-wide context processor calls it on every page render,
++        not just on chat messages -- so the TTL now also decides how long an
++        edited hotel name, address or phone number takes to appear anywhere on
++        the site, not only in the chat prompt.
++
++        ponytail: that is the trade being made on purpose. Five minutes for a
++        field that changes a few times a year, against a query on every render
++        of every page. Same upgrade path as the other two if it stops being
++        acceptable.
++        """
++        return cache.get_or_set(
++            'hotel:info', HotelRepository._load_hotel_info,
++            _PROMPT_DATA_TTL_SECONDS)
++
++    @staticmethod
++    def _load_hotel_info():
+         # For contact page and other places where full info is needed
+         result = Hotel.objects.values(
+             'hotel_name',
+@@ -46,6 +82,37 @@ class HotelRepository:
+             'email': result['email'] or _DEFAULT_EMAIL,
+         }
+ 
++    @staticmethod
++    def get_room_prices():
++        """Priced room types as (room_type, price_per_night, description) rows.
++
++        list(), not the queryset: the cache pickles whatever it is handed, and
++        a lazy queryset in there is a query that fires on unpickle instead of
++        here, which is the opposite of the point.
++        """
++        return cache.get_or_set(
++            'hotel:room_prices',
++            lambda: list(
++                RoomPrice.objects.filter(
++                    room_type__isnull=False, price_per_night__isnull=False
++                ).values_list('room_type', 'price_per_night', 'room_description')
++            ),
++            _PROMPT_DATA_TTL_SECONDS,
++        )
++
++    @staticmethod
++    def get_hotel_services():
++        """Services as (name, price, description) rows. Cached, see above."""
++        return cache.get_or_set(
++            'hotel:hotel_services',
++            lambda: list(
++                HotelServices.objects.values_list(
++                    'name_of_service', 'service_price', 'service_description'
++                )
++            ),
++            _PROMPT_DATA_TTL_SECONDS,
++        )
++
+ 
+ class ReservationRepository:
+     """
+diff --git a/site1/home/test_chat.py b/site1/home/test_chat.py
+index d22ec1f..2c05771 100644
+--- a/site1/home/test_chat.py
++++ b/site1/home/test_chat.py
+@@ -137,6 +137,53 @@ def test_the_off_topic_redirect_still_answers_a_mixed_message(priced_rooms):
+     assert 'and nothing about the hotel' in prompt
+ 
+ 
++def test_system_prompt_reads_rooms_and_services_through_the_repository(monkeypatch, db):
++    """The three-layer rule, broken inside a single function.
++
++    build_system_prompt() called HotelRepository.get_hotel_info() and then
++    reached straight past the repository for the next two tables, so half the
++    prompt honoured the architecture and half of it was raw ORM in the service
++    layer. Patching the repository is what makes that visible: if the service
++    still queries the models itself, these rows never reach the prompt.
++    """
++    from backend.services.services import ChatService
++    from data.repos.repositories import HotelRepository
++
++    monkeypatch.setattr(HotelRepository, 'get_room_prices', staticmethod(
++        lambda: [('Repo Only Suite', 1234000, 'Only the repository knows this one.')]))
++    monkeypatch.setattr(HotelRepository, 'get_hotel_services', staticmethod(
++        lambda: [('Repo Only Spa', 99000, 'Also repository-only.')]))
++
++    prompt = ChatService.build_system_prompt()
++
++    assert 'Repo Only Suite' in prompt
++    assert '1,234,000' in prompt
++    assert 'Repo Only Spa' in prompt
++
++
++def test_system_prompt_stops_requerying_the_price_tables_on_every_message(
++        priced_rooms, django_assert_num_queries):
++    """Three queries per guest message against tables that change a few times a
++    year. The prompt is rebuilt from scratch on every single message, so every
++    guest sentence paid for a room_price scan, a hotel_services scan and a
++    hotel row read.
++
++    Zero, not one. The hotel row was left live in the first pass on the
++    argument that its phone number was a separate decision, which had it
++    backwards: the hotel's own name and number change less often than its
++    prices do, so it was the most static table of the three and the only one
++    still being read on every message.
++    """
++    from django.core.cache import cache
++    from backend.services.services import ChatService
++
++    cache.clear()
++    ChatService.build_system_prompt()
++
++    with django_assert_num_queries(0):
++        ChatService.build_system_prompt()
++
++
+ def test_blank_message_is_rejected_before_reaching_the_model():
+     from backend.services.services import ChatService
+     with pytest.raises(ValidationError):

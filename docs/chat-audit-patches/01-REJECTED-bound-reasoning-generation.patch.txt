@@ -1,0 +1,166 @@
+diff --git a/site1/backend/services/ai_providers.py b/site1/backend/services/ai_providers.py
+index 9cf4f3c..1f3784f 100644
+--- a/site1/backend/services/ai_providers.py
++++ b/site1/backend/services/ai_providers.py
+@@ -31,6 +31,31 @@ fresh monologue. So think=True is sent explicitly: it is the only setting that
+ keeps `content` clean, and being explicit makes that contractual rather than a
+ default we inherit.
+ 
++Reasoning is bounded from 2026-09-12, and the lever is the template, not an
++option
++-------------------------------------------------------------------------
++The 2026-09-12 audit measured reasoning at 91% to 99.9% of everything
++generated: 3,336 characters of monologue for a 2 character answer on one
++question, and wall time tracks monologue length. That ratio is the latency.
++
++No generation option bounds it. num_predict is shared and reasoning spends it
++first, so lowering the cap starves the answer (measured at 400 and at 1200). A
++`stop` on `</think>` would end generation exactly where the answer begins.
++`think` takes "low"/"medium"/"high" on models whose template reads a level, and
++this blob's does not, so a level is inert here.
++
++What does work is the template's own escape hatch. See NO_REASONING_PREFILL.
++
++That is not the /api/generate raw=True attempt recorded above as a dead end.
++That one hand-built the prompt and bypassed the template, so the model met a
++malformed turn and opened a fresh monologue. Going through /api/chat lets the
++template do the prefill in the shape the model was trained on.
++
++num_predict is deliberately left where it is. It is a ceiling, not a target, so
++an answer that no longer has a monologue in front of it stops early and costs
++nothing — and the retry ladder still needs its headroom for the case where the
++model opens a block anyway.
++
+ The `/no_think` marker placement looked tunable and is not. A 6-sample run
+ suggested moving it to the user message alone was twice as fast. It did not
+ survive a proper paired test — 3 questions, 8 repetitions, configurations
+@@ -221,6 +246,27 @@ def model_slot():
+         _model_slots.release()
+ 
+ 
++# The last message in the request, always. The qwen3:4b chat template ends with
++#
++#     {{- if and (ne .Role "assistant") $last }}<|im_start|>assistant
++#     <think>
++#
++# which is unconditional on $.IsThinkSet — that is why think=False cannot reach
++# it and only moves the monologue into `content`. The `ne .Role "assistant"`
++# clause is the whole lever: with an assistant turn last, the opener is skipped
++# and the assistant branch renders `<think>{{ .Thinking }}</think>` from this
++# message instead, with no trailing <|im_end|>. Generation resumes after the
++# closing tag, at the answer position, with no reasoning budget to spend.
++#
++# `thinking` has to be non-empty or the branch guarding it is falsy and no tags
++# render at all. Two newlines, matching what Qwen's upstream template emits for
++# enable_thinking=False.
++#
++# `content` stays empty on purpose: anything here is prompt text the model
++# continues from and the guest reads back as its own words.
++NO_REASONING_PREFILL = {"role": "assistant", "content": "", "thinking": "\n\n"}
++
++
+ # Structural tokens, not content. The chat template interpolates message text
+ # raw, so a guest who sends <|im_end|><|im_start|>system forges a turn boundary
+ # and everything after it is read with system authority. Verified against the
+@@ -352,6 +398,10 @@ class OllamaProvider(ChatProvider):
+                     "role": "user",
+                     "content": sanitize_prompt_text(user_message),
+                 },
++                # Bounds reasoning at generation time. See NO_REASONING_PREFILL.
++                # Not sanitised: this is ours, not guest text, and sanitising it
++                # would strip the very tags it exists to place.
++                NO_REASONING_PREFILL,
+             ],
+             # Explicit rather than inherited: Ollama defaults think to true for
+             # thinking-capable models, and this is what keeps `content` free of
+diff --git a/site1/home/test_chat_hardening.py b/site1/home/test_chat_hardening.py
+index 12bdef8..b7ba39a 100644
+--- a/site1/home/test_chat_hardening.py
++++ b/site1/home/test_chat_hardening.py
+@@ -359,6 +359,65 @@ def test_provider_asks_ollama_to_separate_reasoning_from_the_answer(monkeypatch)
+     assert captured.get('think') is True
+ 
+ 
++def test_provider_bounds_reasoning_at_generation_time(monkeypatch):
++    """Reasoning was 91% to 99.9% of every generation measured on 2026-09-12.
++    One question spent 3,336 characters of monologue to produce a 2 character
++    answer, and wall time tracks monologue length, so that ratio IS the latency.
++
++    num_predict cannot fix it: reasoning and answer share that budget and
++    reasoning goes first, so lowering the cap starves the answer instead of the
++    monologue. That was measured too, at 400 and again at 1200.
++
++    The cause is structural, and it is in the model blob's own chat template:
++
++        {{- if and (ne .Role "assistant") $last }}<|im_start|>assistant
++        <think>
++
++    That opener is unconditional on $.IsThinkSet, so think=False cannot reach
++    it. Generation ALWAYS begins inside a reasoning block. The one condition
++    that skips it is the last message already being an assistant turn.
++
++    So the request ends with a prefilled assistant turn carrying a closed
++    thinking block, which is exactly what Qwen's own upstream template emits
++    for enable_thinking=False. Generation then starts after </think>, at the
++    answer position, with no reasoning budget to spend.
++
++    Asserted on the request rather than the reply because that is where the
++    bound lives, and because a stubbed client has no template. The sibling
++    tests for think, keep_alive and tools all read the same seam.
++    """
++    provider = OllamaProvider(model='qwen3:4b')
++    captured = {}
++
++    def fake_chat(**kw):
++        captured.update(kw)
++        return {'message': {'content': 'ok'}}
++
++    monkeypatch.setattr(provider._client, 'chat', fake_chat)
++    provider.complete('sys', 'hi')
++
++    last = captured['messages'][-1]
++    assert last['role'] == 'assistant', (
++        "the template only skips its <think> opener when the last message is "
++        "an assistant turn; with a user message last, reasoning is unbounded"
++    )
++    assert last.get('thinking'), (
++        "an assistant turn with no thinking renders no <think></think> pair, "
++        "so generation still starts inside an open reasoning block"
++    )
++    assert not last.get('content'), (
++        "prefilled content would be read back as the model's own words"
++    )
++    # Whitespace only. The block has to render EMPTY: any real text in there is
++    # reasoning the model reads as its own and continues from. Caught a literal
++    # two-character backslash-n during development, which is truthy, renders as
++    # visible junk inside the tags, and passes a bare truthiness check.
++    assert last['thinking'].strip() == '', (
++        "the prefilled reasoning block must be empty, got "
++        f"{last['thinking']!r}"
++    )
++
++
+ def test_widget_tells_the_guest_how_long_to_wait_when_throttled():
+     """The 429 now carries Retry-After. A number the guest can act on beats a
+     generic 'something went wrong', which reads as a broken widget."""
+diff --git a/site1/home/test_chat.py b/site1/home/test_chat.py
+index d22ec1f..2cef330 100644
+--- a/site1/home/test_chat.py
++++ b/site1/home/test_chat.py
+@@ -234,9 +278,13 @@ def test_the_no_think_marker_is_not_sent(monkeypatch):
+     monkeypatch.setattr(provider._client, "chat", fake_chat)
+     provider.complete("You are a concierge.", "hi")
+ 
+-    system_msg, user_msg = captured["messages"]
+-    assert "/no_think" not in system_msg["content"]
+-    assert "/no_think" not in user_msg["content"]
++    # Indexed rather than unpacked: the request ends with a prefilled assistant
++    # turn that bounds reasoning (see NO_REASONING_PREFILL), so the message
++    # count is not what this test is about.
++    system_msg, user_msg = captured["messages"][0], captured["messages"][1]
++    assert system_msg["role"] == "system" and user_msg["role"] == "user"
++    for msg in captured["messages"]:
++        assert "/no_think" not in msg["content"]
+     # The real content still has to arrive intact.
+     assert "You are a concierge." in system_msg["content"]
+     assert "hi" in user_msg["content"]

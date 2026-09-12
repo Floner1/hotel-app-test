@@ -1,0 +1,215 @@
+diff --git a/site1/home/test_chat_hardening.py b/site1/home/test_chat_hardening.py
+index 12bdef8..5ec3b2b 100644
+--- a/site1/home/test_chat_hardening.py
++++ b/site1/home/test_chat_hardening.py
+@@ -368,6 +368,118 @@ def test_widget_tells_the_guest_how_long_to_wait_when_throttled():
+     assert 'Retry-After' in source
+ 
+ 
++def test_widget_gives_up_on_a_hung_request_instead_of_waiting_forever():
++    """$.ajax defaults to no timeout at all, so a slow model left the browser
++    waiting as long as the socket stayed open. Measured worst case before this:
++    88.5s of animated dots with no way out and nothing to act on.
++
++    The bound has to sit under the server's own ceiling or it would never fire.
++    The view holds one model slot across both attempts, so the server can
++    legitimately take 2 x REQUEST_TIMEOUT_SECONDS before it answers.
++    """
++    import re
++    from pathlib import Path
++    from backend.services import ai_providers as ap
++
++    js = Path(__file__).resolve().parents[1] / 'static' / 'js' / 'chat-widget.js'
++    source = js.read_text(encoding='utf-8')
++
++    match = re.search(r'timeout:\s*(\d+)', source)
++    assert match, "chat-widget.js sets no $.ajax timeout, so a hung request hangs forever"
++
++    seconds = int(match.group(1)) / 1000
++
++    # Lower bound, and it is the half that was missing. `0 < seconds` accepted
++    # timeout: 1, a one-millisecond bound that fails every request before the
++    # server can answer, which is a different broken widget rather than a fix.
++    #
++    # The floor is what the server can legitimately spend on ONE attempt:
++    # NUM_PREDICT tokens at the same pessimistic floor rate REQUEST_TIMEOUT_SECONDS
++    # is derived from, plus its same 15s of overhead. Give up sooner and the
++    # client is killing replies that were on their way.
++    first_attempt_ceiling = ap.NUM_PREDICT / ap.TOKENS_PER_SECOND_FLOOR + 15
++    assert seconds >= first_attempt_ceiling, (
++        f"client timeout {seconds}s is below the server's own first-attempt "
++        f"ceiling of {first_attempt_ceiling}s, so it cuts off real answers"
++    )
++
++    # And above the slowest round trip anyone has actually measured. 88.5s,
++    # 2026-09-12 audit, on an off-topic question. A bound under a number we
++    # have watched the server beat is a bound we know fires on good replies.
++    assert seconds >= 88.5, (
++        f"client timeout {seconds}s is under the 88.5s worst case measured "
++        f"on 2026-09-12"
++    )
++
++    # Upper bound. 2 x REQUEST_TIMEOUT_SECONDS is the point past which this can
++    # never fire at all, but it is not a sane ceiling: it accepted 349s, a six
++    # minute spinner. REQUEST_TIMEOUT_SECONDS itself is the real one. Waiting
++    # longer than a single server attempt means waiting out the retry too, and
++    # the retry is a second full generation the guest never asked for.
++    assert seconds < ap.REQUEST_TIMEOUT_SECONDS, (
++        f"client timeout {seconds}s is past the server's single-attempt "
++        f"ceiling of {ap.REQUEST_TIMEOUT_SECONDS}s, so the guest sits through "
++        f"the retry as well"
++    )
++
++    # A bound that fires silently is just a different broken widget. jQuery
++    # reports this case as textStatus 'timeout', so the handler has to read it.
++    assert "'timeout'" in source, "no branch on textStatus 'timeout'"
++
++
++def test_the_timeout_message_hands_the_guest_a_number_to_dial():
++    """The timeout copy told the guest to "call the hotel" and showed no number.
++
++    Every other handoff in this system gives one. _chat_phone_handoff() pulls
++    it from the hotel row so it cannot go stale, and deliberately sends no
++    Retry-After so the widget does not overwrite the body with a countdown.
++    A client-side timeout has no response at all to carry a number in, so it
++    has to come down with the page, the same way the CSRF token does.
++    """
++    from pathlib import Path
++    root = Path(__file__).resolve().parents[1]
++    js = (root / 'static' / 'js' / 'chat-widget.js').read_text(encoding='utf-8')
++    tpl = (root / 'templates' / '_chat_widget.html').read_text(encoding='utf-8')
++
++    assert 'data-phone' in tpl, (
++        'the widget element carries no phone number for the client to use')
++    assert 'hotel.phone' in tpl, (
++        'the number must come from the hotel row, not be hardcoded in a template')
++    assert "data('phone')" in js, 'chat-widget.js never reads the number'
++
++    # The number has to reach the timeout branch specifically. The 429 path
++    # already gets one from the server; this is the path that had none.
++    timeout_branch = js.split("textStatus === 'timeout'", 1)[1].split('else if', 1)[0]
++    assert 'phone' in timeout_branch, (
++        'the timeout message does not use the phone number it now has')
++
++
++def test_a_hostile_phone_number_cannot_break_out_of_the_widget_markup(client, db):
++    """data-phone is the first hotel-table value to land in an HTML attribute.
++
++    The hotel tables are not a trust boundary here -- the same reasoning as
++    test_database_content_cannot_smuggle_control_tokens_into_the_system_prompt
++    above. Whatever can edit the phone column can try to close the attribute
++    and open an event handler.
++
++    Two layers have to hold, and this pins the first: Django's autoescape in
++    the template, and .text() on the far side in addMessage(). Either alone
++    would do; neither is allowed to quietly stop being there.
++    """
++    from data.models import Hotel
++    Hotel.objects.create(
++        hotel_name='Thien Tai Hotel',
++        phone='" onmouseover="alert(1)" data-x="',
++    )
++    html = client.get('/').content.decode()
++
++    assert 'data-phone=' in html, 'the widget did not render its phone attribute'
++    assert 'onmouseover="alert(1)"' not in html, (
++        'the phone column closed its own attribute and opened an event handler')
++    assert '&quot; onmouseover=' in html, (
++        'the payload should survive as escaped text inside the attribute')
++
++
+ def test_retry_gives_the_model_a_bigger_budget_than_the_first_attempt(monkeypatch):
+     """The live failure on 2026-08-23: 'hello, tell me about all room types'
+     returned RuntimeError('Model returned no answer').
+diff --git a/site1/static/js/chat-widget.js b/site1/static/js/chat-widget.js
+index 34a1a64..8b1e993 100644
+--- a/site1/static/js/chat-widget.js
++++ b/site1/static/js/chat-widget.js
+@@ -27,6 +27,9 @@
+ 
+     var url = $widget.data('chat-url');
+     var csrf = $widget.data('csrf');
++    // May be empty: get_hotel_info() falls back to settings.HOTEL_DEFAULT_PHONE,
++    // and the context processor hands back hotel=None if its query raises.
++    var phone = $.trim(String($widget.data('phone') || ''));
+     var pending = false;
+ 
+     function isOpen() {
+@@ -135,6 +138,24 @@
+         type: 'POST',
+         headers: { 'X-Requested-With': 'XMLHttpRequest' },
+         data: { message: message, csrfmiddlewaretoken: csrf },
++        // $.ajax defaults to no timeout, which meant a slow model held the
++        // browser for as long as the socket stayed open. The server's own
++        // worst case is longer than anyone will sit through: the view holds
++        // one model slot across both attempts, so 2 x REQUEST_TIMEOUT_SECONDS
++        // is 350s before it answers at all.
++        //
++        // 111s is derived, not picked. It is what the server can legitimately
++        // spend on ONE attempt: NUM_PREDICT (2400) tokens at the same
++        // pessimistic 25 tok/s floor REQUEST_TIMEOUT_SECONDS is built from,
++        // plus its same 15s of overhead. Past that point the retry is running,
++        // which means the first attempt already came back empty.
++        //
++        // The earlier 60s sat UNDER the slowest round trip anyone has measured
++        // (88.5s, 2026-09-12 audit), so it was cutting off replies that were
++        // on their way and telling the guest to try again, which spends the
++        // one model slot twice on the same question. Raise NUM_PREDICT and
++        // this has to move with it; the test pins that relationship.
++        timeout: 111000,
+         success: function (data) {
+           clearTyping();
+           if (data.status === 'ok') {
+@@ -143,14 +164,24 @@
+             addMessage(data.message || 'Something went wrong.', 'error');
+           }
+         },
+-        error: function (xhr) {
++        error: function (xhr, textStatus) {
+           clearTyping();
+           var msg = (xhr.responseJSON && xhr.responseJSON.message)
+             ? xhr.responseJSON.message
+             : 'Something went wrong. Please try again.';
+-          // A 429 carries Retry-After. Naming the number turns "the widget is
+-          // broken" into "I sent too many, I wait ten seconds".
+-          if (xhr.status === 429) {
++          // A timeout has no response body, so the line above left the guest
++          // with the generic "something went wrong" and no idea whether
++          // retrying was worth it. Say what happened and what to do.
++          if (textStatus === 'timeout') {
++            // "Call the hotel" with no number is not an action. Every other
++            // handoff here names one: the session-limit 429 gets it from the
++            // hotel row server-side. A client timeout has no response body, so
++            // this one reads it off the page instead.
++            msg = 'That is taking longer than it should.';
++            msg += phone
++              ? ' Please try again, or call us on ' + phone + ' for an answer now.'
++              : ' Please try again in a moment.';
++          } else if (xhr.status === 429) {
+             var wait = parseInt(xhr.getResponseHeader('Retry-After'), 10);
+             if (wait > 0) {
+               msg = 'Too many messages. Please wait ' + wait +
+diff --git a/site1/templates/_chat_widget.html b/site1/templates/_chat_widget.html
+index 4f309c5..042a597 100644
+--- a/site1/templates/_chat_widget.html
++++ b/site1/templates/_chat_widget.html
+@@ -8,10 +8,18 @@ newsletter form in base.html. It comes through a data attribute rather than an
+ inline literal only because this widget's JS is an external static file, which
+ cannot render template tags. Same token, same mechanism.
+ 
++data-phone rides down the same way and for the same reason. A client-side
++timeout has no response body to carry a number in, so the number has to already
++be on the page. It comes from the hotel row via the site-wide context
++processor, which every page already runs, so this costs no extra query. Empty
++when there is no hotel row, and the JS drops the "call us" half of the message
++rather than offering a blank number to dial.
++
+ Note these are {% comment %} blocks, not {# #}. Django's {# #} is single-line
+ only — spanning it across lines prints the comment onto the page.
+ {% endcomment %}
+-<div class="tt-chat" id="tt-chat" data-chat-url="{% url 'chat' %}" data-csrf="{{ csrf_token }}">
++<div class="tt-chat" id="tt-chat" data-chat-url="{% url 'chat' %}" data-csrf="{{ csrf_token }}"
++     data-phone="{{ hotel.phone|default:'' }}">
+ 
+   <div class="tt-chat__panel" id="tt-chat-panel" role="dialog"
+        aria-labelledby="tt-chat-title" aria-hidden="true">

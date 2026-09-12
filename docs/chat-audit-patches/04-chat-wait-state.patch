@@ -1,0 +1,199 @@
+diff --git a/site1/home/test_chat_hardening.py b/site1/home/test_chat_hardening.py
+index 5ec3b2b..77d14d2 100644
+--- a/site1/home/test_chat_hardening.py
++++ b/site1/home/test_chat_hardening.py
+@@ -480,6 +480,71 @@ def test_a_hostile_phone_number_cannot_break_out_of_the_widget_markup(client, db
+         'the payload should survive as escaped text inside the attribute')
+ 
+ 
++def test_the_wait_state_says_something_rather_than_blinking_silently():
++    """Three animated dots and no words, for a wait that runs 12s to 90s.
++
++    The 2026-09-12 audit put a number on the silent half of this: the typing
++    indicator was three empty spans, and a live DOM check returned
++    typingIndicatorHasText false. The log is role="log" aria-live="polite", so
++    it announces the reply when it lands and nothing at all before that.
++
++    The measured distribution is what the stages have to cover: median about
++    12s, tail past 60s. One stage that never changes is the same silence with
++    extra markup, so there have to be at least two, and the copy has to still
++    be moving well into the tail rather than settling in the first few seconds.
++    """
++    import re
++    from pathlib import Path
++    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
++          / 'chat-widget.js').read_text(encoding='utf-8')
++
++    block = re.search(r'WAIT_STAGES\s*=\s*\[(.*?)\];', js, re.S)
++    assert block, 'chat-widget.js defines no staged wait copy'
++
++    pair = r"\[\s*(\d+)\s*,\s*'([^']+)'\s*\]"
++    stages = re.findall(pair, block.group(1))
++    assert len(stages) >= 2, f'only {len(stages)} wait stage(s), so the copy never changes'
++
++    seconds = [int(sec) for sec, _ in stages]
++    assert seconds == sorted(seconds), f'wait stages are out of order: {seconds}'
++    assert seconds[0] == 0, 'the guest gets no text until the first stage fires'
++    assert max(seconds) >= 30, (
++        f'last stage fires at {max(seconds)}s, so a 90s wait looks identical to '
++        f'a 30s one')
++    assert all(text.strip() for _, text in stages), 'a stage with no words is not a stage'
++
++
++def test_the_wait_state_does_not_re_announce_itself_every_tick():
++    """The label sits inside role="log" aria-live="polite". Rewriting it on
++    every tick replaces the text node, which is a fresh announcement, so a
++    screen reader user would hear the same sentence once a second for a minute.
++    The timer has to compare before it writes.
++    """
++    from pathlib import Path
++    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
++          / 'chat-widget.js').read_text(encoding='utf-8')
++    assert 'lastWaitLabel' in js, 'nothing remembers the label last written'
++    tick = js.split('function tickWait', 1)
++    assert len(tick) == 2, 'no tickWait function to inspect'
++    body = tick[1].split(chr(10) + '    }', 1)[0]
++    assert 'lastWaitLabel' in body and '!==' in body, (
++        'tickWait writes the label without checking whether it changed')
++
++
++def test_the_wait_timer_is_cleared_when_the_reply_lands():
++    """A setInterval that outlives its bubble keeps running for the life of the
++    page, once per message sent. clearTyping() is the only teardown path and
++    both success and error routes go through it.
++    """
++    from pathlib import Path
++    js = (Path(__file__).resolve().parents[1] / 'static' / 'js'
++          / 'chat-widget.js').read_text(encoding='utf-8')
++    clear = js.split('function clearTyping', 1)
++    assert len(clear) == 2, 'no clearTyping function'
++    body = clear[1].split(chr(10) + '    }', 1)[0]
++    assert 'clearInterval' in body, 'clearTyping leaves the wait timer running'
++
++
+ def test_retry_gives_the_model_a_bigger_budget_than_the_first_attempt(monkeypatch):
+     """The live failure on 2026-08-23: 'hello, tell me about all room types'
+     returned RuntimeError('Model returned no answer').
+diff --git a/site1/static/css/chat-widget.css b/site1/static/css/chat-widget.css
+index b1a6614..f0067f0 100644
+--- a/site1/static/css/chat-widget.css
++++ b/site1/static/css/chat-widget.css
+@@ -259,13 +259,28 @@ body.dp-open .tt-chat {
+ /* Typing indicator — three dots on a staggered bounce. */
+ .tt-chat__typing {
+   display: flex;
++  gap: 8px;
++  align-items: center;
++  /* was a fixed 54px, which fitted three dots and would have clipped words.
++     No max-width here: .tt-chat__msg already caps every bubble at 85%, and
++     restating it later in the file only overrode that cap for this one. */
++  width: auto;
++  padding: 10px 13px;
++}
++
++.tt-chat__typing-label {
++  font-size: 0.85em;
++  color: var(--color-text-muted);
++}
++
++.tt-chat__typing-dots {
++  display: inline-flex;
+   gap: 4px;
+   align-items: center;
+-  width: 54px;
+-  padding: 13px;
++  flex-shrink: 0;
+ }
+ 
+-.tt-chat__typing span {
++.tt-chat__typing-dots span {
+   width: 6px;
+   height: 6px;
+   border-radius: 50%;
+@@ -273,8 +288,8 @@ body.dp-open .tt-chat {
+   animation: tt-chat-blink 1.3s var(--ease) infinite both;
+ }
+ 
+-.tt-chat__typing span:nth-child(2) { animation-delay: 0.18s; }
+-.tt-chat__typing span:nth-child(3) { animation-delay: 0.36s; }
++.tt-chat__typing-dots span:nth-child(2) { animation-delay: 0.18s; }
++.tt-chat__typing-dots span:nth-child(3) { animation-delay: 0.36s; }
+ 
+ @keyframes tt-chat-blink {
+   0%, 70%, 100% { opacity: 0.25; transform: translateY(0); }
+@@ -387,7 +402,7 @@ body.dp-open .tt-chat {
+     animation: none;
+   }
+ 
+-  .tt-chat__typing span {
++  .tt-chat__typing-dots span {
+     animation-duration: 2.4s;
+   }
+ }
+diff --git a/site1/static/js/chat-widget.js b/site1/static/js/chat-widget.js
+index 8b1e993..3b2a478 100644
+--- a/site1/static/js/chat-widget.js
++++ b/site1/static/js/chat-widget.js
+@@ -74,13 +74,61 @@
+       scrollToEnd();
+     }
+ 
++    // Staged words, not a ticking clock. A counter climbing past 60 turns the
++    // wait into a stopwatch on something broken, which is the impression this
++    // exists to remove. Measured median is about 12s and the tail runs past
++    // 60s, so the stages are placed to change once during a normal wait and
++    // again well into a long one: a guest who sees the words move knows the
++    // thing is alive.
++    var WAIT_STAGES = [
++      [0,  'Looking that up'],
++      [12, 'Still working on that'],
++      [35, 'Thanks for waiting, nearly there']
++    ];
++
++    var waitTimer = null;
++    var waitStartedAt = 0;
++    var lastWaitLabel = null;
++
++    // Writes only when the wording actually changes. The label sits inside
++    // #tt-chat-log, which is role="log" aria-live="polite", so replacing its
++    // text node is an announcement. Rewriting the same sentence every second
++    // would read it out every second for the length of the wait.
++    function tickWait() {
++      var elapsed = (Date.now() - waitStartedAt) / 1000;
++      var label = WAIT_STAGES[0][1];
++      for (var i = 0; i < WAIT_STAGES.length; i++) {
++        if (elapsed >= WAIT_STAGES[i][0]) label = WAIT_STAGES[i][1];
++      }
++      if (label !== lastWaitLabel) {
++        lastWaitLabel = label;
++        $('#tt-chat-typing .tt-chat__typing-label').text(label);
++        // Later stages are longer strings. If one wraps, the bubble grows and
++        // the newest line drops below the fold on a short panel.
++        scrollToEnd();
++      }
++    }
++
+     function showTyping() {
++      // The dots move into their own wrapper so the label is not caught by the
++      // nth-child rules that stagger them.
+       $('<div class="tt-chat__msg tt-chat__msg--bot tt-chat__typing" id="tt-chat-typing">' +
+-        '<span></span><span></span><span></span></div>').appendTo($log);
++        '<span class="tt-chat__typing-label"></span>' +
++        '<span class="tt-chat__typing-dots" aria-hidden="true">' +
++        '<span></span><span></span><span></span></span></div>').appendTo($log);
++      waitStartedAt = Date.now();
++      lastWaitLabel = null;
++      tickWait();
++      waitTimer = setInterval(tickWait, 1000);
+       scrollToEnd();
+     }
+ 
+     function clearTyping() {
++      // Both the success and the error route come through here, so this is the
++      // only teardown the timer needs. Missing it would leave one interval per
++      // message running for the life of the page.
++      clearInterval(waitTimer);
++      waitTimer = null;
+       $('#tt-chat-typing').remove();
+     }
+ 
