@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
 
-from data.models.hotel import Hotel as BookingHotel, HotelServices, RoomPrice
+from data.models.hotel import Hotel as BookingHotel, RoomPrice
 from backend.services.ai_providers import get_provider, sanitize_prompt_text
 from data.repos.repositories import (
     HotelRepository,
@@ -949,18 +949,14 @@ class ChatService:
             lines.append(f"  Star rating: {clean(info['star_rating'])}")
 
         lines += ["", "ROOM TYPES AND NIGHTLY RATES (these are the only rooms that exist)"]
-        rooms = RoomPrice.objects.filter(
-            room_type__isnull=False, price_per_night__isnull=False
-        ).values_list('room_type', 'price_per_night', 'room_description')
+        rooms = HotelRepository.get_room_prices()
         for room_type, price, description in rooms:
             line = f"  - {clean(room_type)}: {int(price):,} VND per night"
             if description:
                 line += f". {clean(description).strip()}"
             lines.append(line)
 
-        services = HotelServices.objects.values_list(
-            'name_of_service', 'service_price', 'service_description'
-        )
+        services = HotelRepository.get_hotel_services()
         service_lines = []
         for service_name, price, description in services:
             line = f"  - {clean(service_name)}"
