@@ -8,10 +8,18 @@ newsletter form in base.html. It comes through a data attribute rather than an
 inline literal only because this widget's JS is an external static file, which
 cannot render template tags. Same token, same mechanism.
 
+data-phone rides down the same way and for the same reason. A client-side
+timeout has no response body to carry a number in, so the number has to already
+be on the page. It comes from the hotel row via the site-wide context
+processor, which every page already runs, so this costs no extra query. Empty
+when there is no hotel row, and the JS drops the "call us" half of the message
+rather than offering a blank number to dial.
+
 Note these are {% comment %} blocks, not {# #}. Django's {# #} is single-line
 only — spanning it across lines prints the comment onto the page.
 {% endcomment %}
-<div class="tt-chat" id="tt-chat" data-chat-url="{% url 'chat' %}" data-csrf="{{ csrf_token }}">
+<div class="tt-chat" id="tt-chat" data-chat-url="{% url 'chat' %}" data-csrf="{{ csrf_token }}"
+     data-phone="{{ hotel.phone|default:'' }}">
 
   <div class="tt-chat__panel" id="tt-chat-panel" role="dialog"
        aria-labelledby="tt-chat-title" aria-hidden="true">
