@@ -12,7 +12,8 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from data.models import CustomerBookingInfo, RoomPrice, User
+from data.models import CustomerBookingInfo, RoomAssignment, RoomPrice, User
+from data.repos.repositories import RoomRepository
 
 
 def _login(client, role, username):
@@ -88,3 +89,70 @@ def test_dashboard_matches_room_types_case_insensitively(client):
     assert 'booking.room_type.toLowerCase() === room.canonical.toLowerCase()' in page
     # Sidebar room-type filter, same mismatch against data-room-type.
     assert "(row.dataset.roomType || '').toLowerCase() === roomTypeFilter.toLowerCase()" in page
+
+
+# ── Item 2: a same-day booking is charged one night, so it holds one ──────
+#
+# The overlap test was the half-open check_in < other.check_out AND
+# check_out > other.check_in. A stay with check_in == check_out has zero
+# length under it and overlapped nothing, from either side, while the service
+# charged it a full night. Two guests could get the same room.
+
+
+def _assign(hotel, room, check_in, check_out):
+    return RoomAssignment.objects.create(
+        booking=_booking(hotel), room=room, status='active',
+        check_in=check_in, check_out=check_out,
+    )
+
+
+@pytest.mark.django_db
+def test_existing_same_day_stay_blocks_that_night(hotel, room):
+    d = timezone.localdate() + timedelta(days=10)
+    _assign(hotel, room, d, d)
+
+    assert RoomRepository.count_available_rooms_by_type('deluxe', d, d + timedelta(days=1)) == 0
+
+
+@pytest.mark.django_db
+def test_same_day_request_on_the_first_night_of_an_existing_stay(hotel, room):
+    # Mid-stay was already caught. The first night is where check_in < check_out
+    # compares d < d for the new request and lets it through.
+    d = timezone.localdate() + timedelta(days=10)
+    _assign(hotel, room, d, d + timedelta(days=2))
+
+    assert RoomRepository.count_available_rooms_by_type('deluxe', d, d) == 0
+
+
+@pytest.mark.django_db
+def test_back_to_back_stays_still_fit(hotel, room):
+    d = timezone.localdate() + timedelta(days=10)
+    _assign(hotel, room, d, d)
+    # The same-day stay's night is over by the next morning.
+    assert RoomRepository.count_available_rooms_by_type(
+        'deluxe', d + timedelta(days=1), d + timedelta(days=2)) == 1
+
+    _assign(hotel, room, d + timedelta(days=3), d + timedelta(days=4))
+    # Checking out on day 4 frees day 4 for a same-day stay.
+    checkout_day = d + timedelta(days=4)
+    assert RoomRepository.count_available_rooms_by_type('deluxe', checkout_day, checkout_day) == 1
+
+
+@pytest.mark.django_db
+def test_two_guests_cannot_book_the_same_room_for_a_same_day_stay(hotel, room):
+    """The audit's scenario end to end: one room, a same-day booking, then an
+    overnight booking starting the same day."""
+    from django.core.exceptions import ValidationError
+    from backend.services.services import ReservationService
+
+    RoomPrice.objects.create(hotel=hotel, room_type='deluxe', price_per_night=Decimal('500000'))
+    d = timezone.localdate() + timedelta(days=10)
+    form = {'name': 'Guest', 'email': 'a@example.com', 'room_type': 'deluxe', 'adults': 1}
+
+    ReservationService.create_reservation({**form, 'checkin_date': d.isoformat(), 'checkout_date': d.isoformat()})
+
+    with pytest.raises(ValidationError):
+        ReservationService.create_reservation({
+            **form, 'email': 'b@example.com',
+            'checkin_date': d.isoformat(), 'checkout_date': (d + timedelta(days=1)).isoformat(),
+        })

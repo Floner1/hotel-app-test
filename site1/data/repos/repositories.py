@@ -9,7 +9,7 @@ from data.models.hotel import (
     Hotel, HotelServices, Room, RoomAssignment, RoomMaintenanceLog, RoomPrice,
 )
 from data.models import CustomerBookingInfo, EmailQueue, EmailSubscriber, EmailCampaign, DiscountCode
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef, Q
 from django.utils import timezone
 
 _DEFAULT_PHONE = getattr(settings, 'HOTEL_DEFAULT_PHONE', '')
@@ -180,11 +180,16 @@ class RoomRepository:
 
         Returns a queryset so the caller can chain .select_for_update().
         """
+        # A same-day booking (check_in == check_out) is charged one night, so
+        # it holds the room for that night. The plain half-open test gave it
+        # zero length and it overlapped nothing: not as the new request, and
+        # not as an assignment already on the books.
+        check_out = max(check_out, check_in + timedelta(days=1))
         overlapping = RoomAssignment.objects.filter(
+            Q(check_out__gt=check_in) | Q(check_out=F('check_in'), check_in__gte=check_in),
             room_id=OuterRef('room_id'),
             status='active',
             check_in__lt=check_out,
-            check_out__gt=check_in,
         )
         return Room.objects.filter(
             room_type=room_type,
