@@ -12,7 +12,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from data.models import CustomerBookingInfo, RoomAssignment, RoomPrice, User
+from data.models import CustomerBookingInfo, DiscountCode, RoomAssignment, RoomPrice, User
 from data.repos.repositories import RoomRepository
 
 
@@ -274,3 +274,68 @@ def test_admin_can_still_change_a_staff_role(client):
 
     staff.refresh_from_db()
     assert staff.role == 'customer'
+
+
+# ── Item 5: a booking delete is all or nothing ────────────────────────────
+#
+# delete_reservation removed the room assignment, then customer requests, then
+# the booking, as three separate writes. discount_codes.redeemed_booking_id is
+# a foreign key, so a booking that had redeemed a code refused to delete after
+# its room assignment was already gone, and the room went back on sale.
+#
+# transaction=True because SQLite checks these foreign keys at commit, and the
+# default test transaction never commits.
+
+
+@pytest.fixture
+def customer_requests_table(transactional_db):
+    """The view deletes from customer_requests, which has no model, so the
+    SQLite test schema does not have it."""
+    from django.db import connection
+    with connection.cursor() as cursor:
+        cursor.execute('CREATE TABLE IF NOT EXISTS customer_requests '
+                       '(request_id INTEGER PRIMARY KEY, booking_id INTEGER)')
+    yield
+    with connection.cursor() as cursor:
+        cursor.execute('DROP TABLE IF EXISTS customer_requests')
+
+
+def _assigned_booking(hotel, room):
+    booking = _booking(hotel)
+    RoomAssignment.objects.create(
+        booking=booking, room=room, status='active',
+        check_in=booking.check_in, check_out=booking.check_out,
+    )
+    return booking
+
+
+@pytest.mark.django_db(transaction=True)
+def test_deleting_a_booking_that_redeemed_a_code(client, hotel, room, customer_requests_table):
+    _login(client, 'staff', 'desk9')
+    booking = _assigned_booking(hotel, room)
+    code = DiscountCode.objects.create(
+        code='TT10-ABCDEF', email='guest@example.com', discount_percent=10,
+        status='redeemed', redeemed_booking=booking,
+    )
+
+    response = client.post(reverse('delete_reservation', args=[booking.booking_id]))
+
+    assert response.status_code == 200, response.content
+    assert not CustomerBookingInfo.objects.filter(pk=booking.pk).exists()
+    code.refresh_from_db()
+    # Deleting the booking is not a refund of the code.
+    assert code.status == 'redeemed'
+    assert code.redeemed_booking_id is None
+
+
+@pytest.mark.django_db(transaction=True)
+def test_a_failed_delete_leaves_the_room_assignment(client, hotel, room, customer_requests_table):
+    from unittest.mock import patch
+    _login(client, 'staff', 'desk10')
+    booking = _assigned_booking(hotel, room)
+
+    with patch.object(CustomerBookingInfo, 'delete', side_effect=RuntimeError('boom')):
+        response = client.post(reverse('delete_reservation', args=[booking.booking_id]))
+
+    assert response.status_code == 500
+    assert RoomAssignment.objects.filter(booking_id=booking.pk, status='active').exists()

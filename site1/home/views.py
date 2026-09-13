@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
 from backend.services.services import HotelService, ReservationService, RoomService, EmailService, DiscountService, ChatService
-from data.models import User, CustomerBookingInfo
+from data.models import User, CustomerBookingInfo, DiscountCode
 from data.models.hotel import BookingStatus
 from data.repos.repositories import DiscountRepository, HotelRepository, RoomMaintenanceRepository
 from backend.services.ai_providers import ProviderBusy, model_slot
@@ -1091,14 +1091,18 @@ def delete_reservation(request, booking_id):
             'total_price': str(booking.total_price),
         }
 
-        # Delete related records to prevent Foreign Key constraint errors
-        booking.room_assignments.all().delete()
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM customer_requests WHERE booking_id = %s", [booking_id])
-
-        # Delete the booking
-        booking.delete()
+        # One transaction. These were separate writes: when the booking delete
+        # failed because a redeemed discount code still pointed at it, the room
+        # assignment was already gone and the room went back on sale under a
+        # booking that still existed.
+        from django.db import connection, transaction
+        with transaction.atomic():
+            booking.room_assignments.all().delete()
+            # The code stays redeemed. Deleting the booking is not a refund.
+            DiscountCode.objects.filter(redeemed_booking=booking).update(redeemed_booking=None)
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM customer_requests WHERE booking_id = %s", [booking_id])
+            booking.delete()
         log_booking_delete(request.user, booking_id, booking_data, request)
 
         return JsonResponse({
