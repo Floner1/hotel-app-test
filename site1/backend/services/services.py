@@ -295,7 +295,9 @@ class ReservationService:
             # Dashboard. A failure here must abort the whole booking: the row is
             # already written above, so swallowing the error would commit a
             # booking with no room and still report success to the guest.
-            RoomService.allocate_room(booking, assigned_by=user)
+            RoomService.allocate_room(
+                booking, assigned_by=reservation_data.get('assigned_by', user)
+            )
 
         # Fire booking confirmation email AFTER the transaction commits, so the
         # row is guaranteed visible to the email service and no lock the caller

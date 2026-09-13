@@ -179,6 +179,13 @@ def get_reservation(request):
             }, status=400)
         
         try:
+            # Staff and admin book on a guest's behalf. The guest's name, email
+            # and phone describe the guest, so the booking is not the desk
+            # account's, and the desk account's booking count is not the
+            # guest's loyalty count. The dashboard modal cannot answer the
+            # milestone prompt either, which failed every third staff booking.
+            desk_booking = is_staff_or_admin(request.user)
+
             # Prepare reservation data from form
             reservation_data = {
                 'name': request.POST.get('name'),
@@ -190,7 +197,8 @@ def get_reservation(request):
                 'children': request.POST.get('children', 0),
                 'room_type': request.POST.get('room_type'),
                 'notes': request.POST.get('notes', ''),
-                'user': request.user,
+                'user': None if desk_booking else request.user,
+                'assigned_by': request.user,
                 'discount_code': request.POST.get('discount_code', '').strip().upper(),
             }
 
@@ -206,7 +214,7 @@ def get_reservation(request):
             # to interrupt and ask the guest, and nothing is written on that
             # path, so a stale answer costs nothing.
             milestone_decision = request.POST.get('milestone_decision', '')
-            if not milestone_decision:
+            if not milestone_decision and not desk_booking:
                 provisional_number = _milestone_booking_number(request.user)
                 if provisional_number % 3 == 0:
                     return JsonResponse({

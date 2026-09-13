@@ -156,3 +156,71 @@ def test_two_guests_cannot_book_the_same_room_for_a_same_day_stay(hotel, room):
             **form, 'email': 'b@example.com',
             'checkin_date': d.isoformat(), 'checkout_date': (d + timedelta(days=1)).isoformat(),
         })
+
+
+# ── Item 3: a booking staff type in is the guest's, not the staff member's ─
+#
+# get_reservation counted request.user's bookings to decide the loyalty
+# milestone. From the dashboard that user is the staff member, and the Add
+# Reservation modal has no way to answer milestone_check, so every third staff
+# booking failed, wrote nothing, and failed again on retry. The bookings were
+# also owned by the staff account.
+
+
+def _reservation_form(check_in):
+    return {
+        'name': 'Walk In', 'phone': '0900000000', 'email': 'walkin@example.com',
+        'checkin_date': check_in.strftime('%m/%d/%Y'),
+        'checkout_date': (check_in + timedelta(days=1)).strftime('%m/%d/%Y'),
+        'adults': 1, 'children': 0, 'room_type': 'deluxe',
+    }
+
+
+def _book(client, days_out=5):
+    return client.post(
+        reverse('reservation'),
+        _reservation_form(timezone.localdate() + timedelta(days=days_out)),
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+
+@pytest.fixture
+def priced_room(hotel, room):
+    RoomPrice.objects.create(hotel=hotel, room_type='deluxe', price_per_night=Decimal('500000'))
+    return room
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('role', ['staff', 'admin'])
+def test_staff_third_booking_is_created_not_intercepted(client, hotel, priced_room, role):
+    desk = _login(client, role, f'desk-{role}')
+    _booking(hotel, user=desk, days_out=40)
+    _booking(hotel, user=desk, days_out=50)
+
+    response = _book(client)
+
+    assert response.json()['status'] == 'success', response.json()
+
+
+@pytest.mark.django_db
+def test_staff_booking_belongs_to_the_guest_not_the_desk(client, hotel, priced_room):
+    desk = _login(client, 'staff', 'desk7')
+
+    booking_id = _book(client).json()['booking_id']
+
+    booking = CustomerBookingInfo.objects.get(pk=booking_id)
+    assert booking.user_id is None
+    # Who assigned the room is still on record.
+    assert RoomAssignment.objects.get(booking=booking).assigned_by_id == desk.pk
+
+
+@pytest.mark.django_db
+def test_customer_third_booking_still_offers_the_milestone(client, hotel, priced_room):
+    guest = _login(client, 'customer', 'loyal1')
+    _booking(hotel, user=guest, days_out=40)
+    _booking(hotel, user=guest, days_out=50)
+
+    response = _book(client)
+
+    assert response.json()['status'] == 'milestone_check'
+    assert CustomerBookingInfo.objects.filter(user=guest).count() == 2
