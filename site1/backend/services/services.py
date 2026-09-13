@@ -284,6 +284,8 @@ class ReservationService:
                 'amount_paid': Decimal('0.00'),
                 'special_requests': special_requests if special_requests else None,
                 'notes': notes if notes else None,
+                # A desk booking has no user, so this is where its creator stays.
+                'created_by': reservation_data.get('created_by'),
             }
 
             booking = ReservationRepository.create(booking_data)

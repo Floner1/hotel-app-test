@@ -199,6 +199,7 @@ def get_reservation(request):
                 'notes': request.POST.get('notes', ''),
                 'user': None if desk_booking else request.user,
                 'assigned_by': request.user,
+                'created_by': request.user.pk,
                 'discount_code': request.POST.get('discount_code', '').strip().upper(),
             }
 

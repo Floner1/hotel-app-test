@@ -215,6 +215,19 @@ def test_staff_booking_belongs_to_the_guest_not_the_desk(client, hotel, priced_r
 
 
 @pytest.mark.django_db
+def test_desk_booking_records_who_created_it(client, hotel, priced_room):
+    """user is None on a desk booking, and assigned_by is overwritten if the
+    room is ever reassigned, so created_by is what keeps the creator on the row."""
+    desk = _login(client, 'staff', 'desk12')
+
+    booking_id = _book(client).json()['booking_id']
+
+    booking = CustomerBookingInfo.objects.get(pk=booking_id)
+    assert booking.user_id is None
+    assert booking.created_by == desk.pk
+
+
+@pytest.mark.django_db
 def test_staff_cannot_redeem_the_milestone_by_posting_it(client, hotel, priced_room):
     """Skipping only the prompt left the redeem path open to a hand-made POST,
     counted against the staff account's own bookings."""
