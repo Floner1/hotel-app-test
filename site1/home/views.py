@@ -1600,8 +1600,17 @@ def edit_reservation(request, booking_id):
             canonical_room_type = ReservationService._canonicalise_room_type(data['room_type'])
             if not canonical_room_type:
                 raise ValidationError('Invalid room type selected.')
-            rate = ReservationService._resolve_rate(canonical_room_type)
-            total_cost = rate * total_days
+            # booked_rate and total_price can carry a custom staff rate or a
+            # discount the list price knows nothing about. Repricing on every
+            # save wiped those whenever staff fixed a phone number, so the price
+            # only moves when something it depends on moved.
+            if (checkin_date, checkout_date, canonical_room_type) == (
+                booking.check_in, booking.check_out, (booking.room_type or '').strip().lower()
+            ):
+                rate, total_cost = booking.booked_rate, booking.total_price
+            else:
+                rate = ReservationService._resolve_rate(canonical_room_type)
+                total_cost = rate * total_days
         except ValidationError as e:
             return JsonResponse({
                 'status': 'error',
