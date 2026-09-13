@@ -215,6 +215,26 @@ def test_staff_booking_belongs_to_the_guest_not_the_desk(client, hotel, priced_r
 
 
 @pytest.mark.django_db
+def test_staff_cannot_redeem_the_milestone_by_posting_it(client, hotel, priced_room):
+    """Skipping only the prompt left the redeem path open to a hand-made POST,
+    counted against the staff account's own bookings."""
+    desk = _login(client, 'staff', 'desk11')
+    _booking(hotel, user=desk, days_out=40)
+    _booking(hotel, user=desk, days_out=50)
+
+    response = client.post(
+        reverse('reservation'),
+        {**_reservation_form(timezone.localdate() + timedelta(days=5)), 'milestone_decision': 'redeem'},
+        HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+    )
+
+    body = response.json()
+    assert body['status'] == 'success', body
+    assert Decimal(body['total_cost_amount']) == Decimal('500000')
+    assert body['milestone_applied'] is False
+
+
+@pytest.mark.django_db
 def test_customer_third_booking_still_offers_the_milestone(client, hotel, priced_room):
     guest = _login(client, 'customer', 'loyal1')
     _booking(hotel, user=guest, days_out=40)

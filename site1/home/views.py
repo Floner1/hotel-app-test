@@ -213,8 +213,10 @@ def get_reservation(request):
             # This first count is deliberately unlocked. It only decides whether
             # to interrupt and ask the guest, and nothing is written on that
             # path, so a stale answer costs nothing.
-            milestone_decision = request.POST.get('milestone_decision', '')
-            if not milestone_decision and not desk_booking:
+            # A desk booking has already skipped, whatever the POST says, so the
+            # redeem check below cannot count the staff account's own bookings.
+            milestone_decision = 'skip' if desk_booking else request.POST.get('milestone_decision', '')
+            if not milestone_decision:
                 provisional_number = _milestone_booking_number(request.user)
                 if provisional_number % 3 == 0:
                     return JsonResponse({
