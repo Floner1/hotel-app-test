@@ -1190,7 +1190,12 @@ def manage_accounts(request):
 
                 user.username = username
                 user.email = email
-                user.role = new_role
+                # The form offers Customer or Staff and nothing else, so it
+                # cannot say "stay an admin". Applied to an admin row, every
+                # save was a demotion, including the only admin demoting
+                # themselves with no UI path back.
+                if user.role != 'admin':
+                    user.role = new_role
 
                 # Only update password if provided, and hold it to the same bar
                 # as creation. Validating one branch and not the other just

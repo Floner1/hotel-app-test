@@ -224,3 +224,53 @@ def test_customer_third_booking_still_offers_the_milestone(client, hotel, priced
 
     assert response.json()['status'] == 'milestone_check'
     assert CustomerBookingInfo.objects.filter(user=guest).count() == 2
+
+
+# ── Item 4: the account form cannot say "admin", so it must not change one ─
+#
+# The edit form's account type select offers Customer or Staff and nothing
+# else, and the view wrote role = 'staff' if is_staff else 'customer' onto any
+# row. Saving an admin's row, including the only admin's own, demoted them,
+# with no UI path back.
+
+
+def _edit_account(client, user, is_staff):
+    return client.post(reverse('manage_accounts'), {
+        'action': 'edit', 'account_id': user.user_id, 'username': user.username,
+        'email': user.email, 'password': '', 'is_staff': is_staff,
+    })
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('is_staff', ['true', 'false'])
+def test_admin_saving_own_row_stays_admin(client, is_staff):
+    admin = _login(client, 'admin', 'onlyadmin')
+
+    _edit_account(client, admin, is_staff)
+
+    admin.refresh_from_db()
+    assert admin.role == 'admin'
+
+
+@pytest.mark.django_db
+def test_saving_another_admin_row_keeps_it_admin(client):
+    _login(client, 'admin', 'admin1')
+    other = User.objects.create_user(
+        username='admin2', email='admin2@example.com', password='irrelevant', role='admin')
+
+    _edit_account(client, other, 'true')
+
+    other.refresh_from_db()
+    assert other.role == 'admin'
+
+
+@pytest.mark.django_db
+def test_admin_can_still_change_a_staff_role(client):
+    _login(client, 'admin', 'admin3')
+    staff = User.objects.create_user(
+        username='desk8', email='desk8@example.com', password='irrelevant', role='staff')
+
+    _edit_account(client, staff, 'false')
+
+    staff.refresh_from_db()
+    assert staff.role == 'customer'
